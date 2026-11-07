@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gaze Harness</title>
+    <link rel="stylesheet" href="/src/harness/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Gaze harness <span class="muted">webcam workstream · dev tool</span></h1>
+      <div class="chips">
+        <span class="chip" id="chip-camera">camera: idle</span>
+        <span class="chip" id="chip-cal">calibration: none</span>
+        <span class="chip" id="chip-region">region: —</span>
+        <span class="chip" id="chip-perf">— fps</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage">
+        <div class="lecture-wrap" id="lecture-wrap">
+          <video id="lecture" controls playsinline></video>
+          <div class="lecture-placeholder" id="lecture-placeholder">
+            Lecture video area<br /><span class="muted">Load a local video file, or calibrate against this empty frame.</span>
+          </div>
+        </div>
+        <div class="row">
+          <label class="button secondary">
+            Load lecture video…
+            <input type="file" id="file" accept="video/*" hidden />
+          </label>
+          <label class="check"><input type="checkbox" id="show-dot" checked /> Show gaze estimate</label>
+          <label class="check"><input type="checkbox" id="small-video" /> Shrink video (geometry test)</label>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="cam-wrap">
+          <video id="cam" muted playsinline></video>
+          <canvas id="cam-overlay"></canvas>
+          <div class="cam-empty" id="cam-empty">Camera off</div>
+        </div>
+
+        <div class="row">
+          <button id="btn-start">Start camera</button>
+          <button id="btn-cal" disabled title="Look at still dots on and around the video (~30 s)">Calibrate</button>
+          <button id="btn-validate" disabled title="~75 s scripted test: alternate between watching the video and looking away">Run accuracy test</button>
+          <button id="btn-pursuit" class="secondary" disabled title="Experimental: follow a moving dot for ~24 s. Tested worse than still dots.">Moving dot (experimental)</button>
+          <button id="btn-clear" class="secondary" disabled>Clear calibration</button>
+        </div>
+        <p class="hint">Before calibrating, sit how you'll sit while watching. During calibration, look at the dot the way you'd normally watch: mostly with your eyes, letting your head turn a little. Keep your seat position still.</p>
+        <p class="hint" id="message">Frames are processed locally in this browser; nothing is uploaded or recorded unless you press Record.</p>
+
+        <h2>Calibration</h2>
+        <dl id="cal-info"><dt>status</dt><dd>none</dd></dl>
+
+        <h2 id="val-heading">Look-away accuracy test</h2>
+        <p class="hint">Run it with the button above after calibrating (~75 s). Follow the banner; a beep marks each change. Have your phone or something on the desk to look at.</p>
+        <div id="val-info"></div>
+
+        <h2>Live frame</h2>
+        <dl id="live-info"></dl>
+
+        <h2>Last 1 s summary</h2>
+        <dl id="summary-info"></dl>
+
+        <h2>Recording</h2>
+        <p class="hint">Records gaze messages only, never images. Start recording before calibrating and running the accuracy test, so the capture includes the calibration and the test's ground-truth labels.</p>
+        <div class="row">
+          <button id="btn-rec" class="secondary">Record</button>
+          <span class="muted" id="rec-count">not recording</span>
+        </div>
+        <div class="row">
+          <button id="btn-dl-capture" class="secondary" disabled title="Shared-contract gaze_calibration / gaze_observations envelopes plus accuracy-test labels, for inference and platform replay">Download contract capture</button>
+          <button id="btn-dl" class="secondary" disabled title="Internal format with head pose, per-axis error and diagnostics">Download internal JSONL</button>
+        </div>
+      </aside>
+    </main>
+
+    <div id="gaze-dot" hidden></div>
+    <div id="val-banner" hidden>
+      <div id="val-step"></div>
+      <div id="val-instruction"></div>
+      <div class="val-bar"><div id="val-progress"></div></div>
+      <button id="btn-val-cancel" class="secondary">Cancel</button>
+    </div>
+    <div id="cal-overlay" hidden>
+      <div id="cal-target"></div>
+      <div id="cal-text"></div>
+    </div>
+
+    <script type="module" src="/src/harness/main.ts"></script>
+  </body>
+</html>
