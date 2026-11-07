@@ -44,29 +44,43 @@
 .tp-list li + li {
   border-top: 1px solid #eee;
 }
-.tp-sentence {
+/*
+ * Sentence rows are <button>s. Host pages often style buttons inside .tp (e.g. the product's
+ * `.transcript-card .tp button`, specificity 0,2,1), which would hide the current-sentence
+ * highlight. These selectors are deliberately more specific (0,3,1 and up) so a host's generic
+ * button rules cannot override the row look; style the toolbar via `.tp-toolbar button` instead.
+ */
+.tp .tp-list button.tp-sentence {
   display: flex;
   gap: 10px;
   width: 100%;
+  min-height: 0;
+  margin: 0;
   padding: 6px 10px;
   text-align: left;
   font: inherit;
+  font-weight: 400;
   color: inherit;
   background: none;
   border: 0;
+  border-radius: 0;
+  box-shadow: none;
   cursor: pointer;
 }
-.tp-sentence:hover:not(:disabled) {
+.tp .tp-list button.tp-sentence:hover:not(:disabled) {
   background: #f3f4f6;
+  color: inherit;
 }
-.tp-sentence:focus-visible {
+.tp .tp-list button.tp-sentence:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: -2px;
 }
-.tp-sentence:disabled {
+.tp .tp-list button.tp-sentence:disabled {
   cursor: default;
+  opacity: 1;
 }
-.tp-current .tp-sentence {
+.tp .tp-list .tp-current button.tp-sentence,
+.tp .tp-list .tp-current button.tp-sentence:hover:not(:disabled) {
   background: #fff3c4;
   font-weight: 600;
 }
