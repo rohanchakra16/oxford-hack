@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-manual_bookmark",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "manual_bookmark",
+  "payload": {
+    "bookmarkId": "manual-1",
+    "videoId": "video-fixture",
+    "mediaTimeS": 120.5,
+    "tBrowserMs": 9000.0
+  }
+}

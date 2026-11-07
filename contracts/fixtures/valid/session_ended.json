@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-session_ended",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "session_ended",
+  "payload": {
+    "reason": "client_ended"
+  }
+}

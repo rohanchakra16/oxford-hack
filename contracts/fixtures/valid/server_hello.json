@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-server_hello",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "server_hello",
+  "payload": {
+    "backendInstanceId": "be-1",
+    "connectionId": "conn-1",
+    "resumeOutcome": "resumed",
+    "sessionId": "ses-fixture",
+    "heartbeatIntervalMs": 2000.0,
+    "heartbeatTimeoutMs": 6000.0,
+    "tBackendMs": 50000.0
+  }
+}

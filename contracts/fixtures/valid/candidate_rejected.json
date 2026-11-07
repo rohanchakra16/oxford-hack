@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-candidate_rejected",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "candidate_rejected",
+  "payload": {
+    "eventId": "evt-2",
+    "reason": "crosses_boundary",
+    "detail": "evidence spans a seek at segment seg-2 end"
+  }
+}

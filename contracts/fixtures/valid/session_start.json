@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-session_start",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "session_start",
+  "payload": {
+    "videoId": "video-fixture",
+    "runKind": "simulated",
+    "requestedSensors": {
+      "eeg": true,
+      "gaze": true
+    },
+    "mediaDurationS": 600.0
+  }
+}

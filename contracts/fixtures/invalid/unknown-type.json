@@ -1,0 +1,6 @@
+{
+  "description": "Unknown message type",
+  "expectedCode": "unknown_type",
+  "layer": "structural",
+  "raw": "{\"schemaVersion\": \"0.1.0\", \"messageId\": \"msg-heartbeat\", \"sessionId\": \"ses-fixture\", \"seq\": 3, \"type\": \"focus_meter\", \"payload\": {\"clock\": \"browser\", \"sentMs\": 1600.0}}"
+}
