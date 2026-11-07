@@ -1972,7 +1972,7 @@
     },
     "ModePolicy": {
       "additionalProperties": false,
-      "description": "Which operating modes may produce automatic suggestions.\n\nA mode is ``automatic`` only if the detector bundle declares it evaluated (or the run is\nsimulated). Otherwise automatic suggestions are disabled in that mode.",
+      "description": "Which operating modes may produce automatic suggestions.\n\nA mode is ``automatic`` if evaluated, simulated, or explicitly enabled by the local operator\nfor an experimental live detector. Experimental opt-in is not evaluation evidence and is\nreported in sensor-status reasons and detector identity. Otherwise the mode is manual-only.",
       "properties": {
         "both": {
           "enum": [
@@ -2069,7 +2069,8 @@
             "error",
             "stale_telemetry",
             "clock_unsynchronised",
-            "session_ended"
+            "session_ended",
+            "review_replay"
           ],
           "title": "Reason",
           "type": "string"
@@ -2212,6 +2213,12 @@
           "maximum": 16,
           "title": "Playbackrate",
           "type": "number"
+        },
+        "replaying": {
+          "default": false,
+          "description": "Explicit review replay; never eligible for new reminders.",
+          "title": "Replaying",
+          "type": "boolean"
         },
         "segmentId": {
           "anyOf": [

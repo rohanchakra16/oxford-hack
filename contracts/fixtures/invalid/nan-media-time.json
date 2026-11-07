@@ -2,5 +2,5 @@
   "description": "NaN is not valid JSON and never a valid measurement",
   "expectedCode": "invalid_json",
   "layer": "structural",
-  "raw": "{\"schemaVersion\": \"0.1.0\", \"messageId\": \"msg-playback_state\", \"sessionId\": \"ses-fixture\", \"seq\": 3, \"type\": \"playback_state\", \"payload\": {\"videoId\": \"video-fixture\", \"segmentId\": \"seg-2\", \"event\": \"playing\", \"state\": \"playing\", \"tBrowserMs\": 3520.0, \"mediaTimeS\": NaN, \"playbackRate\": 1.25, \"mediaDurationS\": 600.0, \"telemetrySeq\": 12}}"
+  "raw": "{\"schemaVersion\": \"0.1.0\", \"messageId\": \"msg-playback_state\", \"sessionId\": \"ses-fixture\", \"seq\": 3, \"type\": \"playback_state\", \"payload\": {\"videoId\": \"video-fixture\", \"segmentId\": \"seg-2\", \"event\": \"playing\", \"state\": \"playing\", \"tBrowserMs\": 3520.0, \"mediaTimeS\": NaN, \"playbackRate\": 1.25, \"mediaDurationS\": 600.0, \"telemetrySeq\": 12, \"replaying\": false}}"
 }

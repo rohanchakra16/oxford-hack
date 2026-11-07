@@ -79,6 +79,8 @@ class HubSettings:
     allowed_run_kinds: frozenset[str] = frozenset({"live", "simulated"})
     simulation_policy_run_kinds: frozenset[str] = frozenset({"simulated"})
     """Run kinds whose sessions may publish from unevaluated modes (synthetic data only)."""
+    experimental_live_modes: frozenset[str] = frozenset()
+    """Explicit operator opt-in. Does not declare evaluation or enable arbitrary detectors."""
 
 
 class SimulationBundle(Protocol):
@@ -456,6 +458,12 @@ class Hub:
                 return "manual_only"
             if req.run_kind in self.settings.simulation_policy_run_kinds:
                 return "automatic"
+            if (
+                req.run_kind == "live"
+                and mode in self.settings.experimental_live_modes
+                and mode in getattr(inference, "experimental_modes", frozenset())
+            ):
+                return "automatic"
             return "automatic" if mode in inference.evaluated_modes else "manual_only"
 
         policy = p.ModePolicy(
@@ -496,6 +504,12 @@ class Hub:
                 gaze_enabled=req.requested_sensors.gaze,
                 policy=policy,
                 has_detector=inference is not None,
+                experimental_modes=(
+                    self.settings.experimental_live_modes
+                    & getattr(inference, "experimental_modes", frozenset())
+                    if req.run_kind == "live"
+                    else frozenset()
+                ),
                 run_kind=req.run_kind,
             ),
             inference=inference,

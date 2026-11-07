@@ -76,6 +76,42 @@ def test_without_eeg_source_live_eeg_stays_unavailable() -> None:
     assert b.of_type("sensor_status")[-1]["payload"]["eeg"]["state"] == "unavailable"
 
 
+def test_live_reminders_default_to_physical_unicorn_without_a_mock_fallback() -> None:
+    options = args(live_eeg_reminders=True)
+    build_hub_factory(options, HubSettings())
+    assert options.eeg_source == "inference.unicorn_source:make_source"
+
+
+def test_live_reminders_opt_in_wires_factory_and_truthful_experimental_policy() -> None:
+    factory = build_hub_factory(
+        args(
+            eeg_source="tests.fake_eeg_source:make_source",
+            live_eeg_reminders=True,
+            allow_simulated=False,
+        ),
+        HubSettings(),
+    )
+    sim = Sim(factory)
+    try:
+        browser = sim.browser("live-reminders")
+        browser.connect()
+        sim.run(1000)
+        browser.start_session("lecture", eeg=True, gaze=False, run_kind="live")
+        sim.run(200)
+        config = browser.of_type("session_config")[-1]["payload"]
+        assert config["detector"]["detectorId"] == "experimental-live-eeg-reminders"
+        assert config["modePolicy"] == {
+            "both": "manual_only",
+            "eegOnly": "automatic",
+            "gazeOnly": "manual_only",
+        }
+        detector = sim.hub.sessions[browser.session_id].inference
+        assert detector is not None and detector.evaluated_modes == frozenset()
+        assert not browser.of_type("review_bookmark")  # Source has no attention-model windows.
+    finally:
+        sim.hub.shutdown()
+
+
 @pytest.mark.parametrize("spec", ["nocolon", "no.such.module:x", "tests.fake_eeg_source:missing", "a b:c"])
 def test_bad_eeg_source_specs_are_reported(spec: str) -> None:
     with pytest.raises(EegSourceLoadError):

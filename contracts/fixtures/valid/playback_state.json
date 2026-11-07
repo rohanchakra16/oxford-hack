@@ -13,6 +13,7 @@
     "mediaTimeS": 42.0,
     "playbackRate": 1.25,
     "mediaDurationS": 600.0,
-    "telemetrySeq": 12
+    "telemetrySeq": 12,
+    "replaying": false
   }
 }

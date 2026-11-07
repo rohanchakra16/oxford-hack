@@ -32,10 +32,12 @@ class Player:
         rate: float = 1.0,
         event: str | None = None,
         video: str | None = None,
+        replaying: bool = False,
     ) -> None:
         self.seq += 1
         self.tl.ingest(
             PlaybackState(
+                replaying=replaying,
                 video_id=video or self.video,
                 segment_id=seg,
                 event=event or ("playing" if state == "playing" else "pause"),
@@ -73,6 +75,16 @@ def test_maps_interval_inside_one_segment() -> None:
     assert out.mapped.segment_id == "s1"
     assert out.mapped.evidence_media.start_media_s == pytest.approx(104.0)
     assert out.mapped.evidence_media.end_media_s == pytest.approx(108.0)
+
+
+def test_review_replay_is_ineligible_and_not_added_to_mapping_history() -> None:
+    player = Player()
+    player.send(1000, "playing", 1, seg="review", replaying=True)
+    assert player.tl.eligibility(1100, CLOCK, CFG).reason == "review_replay"
+    assert player.tl.segments == []
+    player.send(2000, "playing", 2, seg="normal", replaying=False)
+    status = player.tl.eligibility(2100, CLOCK, CFG)
+    assert status.eligible and status.since_backend_ms == 2000
 
 
 def test_playback_rate_is_applied() -> None:
