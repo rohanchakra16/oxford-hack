@@ -33,7 +33,10 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
 
 ## 4. In progress / not started
 
-- Developer diagnostics page (`frontend/src/diagnostics/`): placeholder only.
+- PR #2 (`infra/shared-foundation`): CI green (platform + frontend jobs). NOT merged: the session's auto-mode
+  classifier denied `gh pr merge` ("Merge Without Review"). The lead must merge it, or allow the action.
+- WIP branch `infra/diagnostics-wip`: developer diagnostics page + synthetic VirtualMedia + `simulateTransportDrop()`.
+  Checked: eslint, tsc, vite build. NOT browser-tested; not merge-ready until Playwright tests exist.
 - Playwright infra tests (`frontend/e2e/infra/`) and CI job: not started.
 - Root `npm run dev` (starts platform and frontend together): not started.
 - `--eeg-source module:factory` CLI hook for P1's adapter: not started.
@@ -54,7 +57,7 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
 
 ## 6. Next steps
 
-1. Push, open the PR, wait for CI, merge (authorised).
+1. Merge PR #2 (needs the lead, see §4). Then rebase/merge `infra/diagnostics-wip` onto main.
 2. Diagnostics page, then Playwright infra tests and a CI job.
 3. `npm run dev`, then the docs listed above.
 
