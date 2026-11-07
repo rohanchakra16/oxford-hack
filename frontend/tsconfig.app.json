@@ -32,5 +32,8 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/integration/gazeCompat.test.ts"
   ]
 }

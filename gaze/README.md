@@ -27,7 +27,7 @@ are stored or sent anywhere.
 | Implement calibration and a held-out accuracy check | Done: dot calibration with held-out dots inside and outside the video, per-axis error, plus a scripted look-away accuracy test |
 | Map gaze coordinates to video coordinates | Done: normalised video point (0..1 inside), probability of being inside the video, on/off/uncertain decision |
 | Handle viewport resize and fullscreen changes | Done: calibration stored in screen space; video content rect re-read every frame. Verified live: window resize, video resize, fullscreen |
-| Produce gaze measurements and quality output | Done: shared-contract `gaze_observations` / `gaze_calibration` via `src/contract.ts`, validated against the 0.1.0 JSON Schema |
+| Produce gaze measurements and quality output | Done: shared-contract `gaze_observations` / `gaze_calibration` via `src/contract.ts`, validated against the 0.2.0 JSON Schema |
 | Bound processing to maintain responsiveness on the target laptop | Done: 15 fps cap, frames dropped rather than queued, batches ≤ 64. Measured 15 fps at ~28 ms/frame on the dev laptop (see Completion evidence) |
 | Document setup, calibration, performance, and limitations | Done: this file |
 
@@ -42,7 +42,7 @@ are stored or sent anywhere.
 - Quality diagnostics.
 - Camera and tracking status.
 
-Over the wire, only the shared contract (`contracts/`, schemaVersion 0.1.0, owner @rohanchakra16):
+Over the wire, only the shared contract (`contracts/`, schemaVersion 0.2.0, owner @rohanchakra16):
 
 | Message | When | Notes |
 |---|---|---|
@@ -78,7 +78,7 @@ await engine.calibrate({ show: (p) => drawTarget(p), hide: () => clearTarget() }
 |---|---|---|
 | @aryanmorarji | Viewport geometry and geometry-change updates | **Agreed** (board, 2026-11-07; PR #16 merged to main). `PlayerHandle.getVideoElement()` returns the same `<video>` for the player's lifetime; wire it as `getVideoElement: () => player.getVideoElement()`. The module reads its rect every frame, so no change events are needed. `.lp-video` is `object-fit: contain`, `object-position: 50% 50%`, no padding/border, matching the module's content-rect assumption; Aryan will post before changing any of that. |
 | @Seikaro | Gaze measurements needed for inference | **Agreed** (board, 2026-11-07). Calibrated `screen_gaze` only; valid `insideVideo=false` is usable outside evidence; face/eyes loss and `low_confidence` stay invalid; `modelConfidence` is measurement confidence only; 1 Hz invalid heartbeats become unknown under their gap/coverage rules. Re-sending the active calibration (after a cancelled recalibration) restarts their 4 s gaze window, which they accept as conservative. |
-| @rohanchakra16 | Contracts, timestamps, units, transport | Open. Adapter targets contract 0.1.0 and the competing `gaze_observation.v0` schema draft has been removed. Asked on the board (2026-11-07), awaiting an answer: how the frontend should import the gaze module (plus `@mediapipe/tasks-vision`), and optionally a tri-state `insideVideo`. Folder: stays `gaze/` (lead decision 2026-11-07: the `src/` reorganisation, #15, is deferred). Rohan has gaze wiring on his integration to-do list. |
+| @rohanchakra16 | Contracts, timestamps, units, transport | Open. Adapter targets contract 0.2.0 and the competing `gaze_observation.v0` schema draft has been removed. Asked on the board (2026-11-07), awaiting an answer: how the frontend should import the gaze module (plus `@mediapipe/tasks-vision`), and optionally a tri-state `insideVideo`. Folder: stays `gaze/` (lead decision 2026-11-07: the `src/` reorganisation, #15, is deferred). Rohan has gaze wiring on his integration to-do list. |
 | @Betty505 | Camera/calibration status and onboarding guidance | Open, not yet raised on the board. Provide: camera states, calibration states, guidance text (below), and agree who builds the product's calibration screen (the module supplies the `CalibrationUI` callbacks). |
 
 Onboarding guidance (for @Betty505): sit how you'll sit while watching; face a light source, not a window;
@@ -151,10 +151,10 @@ Real webcam output in the shared contract, for replaying through inference and t
 data. It is *not* the backend's `oxford-hack-recording` replay format, which records a whole session on the backend
 clock; the harness has no backend session. A capture holds browser-side gaze messages on the **browser clock**, plus
 ground-truth labels from the accuracy test, so it can be spliced into a recording or fed to the inference adapter
-after clock mapping. Every envelope validates against `contracts/schema` 0.1.0.
+after clock mapping. Every envelope validates against `contracts/schema` 0.2.0.
 
 ```text
-line 1:  {"format":"oxford-hack-gaze-capture","formatVersion":1,"schemaVersion":"0.1.0","runKind":"live",
+line 1:  {"format":"oxford-hack-gaze-capture","formatVersion":1,"schemaVersion":"0.2.0","runKind":"live",
           "producer":"gaze-webcam-mediapipe","producerVersion":…,"sessionId":…,"createdAt":…,"clock":…,"description":…}
 message: {"kind":"message","tBrowserMs":…,"message":{<gaze_calibration | gaze_observations envelope>}}
 label:   {"kind":"label","phaseId":"phone","expected":"off_video","startBrowserMs":…,"endBrowserMs":…,

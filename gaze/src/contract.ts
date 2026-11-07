@@ -1,6 +1,6 @@
 /**
  * Adapter from the gaze module's internal messages to the shared contracts owned by
- * @rohanchakra16 (contracts/, schemaVersion 0.1.0): `gaze_observations` and `gaze_calibration`.
+ * @rohanchakra16 (contracts/, schemaVersion 0.2.0): `gaze_observations` and `gaze_calibration`.
  *
  * The internal GazeObservation (src/types.ts) carries more detail (head pose, uncertainty band,
  * diagnostics) for the harness and evaluation. Only what the contract defines leaves this module.
@@ -12,7 +12,7 @@
 import type { CalibrationStateEvent } from "./engine";
 import type { GazeObservation, GazeReasonCode } from "./types";
 
-export const CONTRACT_SCHEMA_VERSION = "0.1.0";
+export const CONTRACT_SCHEMA_VERSION = "0.2.0"; // must equal the shared SCHEMA_VERSION; enforced by frontend/src/integration/gazeCompat.test.ts
 export const PRODUCER = "gaze-webcam-mediapipe";
 
 export type RunKind = "live" | "replay" | "simulated";

@@ -78,7 +78,7 @@ describe("GazeCaptureRecorder", () => {
       .split("\n")
       .map((l) => JSON.parse(l));
     const [header, ...rest] = lines as [Record<string, unknown>, ...CaptureLine[]];
-    expect(header).toMatchObject({ format: CAPTURE_FORMAT, formatVersion: 1, schemaVersion: "0.1.0", runKind: "live" });
+    expect(header).toMatchObject({ format: CAPTURE_FORMAT, formatVersion: 1, schemaVersion: "0.2.0", runKind: "live" });
     expect(header.sessionId).toMatch(/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/);
 
     const kinds = rest.map((l) => (l.kind === "message" ? l.message.type : "label"));
