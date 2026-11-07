@@ -22,6 +22,12 @@ export interface PlayerHandle {
   cancelReplay(): void;
   /** The currently loaded lecture, or null. */
   getLecture(): LoadedLecture | null;
+  /**
+   * The <video> element, for gaze geometry (read its rect; do not control playback through it,
+   * use seek/play/pause above). Same element for the player's lifetime. Styled object-fit: contain,
+   * centred, with no padding or border; changes will be announced on the board (#1).
+   */
+  getVideoElement(): HTMLVideoElement;
 }
 
 export interface LoadedLecture {
@@ -53,6 +59,8 @@ const NOOP_SUBSCRIBE = () => () => {};
 
 export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectureChange }: LecturePlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  /** The element the current controller was built on (set together with the controller). */
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const [controller, setController] = useState<PlayerController | null>(null);
   const [lecture, setLecture] = useState<(LoadedLecture & { url: string }) | null>(null);
   const [load, setLoad] = useState<LoadState>({ kind: 'empty' });
@@ -66,6 +74,7 @@ export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectur
     const el = videoRef.current;
     if (!el) return;
     const c = new PlayerController(el);
+    videoElementRef.current = el;
     const detachTelemetry = attachMediaElement(client, el);
     setController(c);
     return () => {
@@ -108,6 +117,7 @@ export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectur
           const l = lectureRef.current;
           return l && { videoId: l.videoId, fileName: l.fileName };
         },
+        getVideoElement: () => videoElementRef.current!,
       },
     [controller],
   );
