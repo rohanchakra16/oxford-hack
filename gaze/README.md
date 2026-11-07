@@ -23,13 +23,13 @@ are stored or sent anywhere.
 | Task | Status |
 |---|---|
 | Select and document a reproducible gaze model setup | Done: MediaPipe Face Landmarker, pinned model, served locally (see Run and test) |
-| Implement camera permission and camera-loss handling | Done: explicit permission/not-found/in-use/disconnected states, reconnect on device change. Camera-denied path verified in browser; live unplug not yet tested |
+| Implement camera permission and camera-loss handling | Done: explicit permission/not-found/in-use/disconnected states, reconnect on device change. Verified: camera denied, and unplugging the camera mid-session |
 | Implement calibration and a held-out accuracy check | Done: dot calibration with held-out dots inside and outside the video, per-axis error, plus a scripted look-away accuracy test |
 | Map gaze coordinates to video coordinates | Done: normalised video point (0..1 inside), probability of being inside the video, on/off/uncertain decision |
-| Handle viewport resize and fullscreen changes | Implemented (calibration stored in screen space; video rect re-read every frame). **Not yet tested live** |
+| Handle viewport resize and fullscreen changes | Done: calibration stored in screen space; video content rect re-read every frame. Verified live: window resize, video resize, fullscreen |
 | Produce gaze measurements and quality output | Done: shared-contract `gaze_observations` / `gaze_calibration` via `src/contract.ts`, validated against the 0.1.0 JSON Schema |
-| Bound processing to maintain responsiveness on the target laptop | Implemented: 15 fps cap, frames dropped rather than queued, batches ≤ 64. **Per-frame cost not yet measured on the target laptop** |
-| Document setup, calibration, performance, and limitations | This file; performance numbers pending |
+| Bound processing to maintain responsiveness on the target laptop | Done: 15 fps cap, frames dropped rather than queued, batches ≤ 64. Measured 15 fps at ~28 ms/frame on the dev laptop (see Completion evidence) |
+| Document setup, calibration, performance, and limitations | Done: this file |
 
 ## Inputs
 - Webcam frames (`getUserMedia`, 640×480 ideal, processed at ≤ 15 fps).
@@ -94,11 +94,11 @@ seat still; recalibrate if you move seats or the module reports calibration expi
 ## Completion evidence
 | Evidence | Status |
 |---|---|
-| Tracking demonstrated on the target laptop | Tracking demonstrated on @ShinJuKim's MacBook (Chrome). Target/demo laptop still to confirm |
-| Held-out calibration accuracy and limitations documented | Done for one person and setup; more participants pending. Dot calibration: ~90-100 px held-out RMS in good conditions, vertical error much larger than horizontal; moving dot ~150 px (worse, kept experimental). Accuracy-test history below |
+| Tracking demonstrated on the target laptop | Demonstrated on @ShinJuKim's MacBook Pro (Intel Core i5-8257U, built-in FaceTime HD camera, Chrome), including with several teammates on that machine. Confirm again if the demo uses a different laptop |
+| Held-out calibration accuracy and limitations documented | Done: scripted accuracy test for one person (history below); teammates tried it informally on the same laptop and it worked well for them too (no scored runs yet). Dot calibration: ~90-100 px held-out RMS in good conditions, vertical error much larger than horizontal; moving dot ~150 px (worse, kept experimental). Accuracy-test history below |
 
-| Tested resize, fullscreen, and camera-loss behaviour | Camera denied: verified. Resize, fullscreen, camera unplug: **pending** (harness has a "Shrink video" toggle) |
-| Documented processing performance | **Pending**: read ms/frame and fps from the harness header chip on the target laptop |
+| Tested resize, fullscreen, and camera-loss behaviour | Done (manual, 2026-11-07): window/video resize and fullscreen kept tracking without recalibration; unplugging the camera was reported and recovered; camera denied reported clearly |
+| Documented processing performance | Done: 15 fps (the cap) at ~28 ms/frame model time on an Intel Core i5-8257U MacBook Pro in Chrome (GPU delegate where available). That is ~42% of the 66 ms frame budget, so the lecture video stays responsive. Re-check on the demo laptop if different |
 
 ### Accuracy-test history
 All runs by @ShinJuKim on @ShinJuKim's MacBook (Chrome), 2026-11-07, scripted ~75 s test (`Run accuracy test`), dot calibration
