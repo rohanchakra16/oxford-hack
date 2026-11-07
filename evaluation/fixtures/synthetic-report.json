@@ -1,0 +1,56 @@
+{
+  "report_kind": "synthetic_smoke_only",
+  "model_version": "0.1.0",
+  "config_version": "synthetic-0.1.0",
+  "seed": 17,
+  "bundle_sha256": "2471d7b76bc1ba17167f17d7d781fccc9a48dfd5045f87494719f474dde54b51",
+  "evaluated_live_modes": [],
+  "modes": {
+    "eeg_only": {
+      "scripted_event_metrics": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "false_positives_per_eligible_hour": 0.0,
+        "eligible_duration_ms": 7000.0,
+        "min_iou": 0.3
+      },
+      "unknown_observed": true,
+      "interrupted_observed": true
+    },
+    "gaze_only": {
+      "scripted_event_metrics": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "false_positives_per_eligible_hour": 0.0,
+        "eligible_duration_ms": 7000.0,
+        "min_iou": 0.3
+      },
+      "unknown_observed": true,
+      "interrupted_observed": true
+    },
+    "both": {
+      "scripted_event_metrics": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "false_positives_per_eligible_hour": 0.0,
+        "eligible_duration_ms": 7000.0,
+        "min_iou": 0.3
+      },
+      "unknown_observed": true,
+      "interrupted_observed": true
+    }
+  },
+  "limitations": "Scripted fixtures only; no participant data, trained model or held-out accuracy."
+}
