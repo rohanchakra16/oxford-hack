@@ -15,7 +15,7 @@ test('main normal-viewing flow maps controlled live-model windows, stacks remind
       if (message.type === 'playback_eligibility') eligibility.push(message.payload.reason);
     } catch { /* Ignore transport frames outside the JSON protocol. */ }
   }));
-  await page.goto(`${MAIN_URL}/#pair=${token}`);
+  await page.goto(`${MAIN_URL}/?signals=eeg#pair=${token}`);
   await expect(page.getByText('Session connected')).toBeVisible();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
   await expect(page.getByText(/Experimental EEG reminders/)).toBeVisible();
