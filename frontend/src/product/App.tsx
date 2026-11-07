@@ -193,6 +193,15 @@ export default function App() {
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [earlierCounts, setEarlierCounts] = useState<Record<string, number>>({});
+  const [reminders, setReminders] = useState<ReviewBookmark[]>([]);
+
+  useEffect(() => client.onEvent((event) => {
+    if (event.type === 'session_started' || event.type === 'session_ended') setReminders([]);
+    if (event.type === 'bookmark_added' && event.bookmark.source !== 'manual') {
+      setReminders((saved) => saved.some((b) => b.bookmarkId === event.bookmark.bookmarkId)
+        ? saved : [...saved, event.bookmark]);
+    }
+  }), [client]);
 
   useEffect(() => () => client.dispose(), [client]);
 
@@ -225,6 +234,7 @@ export default function App() {
     setLecture(next);
     setDismissed(new Set());
     setEarlierCounts({});
+    setReminders([]);
     setTranscript(null);
   };
 
@@ -390,6 +400,26 @@ export default function App() {
               <button onClick={focus.closeNotice}>Close heads-up</button>
             </section>}
             <DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />
+
+            {snapshot.session?.config.detector?.detectorId === 'experimental-live-eeg-reminders' && (
+              <p className="live-eeg-note" role="status">
+                Experimental EEG reminders · focus on the lecture for the first 8 seconds of usable EEG to set your baseline.
+                Reminders follow 8 seconds of sustained low estimates after smoothing.
+                {snapshot.sensors?.automaticSuggestions ? ' EEG changes are not validated attention measurements.' : ' Waiting for usable EEG from your headset.'}
+              </p>
+            )}
+
+            {reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
+              <h2>Heads-up <span className="count-badge">{reminders.length}</span></h2>
+              <div className="reminder-stack__items">
+                {reminders.map((bookmark) => <article className="reminder-notice" key={bookmark.bookmarkId} data-testid="review-reminder" role="status">
+                  <strong>Review moment saved at {formatTime(bookmark.suggestedMediaS)}</strong>
+                  <p>{bookmark.runKind === 'simulated' ? 'Simulated reminder.' : 'Your EEG signal suggested this moment.'} Watch on, or revisit it when you’re ready.</p>
+                  <button type="button" className="button button--primary button--small" onClick={() => replay(bookmark)}>Replay</button>
+                  <button type="button" className="button button--quiet button--small" aria-label={`Close reminder at ${formatTime(bookmark.suggestedMediaS)}`} onClick={() => setReminders((saved) => saved.filter((b) => b.bookmarkId !== bookmark.bookmarkId))}>Close</button>
+                </article>)}
+              </div>
+            </section>}
 
             <section className="review-panel" aria-labelledby="review-title">
               <div className="section-heading">

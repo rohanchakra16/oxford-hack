@@ -75,7 +75,7 @@ export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectur
     if (!el) return;
     const c = new PlayerController(el);
     videoElementRef.current = el;
-    const detachTelemetry = attachMediaElement(client, el);
+    const detachTelemetry = attachMediaElement(client, el, () => c.getState().replay !== null);
     setController(c);
     return () => {
       detachTelemetry();

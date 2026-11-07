@@ -117,6 +117,8 @@ export type MediaEventName =
   | 'durationchange';
 
 export interface MediaSnapshot {
+  /** Explicit PlayerHandle replay, distinct from ordinary lecture playback. */
+  replaying?: boolean;
   /** HTMLMediaElement.currentTime */
   currentTime: number;
   playbackRate: number;
