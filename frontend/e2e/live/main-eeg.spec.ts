@@ -36,7 +36,7 @@ test('main normal-viewing flow maps controlled live-model windows, stacks remind
   const injected = await fetch(`${MAIN_BACKEND}/api/v0/test/inject`, {
     method: 'POST', headers,
     body: JSON.stringify({ sessionId: session.sessionId, message: {
-      schemaVersion: '0.1.0', messageId: 'second-controlled-reminder', sessionId: session.sessionId, seq: 0,
+      schemaVersion: '0.2.0', messageId: 'second-controlled-reminder', sessionId: session.sessionId, seq: 0,
       type: 'review_candidate', payload: {
         eventId: 'second-controlled-event', detector: { detectorId: 'controlled-test', detectorVersion: '0', configVersion: 'test' },
         mode: 'eeg_only', evidence: { startBackendMs: now - 3000, endBackendMs: now - 1000 },

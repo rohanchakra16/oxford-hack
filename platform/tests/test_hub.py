@@ -251,7 +251,7 @@ def test_invalid_and_incompatible_messages() -> None:
     sim = Sim(make_hub_factory())
     b, _ = started(sim)
     good = json.loads(json.dumps(b.received[0]))
-    b.send_raw('{"schemaVersion":"0.1.0","type":"playback_state"}')
+    b.send_raw('{"schemaVersion":"0.2.0","type":"playback_state"}')
     sim.run(100)
     assert b.of_type("error")[-1]["payload"]["code"] == "invalid_message"
     assert b.conn is not None  # non-fatal

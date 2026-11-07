@@ -29,7 +29,7 @@ export type WireMessage =
 export interface ClientHelloMessage {
   messageId: string;
   payload: ClientHello;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'client_hello';
@@ -71,7 +71,7 @@ export interface ResumeRequest {
 export interface ServerHelloMessage {
   messageId: string;
   payload: ServerHello;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'server_hello';
@@ -103,7 +103,7 @@ export interface ServerHello {
 export interface HeartbeatMessage {
   messageId: string;
   payload: Heartbeat;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'heartbeat';
@@ -118,7 +118,7 @@ export interface Heartbeat {
 export interface ClockPingMessage {
   messageId: string;
   payload: ClockPing;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'clock_ping';
@@ -136,7 +136,7 @@ export interface ClockPing {
 export interface ClockPongMessage {
   messageId: string;
   payload: ClockPong;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'clock_pong';
@@ -162,7 +162,7 @@ export interface ClockPong {
 export interface ClockStatusMessage {
   messageId: string;
   payload: ClockStatus;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'clock_status';
@@ -186,7 +186,7 @@ export interface ClockStatus {
 export interface SessionStartMessage {
   messageId: string;
   payload: SessionStart;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'session_start';
@@ -209,7 +209,7 @@ export interface RequestedSensors {
 export interface SessionEndMessage {
   messageId: string;
   payload: SessionEnd;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'session_end';
@@ -223,7 +223,7 @@ export interface SessionEnd {
 export interface SessionConfigMessage {
   messageId: string;
   payload: SessionConfig;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'session_config';
@@ -305,7 +305,7 @@ export interface ModePolicy {
 export interface SessionEndedMessage {
   messageId: string;
   payload: SessionEnded;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'session_ended';
@@ -319,7 +319,7 @@ export interface SessionEnded {
 export interface SessionSnapshotMessage {
   messageId: string;
   payload: SessionSnapshot;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'session_snapshot';
@@ -444,7 +444,7 @@ export interface SensorState {
 export interface ErrorMessage {
   messageId: string;
   payload: ErrorReport;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'error';
@@ -480,7 +480,7 @@ export interface ErrorReport {
 export interface PlaybackStateMessage {
   messageId: string;
   payload: PlaybackState;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'playback_state';
@@ -531,7 +531,7 @@ export interface PlaybackState {
 export interface PlaybackEligibilityMessage {
   messageId: string;
   payload: PlaybackEligibility;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'playback_eligibility';
@@ -571,7 +571,7 @@ export interface PlaybackEligibility {
 export interface EegFeatureWindowMessage {
   messageId: string;
   payload: EegFeatureWindow;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'eeg_features';
@@ -672,7 +672,7 @@ export interface SampleCounts {
 export interface EegStatusMessage {
   messageId: string;
   payload: EegStatus;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'eeg_status';
@@ -706,7 +706,7 @@ export interface EegStatus {
 export interface GazeObservationBatchMessage {
   messageId: string;
   payload: GazeObservationBatch;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'gaze_observations';
@@ -771,7 +771,7 @@ export interface NormalisedPoint {
 export interface GazeCalibrationMessage {
   messageId: string;
   payload: GazeCalibration;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'gaze_calibration';
@@ -810,7 +810,7 @@ export interface CssRect {
 export interface ReviewCandidateMessage {
   messageId: string;
   payload: ReviewCandidate;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'review_candidate';
@@ -841,7 +841,7 @@ export interface ReviewCandidate {
 export interface ReviewBookmarkMessage {
   messageId: string;
   payload: ReviewBookmark;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'review_bookmark';
@@ -849,7 +849,7 @@ export interface ReviewBookmarkMessage {
 export interface ManualBookmarkMessage {
   messageId: string;
   payload: ManualBookmark;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'manual_bookmark';
@@ -872,7 +872,7 @@ export interface ManualBookmark {
 export interface CandidateRejectedMessage {
   messageId: string;
   payload: CandidateRejected;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'candidate_rejected';
@@ -901,7 +901,7 @@ export interface CandidateRejected {
 export interface UserFeedbackMessage {
   messageId: string;
   payload: UserFeedback;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'user_feedback';
@@ -922,12 +922,12 @@ export interface UserFeedback {
 export interface SensorStatusMessage {
   messageId: string;
   payload: SensorStatus;
-  schemaVersion: '0.1.0';
+  schemaVersion: '0.2.0';
   seq: number;
   sessionId: string | null;
   type: 'sensor_status';
 }
 
-export const SCHEMA_VERSION = "0.1.0";
+export const SCHEMA_VERSION = "0.2.0";
 export const MESSAGE_TYPES = ["candidate_rejected","client_hello","clock_ping","clock_pong","clock_status","eeg_features","eeg_status","error","gaze_calibration","gaze_observations","heartbeat","manual_bookmark","playback_eligibility","playback_state","review_bookmark","review_candidate","sensor_status","server_hello","session_config","session_end","session_ended","session_snapshot","session_start","user_feedback"] as const;
 export type MessageType = (typeof MESSAGE_TYPES)[number];

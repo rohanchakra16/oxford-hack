@@ -4,7 +4,7 @@ Recordings are JSONL: line 1 is a header, every other line is one accepted messa
 `platform/src/oxford_hack/harness/replay.py`.
 
 ```json
-{"format": "oxford-hack-recording", "formatVersion": 1, "schemaVersion": "0.1.0", "synthetic": true,
+{"format": "oxford-hack-recording", "formatVersion": 1, "schemaVersion": "0.2.0", "synthetic": true,
  "description": "...", "backendStartMs": 10000.0,
  "detector": {"detectorId": "...", "detectorVersion": "...", "configVersion": "...", "evaluatedModes": []} }
 {"atMs": 10500.0, "from": "clock", "offsetBrowserMinusBackendMs": 123456.7}
