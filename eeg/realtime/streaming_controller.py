@@ -224,6 +224,18 @@ class StreamingController:
             "attention_score": prediction.get("attention_score"),
             "prediction_valid": prediction.get("valid", False),
         }
+        stats = self.get_stats()
+        logger.info(
+            "EEG frame=%d queue_depth=%d acquisition_ms=%.3f preprocessing_ms=%.3f "
+            "features_ms=%.3f classification_ms=%.3f total_ms=%.3f",
+            self._frame_index,
+            stats.queue_depth,
+            stats.acquisition_latency_ms,
+            stats.preprocessing_latency_ms,
+            stats.feature_latency_ms,
+            stats.classification_latency_ms,
+            stats.total_processing_latency_ms,
+        )
         self._frame_index += 1
         self._update_stat(
             "total_processing_latency_ms",

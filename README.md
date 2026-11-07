@@ -6,8 +6,9 @@ building labelled EEG datasets, and estimating attention in real time.
 The acquisition layer provides a hardware-independent device interface, a
 deterministic simulated EEG device, and an optional g.tec UnicornPy adapter.
 The vendor SDK is not bundled with this project; the Unicorn adapter fails
-clearly when it is unavailable. EEG processing, dataset construction, and
-attention estimation are intentionally not implemented yet.
+clearly when it is unavailable. Dataset construction, preprocessing, feature
+extraction, classification, and real-time streaming are implemented as
+separate replaceable layers.
 
 ## Requirements
 
@@ -36,6 +37,19 @@ python main.py
 
 The application loads and validates `config.yaml`, then configures logging.
 
+## Device configuration and Unicorn SDK setup
+
+The mock device is hardware-independent and is used by the automated tests.
+The physical adapter requires the official g.tec UnicornPy SDK installed in
+the same virtual environment as this project. Obtain the SDK from g.tec,
+follow its platform-specific installation instructions, and verify that
+`python -c "import UnicornPy"` succeeds before selecting `unicorn` in the
+GUI. The adapter does not fall back to simulated data when the SDK is absent.
+
+The device reports the actual sampling frequency and channel metadata at
+runtime. Do not copy the mock `acquisition.sample_rate_hz` into hardware
+configuration; it is only the scaffold default.
+
 ## Tests
 
 ```bash
@@ -45,9 +59,9 @@ pytest
 ## Project layout
 
 - `eeg/acquisition`: device interface and simulated EEG acquisition
-- `eeg/processing`: future EEG signal processing code
+- `eeg/processing`: buffering, preprocessing, and signal-quality processing
 - `eeg/dataset`: labelled recording models and SQLite/NPZ persistence
-- `eeg/realtime`: future real-time attention estimation code
+- `eeg/realtime`: feature extraction, classification, and real-time streaming
 - `eeg/utils`: shared configuration and logging utilities
 - `tests`: automated tests
 
@@ -92,6 +106,72 @@ producer-consumer real-time processing pipeline and frame contract.
 raw device batches in a background thread, transitions to a review-pending
 state when acquisition stops, and requires an explicit save or discard.
 Persistence failures retain the temporary session for retry or discard.
+
+## Dataset construction and export
+
+Launch the dataset GUI with:
+
+```bash
+python -c "from eeg.dataset.dataset_gui import run; raise SystemExit(run())"
+```
+
+Select a device and configured label, connect, record, stop, then explicitly
+save or discard. Saving writes raw samples to NPZ and metadata to SQLite;
+discarding creates no database entry. Optional model-training feature frames
+are written separately and never replace raw EEG.
+
+Use `DatasetExporter` for NPZ, CSV plus JSON sidecar, or JSON metadata
+exports. `DatasetLoader` validates exported files before reconstructing
+samples, timestamps, indices, channels, labels, and annotations.
+
+## Feature registration and model replacement
+
+Register arbitrary features without changing the framework:
+
+```python
+from eeg.realtime import EEGFeatureExtractor, FeatureRegistry
+
+def channel_spread(eeg_window, sampling_rate, channel_info, config=None):
+    return float(eeg_window.max() - eeg_window.min())
+
+registry = FeatureRegistry()
+registry.register("channel_spread", channel_spread)
+extractor = EEGFeatureExtractor(registry)
+```
+
+The extractor executes only registered features. Configure the enabled feature
+names and per-feature settings in `config.yaml`; placeholder names are not
+required. Feature failures are represented in the frame and do not stop other
+features.
+
+`StubAttentionClassifier` accepts dynamic feature names and produces a
+deterministic development score. It is not trained, validated, or calibrated.
+Replace it with a class implementing `AttentionClassifier.predict(features)`
+when a trained model is available; the streaming controller does not need to
+change.
+
+## Preprocessing and real-time streaming
+
+`EEGPreprocessor` provides stateful optional filtering and quality indicators.
+`StreamingController` uses a producer-consumer pipeline with a two-second
+window, 75% overlap, and 500 ms updates by default. It reports latency,
+queue-depth, deadline, and overflow metrics through `StreamingStats` and logs
+each emitted frame.
+
+## Hardware-independent testing
+
+Run the complete suite without Unicorn hardware:
+
+```bash
+QT_QPA_PLATFORM=offscreen python -m pytest -q
+```
+
+The suite covers acquisition, dataset save/reload/discard, preprocessing,
+feature registration and failures, classifier behavior, GUI state transitions,
+real-time streaming, raw-data integrity, thread cleanup, and lightweight
+latency/memory measurements. The audit tests use Python `tracemalloc` for peak
+allocation reporting; production CPU monitoring can be added with the host's
+process metrics tooling.
 
 ## Architecture and object documentation
 
