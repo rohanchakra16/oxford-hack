@@ -76,6 +76,16 @@ metadata definitions.
 See [docs/EEG_RECORDING_DATABASE.md](docs/EEG_RECORDING_DATABASE.md) for the
 recording schema, NPZ contents, and consistency guarantees.
 
+## Architecture and object documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): interaction graph and runtime
+  data flow.
+- [docs/OBJECT_REFERENCE.md](docs/OBJECT_REFERENCE.md): documentation for
+  every implemented public object.
+
+These documents are maintained as the implementation grows. New public
+objects and subsystem interactions should be added to both references.
+
 ## EEG acquisition
 
 `MockEEGDevice` implements the same lifecycle as a future physical device:
