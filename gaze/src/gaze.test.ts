@@ -522,9 +522,16 @@ describe("probability-based decision", () => {
     expect(classifyByProbability({ x: 450, y: 1500 }, video, sigma).region).toBe("off_video");
   });
 
-  it("is uncertain near the edge from the inside", () => {
-    const d = classifyByProbability({ x: 450, y: 20 }, video, { x: 60, y: 170 });
-    expect(d.region).toBe("uncertain");
+  it("counts estimates near the inside of an edge as on-video, and is uncertain just outside it", () => {
+    const sigma = { x: 60, y: 170 };
+    // Just inside the top edge (P ≈ 0.54): webcam estimates while watching cluster here, so this is on_video.
+    const inside = classifyByProbability({ x: 450, y: 20 }, video, sigma);
+    expect(inside.pInside).toBeCloseTo(0.544, 2);
+    expect(inside.region).toBe("on_video");
+    // Under the earlier 0.6 threshold the same point was uncertain.
+    expect(classifyByProbability({ x: 450, y: 20 }, video, sigma, { onThreshold: 0.6, offThreshold: 0.07 }).region).toBe("uncertain");
+    // 60 px outside (P ≈ 0.36): neither confidently on nor off.
+    expect(classifyByProbability({ x: 450, y: -60 }, video, sigma).region).toBe("uncertain");
   });
 
   it("respects custom thresholds", () => {

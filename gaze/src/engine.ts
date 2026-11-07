@@ -53,7 +53,7 @@ export interface GazeEngineOptions {
   eyesClosedThreshold?: number;
   /** Rolling-median window for the gaze estimate (ms); 0 disables smoothing. */
   smoothingMs?: number;
-  /** P(inside video) at or above which a frame is "on_video" (default 0.6). */
+  /** P(inside video) at or above which a frame is "on_video" (default 0.4). */
   onThreshold?: number;
   /** P(inside video) at or below which a frame is "off_video" (default 0.07, strict to avoid false alarms). */
   offThreshold?: number;
