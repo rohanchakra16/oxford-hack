@@ -3,13 +3,17 @@ import {
   createReviewClient,
   useReviewConnection,
   useReviewSnapshot,
-  type ReviewBookmark,
+  type ReviewBookmark as WireReviewBookmark,
   type ReviewClient,
   type SensorState,
 } from '../integration';
 import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle } from '../player';
 import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
 import './product.css';
+import { useFocusReview } from '../focus/useFocusReview';
+import { FocusSetup } from '../focus/FocusSetup';
+
+type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
 const NOOP_SUBSCRIBE = () => () => {};
 const NO_SENTENCES: readonly Sentence[] = [];
@@ -208,10 +212,13 @@ export default function App() {
     () => null,
   );
   const sentences = transcript?.sentences ?? NO_SENTENCES;
+  const focus = useFocusReview(player, lecture, duration);
+  const ended = useSyncExternalStore(player?.subscribe ?? NOOP_SUBSCRIBE, () => player?.getState().ended ?? false);
 
   const activeBookmarks = useMemo(
-    () => snapshot.bookmarks.filter((bookmark) => !lecture || bookmark.videoId === lecture.videoId),
-    [snapshot.bookmarks, lecture],
+    () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (!focus.enabled || bookmark.source === 'manual')), ...focus.moments]
+      .sort((a, b) => a.suggestedMediaS - b.suggestedMediaS),
+    [snapshot.bookmarks, lecture, focus.enabled, focus.moments],
   );
 
   const onLectureChange = (next: LoadedLecture | null) => {
@@ -229,15 +236,18 @@ export default function App() {
     // With a transcript, replay is bounded to the end of the sentence containing the suggested moment;
     // without one it seeks and keeps playing (nothing here pauses or seeks on its own).
     if (passage) void player.replayRange(target, Math.max(passage.endS, target + 3)).catch(() => undefined);
-    else {
+    else if (bookmark.endMediaS !== undefined) {
+      void player.replayRange(target, bookmark.endMediaS).catch(() => undefined);
+    } else {
       player.seek(target);
       void player.play().catch(() => undefined);
     }
-    client.sendFeedback(bookmark.bookmarkId, 'replay', target);
+    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'replay', target);
+    focus.closeNotice();
   };
 
   const dismiss = (bookmark: ReviewBookmark) => {
-    client.sendFeedback(bookmark.bookmarkId, 'dismiss', currentTime);
+    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'dismiss', currentTime);
     setDismissed((previous) => new Set(previous).add(bookmark.bookmarkId));
   };
 
@@ -245,11 +255,11 @@ export default function App() {
     const count = (earlierCounts[bookmark.bookmarkId] ?? 0) + 1;
     setEarlierCounts((previous) => ({ ...previous, [bookmark.bookmarkId]: count }));
     const target = passageFor(sentences, bookmark.suggestedMediaS, count)?.startS ?? bookmark.suggestedMediaS;
-    client.sendFeedback(bookmark.bookmarkId, 'move_earlier', target);
+    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'move_earlier', target);
   };
 
   const rate = (bookmark: ReviewBookmark, useful: boolean) => {
-    client.sendFeedback(bookmark.bookmarkId, useful ? 'rated_useful' : 'rated_not_useful', currentTime);
+    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, useful ? 'rated_useful' : 'rated_not_useful', currentTime);
   };
 
   const connection = snapshot.connection;
@@ -331,6 +341,11 @@ export default function App() {
           <div className="main-column">
             <section className="player-card" aria-label="Lecture video">
               <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange} />
+              {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="player-tools">
+                {activeBookmarks.map((bookmark) => <button className="button button--quiet button--small" key={bookmark.bookmarkId} onClick={() => replay(bookmark)} aria-label={`Replay bookmark at ${formatTime(bookmark.suggestedMediaS)}`}>
+                  <span aria-hidden="true">⚑ </span>{formatTime(bookmark.suggestedMediaS)}
+                </button>)}
+              </nav>}
               <div className="player-card__footer">
                 <div className="lecture-file">
                   <span className="file-icon" aria-hidden="true">▶</span>
@@ -367,18 +382,26 @@ export default function App() {
           </div>
 
           <aside className="side-column" aria-label="Session and review">
+            <FocusSetup player={player} lecture={lecture} focus={focus} />
+            {focus.notice && !ended && !focus.snapshot?.ended && <section className="focus-tools" role="status" aria-label="Focus heads-up">
+              <strong>Heads-up: review moment saved</strong>
+              <p>You may want to revisit {formatTime(focus.notice.mediaRange.startMediaS)} when you’re ready.</p>
+              <button onClick={() => { const bookmark = focus.moments.find((b) => b.suggestedMediaS === focus.notice!.mediaRange.startMediaS); if (bookmark) replay(bookmark); }}>Replay saved moment</button>
+              <button onClick={focus.closeNotice}>Close heads-up</button>
+            </section>}
             <DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />
 
             <section className="review-panel" aria-labelledby="review-title">
               <div className="section-heading">
                 <div>
                   <p className="eyebrow">Your checkpoints</p>
-                  <h2 id="review-title">Review moments <span className="count-badge">{activeBookmarks.length}</span></h2>
+                  <h2 id="review-title">{ended || focus.snapshot?.ended ? 'End-of-lecture bookmarks' : 'Review moments'} <span className="count-badge">{activeBookmarks.length}</span></h2>
                 </div>
               </div>
               <p className="review-intro">
                 Moments are suggestions to review, not judgments about your attention.
               </p>
+              {(ended || focus.snapshot?.ended) && <p role="status">Lecture complete. Choose a saved flag to revisit a moment.</p>}
               {snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
                 <div className="manual-only-note" role="status">
                   Automatic suggestions are paused. Add a marker whenever you want to revisit a moment.
