@@ -7,6 +7,7 @@
     "contracts:generate": "cd platform && uv run python scripts/generate_contracts.py && uv run python scripts/make_fixtures.py && cd ../frontend && npm run contracts:types",
     "contracts:check": "cd platform && uv run python scripts/generate_contracts.py --check && uv run python scripts/make_fixtures.py --check && cd ../frontend && npm run contracts:types:check",
     "dev": "node integration/dev.mjs",
-    "e2e": "npm --prefix frontend run e2e"
+    "e2e": "npm --prefix frontend run e2e",
+    "dev:focus": "node evaluation/player/product-dev.mjs"
   }
 }

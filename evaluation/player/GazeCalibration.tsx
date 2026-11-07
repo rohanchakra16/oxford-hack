@@ -3,7 +3,7 @@ import type { PlayerHandle } from '../../frontend/src/player';
 import type { GazeCamera } from './gaze-runtime';
 import { GazeWindowBuffer } from './gaze';
 
-export function GazeCalibration({ player, buffer }: { player: PlayerHandle | null; buffer: GazeWindowBuffer }) {
+export function GazeCalibration({ player, buffer, onStarted }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void }) {
   const engine = useRef<GazeCamera | null>(null);
   const abort = useRef(new AbortController());
   const [busy, setBusy] = useState(false);
@@ -18,6 +18,7 @@ export function GazeCalibration({ player, buffer }: { player: PlayerHandle | nul
 
   const calibrate = async () => {
     if (!player || busy) return;
+    onStarted?.();
     const controller = new AbortController();
     abort.current = controller;
     setBusy(true); setStatus('Starting the camera…'); buffer.clear();
