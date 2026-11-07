@@ -1,0 +1,21 @@
+{
+  "detector_id": "experimental-rule-baseline",
+  "detector_version": "0.1.0",
+  "config_version": "synthetic-0.1.0",
+  "synthetic_only": true,
+  "evaluated_modes": [],
+  "evidence_ms": 4000.0,
+  "dwell_ms": 2000.0,
+  "cooldown_ms": 15000.0,
+  "max_step_ms": 1500.0,
+  "max_age_ms": 1500.0,
+  "max_clock_uncertainty_ms": 50.0,
+  "gaze_max_gap_ms": 500.0,
+  "gaze_min_valid_fraction": 0.8,
+  "gaze_outside_threshold": 0.7,
+  "eeg_feature_set_version": "synthetic-features-0",
+  "eeg_feature_name": "synthetic_value",
+  "eeg_feature_unit": "a.u.",
+  "eeg_feature_channel": "synthetic-1",
+  "eeg_threshold": 0.6
+}
