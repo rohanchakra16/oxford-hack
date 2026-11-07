@@ -87,6 +87,13 @@ class SimulationBundle(Protocol):
     def poll(self, now_backend_ms: float) -> list[p.EegFeatureWindow | p.EegStatus]: ...
 
 
+class LiveEegFeed(Protocol):
+    """Real EEG source bridge (see eeg/bridge.py): drained on every tick, stopped on shutdown."""
+
+    def poll(self, now_backend_ms: float) -> list[p.EegFeatureWindow | p.EegStatus]: ...
+    def stop(self) -> None: ...
+
+
 SimulationFactory = Callable[[SessionContext], tuple[SimulationBundle | None, InferenceAdapter | None]]
 
 
@@ -168,6 +175,7 @@ class Hub:
         backend_instance_id: str | None = None,
         recorder: Recorder | None = None,
         eeg_device: p.EegDeviceInfo | None = None,
+        live_eeg: LiveEegFeed | None = None,
     ) -> None:
         self.clock = clock
         self.settings = settings or HubSettings()
@@ -177,6 +185,7 @@ class Hub:
         self._simulation_factory = simulation_factory
         self._recorder = recorder
         self._eeg_device = eeg_device
+        self._live_eeg = live_eeg
         self.clients: dict[str, ClientState] = {}
         self.conns: dict[str, ConnState] = {}
         self.sessions: dict[str, Session] = {}
@@ -519,6 +528,8 @@ class Hub:
     def shutdown(self) -> None:
         for s in list(self.sessions.values()):
             self._end_session(s, "backend_shutdown")
+        if self._live_eeg is not None:
+            self._live_eeg.stop()
 
     # ------------------------------------------------------------------ playback
 
@@ -805,7 +816,11 @@ class Hub:
                         t_backend_ms=now,
                     ),
                 )
+        live_items = self._live_eeg.poll(now) if self._live_eeg is not None else []
         for session in list(self.sessions.values()):
+            if session.config.run_kind == "live":
+                for item in live_items:
+                    self._on_eeg(session, item, now)
             if (
                 session.conn is None
                 and session.disconnected_since_ms is not None
