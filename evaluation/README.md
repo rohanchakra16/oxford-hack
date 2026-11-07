@@ -45,7 +45,25 @@ Labelled recordings, model bundles, and inference outputs.
 - Clear limitations and failure cases.
 
 ## Run and test
-Add verified training, validation, and held-out evaluation commands here.
+See `PROTOCOL.md` for calibration, independent labels, exclusion rules,
+participant-disjoint splits and frozen event-matching rules. `REPORT.md`
+documents the initial synthetic validation and its limitations.
+
+Use the environment/setup in `inference/README.md`, then from the root:
+
+```powershell
+$env:PYTHONPATH = "$PWD;$PWD/platform/src"
+inference/.venv/Scripts/python.exe -m evaluation.labels --help
+inference/.venv/Scripts/python.exe -m evaluation.synthetic
+inference/.venv/Scripts/python.exe -m pytest inference/tests evaluation/tests -q
+```
+
+Library entry points: `splits.participant_splits` / `validate_splits`,
+`metrics.Event` / `event_metrics`, and `labels.Label` / `append_label`.
+The label collector appends validated local JSONL only under ignored `data/`.
+No participant data or real held-out result exists yet, so no verified training
+or held-out evaluation command is claimed. `evaluation.synthetic` checks
+scripted event plumbing only; its perfect fixture scores are not accuracy.
 
 ## Data handling
 Keep credentials and participant recordings out of Git.

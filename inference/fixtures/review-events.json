@@ -1,0 +1,650 @@
+[
+  {
+    "synthetic": true,
+    "mode": "eeg_only",
+    "candidates": [
+      {
+        "eventId": "0e802e0f3db55d89a53560b341b49a4b",
+        "detector": {
+          "detectorId": "experimental-rule-baseline",
+          "detectorVersion": "0.1.0",
+          "configVersion": "synthetic-0.1.0"
+        },
+        "mode": "eeg_only",
+        "evidence": {
+          "startBackendMs": 0.0,
+          "endBackendMs": 6000.0
+        },
+        "decisionBackendMs": 6150.0,
+        "eligibilityEpoch": 1,
+        "contributingSignals": [
+          {
+            "signal": "eeg",
+            "windowIds": [
+              "synthetic-eeg-4000",
+              "synthetic-eeg-5000",
+              "synthetic-eeg-6000"
+            ],
+            "scores": [
+              {
+                "name": "synthetic_value",
+                "value": 0.9,
+                "scale": "a.u.",
+                "missingReason": null
+              }
+            ]
+          }
+        ],
+        "provenance": {
+          "runKind": "simulated",
+          "producer": "experimental-rule-baseline",
+          "producerVersion": "0.1.0"
+        }
+      }
+    ],
+    "statuses": [
+      {
+        "tBackendMs": 150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 4150.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4400.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4650.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4900.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5150.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5400.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5650.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5900.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 6150.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 6400.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 6650.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 6900.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 7150.0,
+        "state": "cooldown",
+        "reason": "recent review suggestion"
+      },
+      {
+        "tBackendMs": 7250.0,
+        "state": "interrupted",
+        "reason": "paused"
+      }
+    ]
+  },
+  {
+    "synthetic": true,
+    "mode": "gaze_only",
+    "candidates": [
+      {
+        "eventId": "89689f92cddb5c2cb7e0f1db34c7d7e2",
+        "detector": {
+          "detectorId": "experimental-rule-baseline",
+          "detectorVersion": "0.1.0",
+          "configVersion": "synthetic-0.1.0"
+        },
+        "mode": "gaze_only",
+        "evidence": {
+          "startBackendMs": 0.0,
+          "endBackendMs": 6000.0
+        },
+        "decisionBackendMs": 6150.0,
+        "eligibilityEpoch": 1,
+        "contributingSignals": [
+          {
+            "signal": "gaze",
+            "windowIds": [
+              "synthetic-gaze-0",
+              "synthetic-gaze-250",
+              "synthetic-gaze-500",
+              "synthetic-gaze-750",
+              "synthetic-gaze-1000",
+              "synthetic-gaze-1250",
+              "synthetic-gaze-1500",
+              "synthetic-gaze-1750",
+              "synthetic-gaze-2000",
+              "synthetic-gaze-2250",
+              "synthetic-gaze-2500",
+              "synthetic-gaze-2750",
+              "synthetic-gaze-3000",
+              "synthetic-gaze-3250",
+              "synthetic-gaze-3500",
+              "synthetic-gaze-3750",
+              "synthetic-gaze-4000",
+              "synthetic-gaze-4250",
+              "synthetic-gaze-4500",
+              "synthetic-gaze-4750",
+              "synthetic-gaze-5000",
+              "synthetic-gaze-5250",
+              "synthetic-gaze-5500",
+              "synthetic-gaze-5750",
+              "synthetic-gaze-6000"
+            ],
+            "scores": [
+              {
+                "name": "outside_video_fraction",
+                "value": 1.0,
+                "scale": "fraction_of_valid_duration",
+                "missingReason": null
+              }
+            ]
+          }
+        ],
+        "provenance": {
+          "runKind": "simulated",
+          "producer": "experimental-rule-baseline",
+          "producerVersion": "0.1.0"
+        }
+      }
+    ],
+    "statuses": [
+      {
+        "tBackendMs": 150.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 400.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 650.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 900.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 1150.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 1400.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 1650.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 1900.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 2150.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 2400.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 2650.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 2900.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 3150.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 3400.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 3650.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 3900.0,
+        "state": "unknown",
+        "reason": "incomplete, stale or out-of-epoch evidence"
+      },
+      {
+        "tBackendMs": 4150.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4400.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4650.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4900.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5150.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5400.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5650.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5900.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 6150.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 6400.0,
+        "state": "cooldown",
+        "reason": "recent review suggestion"
+      },
+      {
+        "tBackendMs": 6650.0,
+        "state": "cooldown",
+        "reason": "recent review suggestion"
+      },
+      {
+        "tBackendMs": 6900.0,
+        "state": "cooldown",
+        "reason": "recent review suggestion"
+      },
+      {
+        "tBackendMs": 7150.0,
+        "state": "cooldown",
+        "reason": "recent review suggestion"
+      },
+      {
+        "tBackendMs": 7250.0,
+        "state": "interrupted",
+        "reason": "paused"
+      }
+    ]
+  },
+  {
+    "synthetic": true,
+    "mode": "both",
+    "candidates": [
+      {
+        "eventId": "d17097365a7f5a5795b453c903d3e7b6",
+        "detector": {
+          "detectorId": "experimental-rule-baseline",
+          "detectorVersion": "0.1.0",
+          "configVersion": "synthetic-0.1.0"
+        },
+        "mode": "both",
+        "evidence": {
+          "startBackendMs": 0.0,
+          "endBackendMs": 6000.0
+        },
+        "decisionBackendMs": 6150.0,
+        "eligibilityEpoch": 1,
+        "contributingSignals": [
+          {
+            "signal": "eeg",
+            "windowIds": [
+              "synthetic-eeg-4000",
+              "synthetic-eeg-5000",
+              "synthetic-eeg-6000"
+            ],
+            "scores": [
+              {
+                "name": "synthetic_value",
+                "value": 0.9,
+                "scale": "a.u.",
+                "missingReason": null
+              }
+            ]
+          },
+          {
+            "signal": "gaze",
+            "windowIds": [
+              "synthetic-gaze-0",
+              "synthetic-gaze-250",
+              "synthetic-gaze-500",
+              "synthetic-gaze-750",
+              "synthetic-gaze-1000",
+              "synthetic-gaze-1250",
+              "synthetic-gaze-1500",
+              "synthetic-gaze-1750",
+              "synthetic-gaze-2000",
+              "synthetic-gaze-2250",
+              "synthetic-gaze-2500",
+              "synthetic-gaze-2750",
+              "synthetic-gaze-3000",
+              "synthetic-gaze-3250",
+              "synthetic-gaze-3500",
+              "synthetic-gaze-3750",
+              "synthetic-gaze-4000",
+              "synthetic-gaze-4250",
+              "synthetic-gaze-4500",
+              "synthetic-gaze-4750",
+              "synthetic-gaze-5000",
+              "synthetic-gaze-5250",
+              "synthetic-gaze-5500",
+              "synthetic-gaze-5750",
+              "synthetic-gaze-6000"
+            ],
+            "scores": [
+              {
+                "name": "outside_video_fraction",
+                "value": 1.0,
+                "scale": "fraction_of_valid_duration",
+                "missingReason": null
+              }
+            ]
+          }
+        ],
+        "provenance": {
+          "runKind": "simulated",
+          "producer": "experimental-rule-baseline",
+          "producerVersion": "0.1.0"
+        }
+      }
+    ],
+    "statuses": [
+      {
+        "tBackendMs": 150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 1900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 2900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3150.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3400.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3650.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 3900.0,
+        "state": "unknown",
+        "reason": "waiting for EEG window"
+      },
+      {
+        "tBackendMs": 4150.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4400.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4650.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 4900.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5150.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5400.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5650.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 5900.0,
+        "state": "pending",
+        "reason": "waiting for sustained evidence"
+      },
+      {
+        "tBackendMs": 6150.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 6400.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 6650.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 6900.0,
+        "state": "ready",
+        "reason": "experimental review suggestion emitted"
+      },
+      {
+        "tBackendMs": 7150.0,
+        "state": "cooldown",
+        "reason": "recent review suggestion"
+      },
+      {
+        "tBackendMs": 7250.0,
+        "state": "interrupted",
+        "reason": "paused"
+      }
+    ]
+  }
+]
