@@ -33,6 +33,11 @@ flowchart LR
     Raw --> Recording
     Annotation --> Recording
 
+    Device[EEGDevice] --> Manager[RecordingManager]
+    Manager --> Temp[Temporary raw batch collection]
+    Temp --> DB
+    Manager --> Status[RecordingStatus]
+
     Processed -. optional separate future storage .-> ProcessedFile[Separate processed file]
 ```
 
@@ -51,6 +56,9 @@ flowchart LR
    `SampleBatch` as a compressed NPZ and stores searchable metadata in
    SQLite.
 7. Annotations reference the recording and use global sample indices.
+8. `RecordingManager` requires an explicit save or discard decision after
+   stopping. Saving moves the temporary raw collection into
+   `RecordingDatabase`; discarding releases it without a database row.
 
 ## Important boundaries
 
@@ -76,6 +84,14 @@ Future attention code should consume explicitly documented processed data.
 SQLite stores metadata and references. NPZ stores numeric arrays. Creation uses
 an atomic file move before the database insert, and failure paths clean up
 temporary files.
+
+### Recording lifecycle
+
+`RecordingManager` owns acquisition-session state but not database schema.
+`recording` means the background collector is active, while
+`review_pending` means acquisition has stopped and the temporary raw samples
+must be explicitly saved or discarded. A persistence exception does not
+silently discard the session; the manager remains `review_pending`.
 
 ## Documentation maintenance
 

@@ -76,6 +76,11 @@ metadata definitions.
 See [docs/EEG_RECORDING_DATABASE.md](docs/EEG_RECORDING_DATABASE.md) for the
 recording schema, NPZ contents, and consistency guarantees.
 
+`RecordingManager` provides a GUI-independent recording lifecycle. It collects
+raw device batches in a background thread, transitions to a review-pending
+state when acquisition stops, and requires an explicit save or discard.
+Persistence failures retain the temporary session for retry or discard.
+
 ## Architecture and object documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): interaction graph and runtime

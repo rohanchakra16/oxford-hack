@@ -152,6 +152,31 @@ insertion.
 Raw arrays are never replaced with preprocessed arrays. NPZ creation is
 atomic, and database insertion failures remove the temporary data file.
 
+### `RecordingManager`
+
+Defined in `eeg/dataset/recording_manager.py`.
+
+GUI-independent lifecycle service that starts device streaming, collects raw
+`SampleBatch` objects on a background thread, and requires an explicit save or
+discard decision after stopping. `save_recording` delegates persistence to
+`RecordingDatabase`; a save failure leaves the temporary review session
+available for retry or discard.
+
+### `RecordingState` and `RecordingStatus`
+
+Defined in `eeg/dataset/recording_manager.py`.
+
+`RecordingState` represents `idle`, `recording`, or `review_pending`.
+`RecordingStatus` is an immutable snapshot suitable for GUI display and
+includes the label, collected sample count, save error, and saved UUID.
+
+### `RecordingManagerError`
+
+Defined in `eeg/dataset/recording_manager.py`.
+
+Raised for invalid lifecycle transitions, empty recordings, inconsistent
+batch metadata, acquisition failures, and interrupted persistence.
+
 ## Utilities
 
 ### `ConfigurationError`
