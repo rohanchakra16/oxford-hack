@@ -2,10 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import type { PlayerHandle } from '../../frontend/src/player';
 import type { GazeCamera } from './gaze-runtime';
 import { GazeWindowBuffer } from './gaze';
+import type { ReviewClient } from '../../frontend/src/integration';
+import type { GazeCalibration as Calibration } from '../../frontend/src/contracts/generated/types';
 
-export function GazeCalibration({ player, buffer, onStarted }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void }) {
+export function GazeCalibration({ player, buffer, onStarted, client }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void; client?: ReviewClient }) {
   const engine = useRef<GazeCamera | null>(null);
   const abort = useRef(new AbortController());
+  const calibration = useRef<Omit<Calibration, 'provenance'> | null>(null);
+  const invalidate = () => {
+    if (calibration.current) client?.sendGazeCalibration({ ...calibration.current, status: 'expired', invalidatedReason: 'Camera stopped or unavailable', tBrowserMs: performance.now() });
+    calibration.current = null;
+  };
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Calibrate once to enable EEG + gaze bookmarks.');
   const [target, setTarget] = useState<{ x: number; y: number; step: number; total: number } | null>(null);
@@ -31,15 +38,19 @@ export function GazeCalibration({ player, buffer, onStarted }: { player: PlayerH
           onObservation: (frame) => {
             if (engine.current === gaze && !abort.current.signal.aborted) buffer.push(frame);
           },
+          onObservationBatch: client ? (frames) => {
+            if (engine.current === gaze && !abort.current.signal.aborted) client.sendGazeObservations(frames);
+          } : undefined,
           onCalibration: (event) => {
             if (engine.current !== gaze || abort.current.signal.aborted) return;
             buffer.clear(event.status === 'valid' ? event.id : null);
+            if (event.contract) { calibration.current = event.contract; client?.sendGazeCalibration(event.contract); }
             setStatus(event.status === 'valid'
               ? 'Camera calibrated. Play and watch normally for 8 seconds to set the EEG + gaze baseline.'
               : event.status === 'in_progress' ? 'Follow each calibration dot with your eyes.' : 'Calibration unavailable. Recalibrate to continue.');
           },
           onUnavailable: (message) => {
-            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); setStatus(`Camera unavailable: ${message}`); }
+            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); invalidate(); setStatus(`Camera unavailable: ${message}`); }
           },
         });
         engine.current = gaze;
@@ -63,6 +74,7 @@ export function GazeCalibration({ player, buffer, onStarted }: { player: PlayerH
 
   const stop = () => {
     abort.current.abort(); engine.current?.stop(); engine.current = null;
+    invalidate();
     buffer.clear(); setTarget(null); setBusy(false); setStatus('Camera stopped. Combined bookmarks are paused until recalibration.');
   };
 

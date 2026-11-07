@@ -40,6 +40,6 @@ process.on('SIGINT', () => stop());
 process.on('SIGTERM', () => stop());
 run(python, ['-m', 'oxford_hack.cli', 'serve', '--port', values['backend-port'],
   '--frontend-url', frontend, '--allowed-origin', frontend, '--no-simulated', '--live-eeg-reminders']);
-run(process.execPath, [join(root, 'frontend/node_modules/vite/bin/vite.js'), '--config', join(root, 'frontend/vite.config.ts'),
+run(process.execPath, [join(root, 'frontend/node_modules/vite/bin/vite.js'), join(root, 'frontend'), '--config', join(root, 'frontend/vite.config.ts'),
   '--host', '127.0.0.1', '--port', values['frontend-port'], '--strictPort'], { VITE_BACKEND_URL: backend });
 console.log(`\nMAIN APP + PHYSICAL UNICORN: ${frontend}. Open the backend's pairing link.\nNo SDK/headset -> EEG unavailable; never scripted data.\n`);

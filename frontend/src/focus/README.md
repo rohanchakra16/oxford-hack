@@ -20,8 +20,11 @@ examples; manual markers stay available. Local focus IDs are presentation data
 and are never sent through the shared bookmark/feedback transport. Dismiss is
 local, matching the product's existing behavior.
 
-Current EEG inputs are scripted or optional offline workload scores, visibly
-labelled in the UI. This does not enable live-headset inference. The existing
+In synthetic mode EEG inputs are scripted or optional offline workload scores, visibly
+labelled in the UI. For real sensors use `node inference/live_dev.mjs` and its
+pairing URL without `adapter=synthetic`; see `inference/LIVE_WEBSITE.md`.
+Live mode forwards calibrated gaze through ReviewClient, keeps real backend
+bookmarks visible and never calls the scripted evaluation endpoint. The existing
 0.70 threshold, eight-second sustained-loss check and 30-second cooldown are
 unchanged. Camera loss and evaluator errors leave playback/manual markers usable.
 

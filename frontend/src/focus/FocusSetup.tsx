@@ -9,10 +9,10 @@ export function FocusSetup({ player, lecture, focus }: {
   focus: ReturnType<typeof useFocusReview>;
 }) {
   return <div className="focus-tools">
-    <GazeCalibration key={lecture?.videoId ?? 'none'} player={player} buffer={focus.gaze} onStarted={focus.start} />
-    <p>Experimental EEG + gaze · EEG uses scripted or offline scores; webcam gaze stays local.</p>
+    <GazeCalibration key={lecture?.videoId ?? 'none'} player={player} buffer={focus.gaze} onStarted={focus.start} client={focus.live ? focus.client : undefined} />
+    <p>{focus.live ? 'Live EEG + webcam gaze · experimental. A connected headset and calibrated camera are required; missing signals stay unavailable.' : 'Experimental EEG + gaze · EEG uses scripted or offline scores; webcam gaze stays local.'}</p>
     {focus.enabled && <>
-      <p role="status">{focus.error || focus.snapshot?.fusion?.reason || 'Connecting EEG + gaze…'}</p>
+      <p role="status">{focus.live ? 'Gaze is sent to your live session. Watch normally while the EEG baseline calibrates; bookmarks appear after sustained combined signal loss.' : focus.error || focus.snapshot?.fusion?.reason || 'Connecting EEG + gaze…'}</p>
       {focus.snapshot?.fusion && <p>Combined loss: {focus.snapshot.fusion.combinedLoss?.toFixed(2) ?? 'unknown'} · threshold {focus.snapshot.fusion.threshold.toFixed(2)}. Bookmarks have a 30 s cooldown.</p>}
       {focus.error && <button className="button button--outline button--small" onClick={focus.reconnect}>Reconnect focus tracking</button>}
     </>}

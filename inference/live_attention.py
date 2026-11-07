@@ -307,8 +307,14 @@ class LiveAttentionInference:
 
 
 def inference_factory(context):
+    from .live_combined import CombinedLiveAttention
+
     return (
-        LiveAttentionInference(context)
+        (
+            CombinedLiveAttention(context)
+            if context.gaze_enabled
+            else LiveAttentionInference(context)
+        )
         if context.run_kind == "live" and context.eeg_enabled
         else None
     )

@@ -149,8 +149,14 @@ class UnicornBaselineInference(LiveAttentionInference):
 
 
 def inference_factory(context):
+    from .live_combined import CombinedUnicornBaseline
+
     return (
-        UnicornBaselineInference(context)
+        (
+            CombinedUnicornBaseline(context)
+            if context.gaze_enabled
+            else UnicornBaselineInference(context)
+        )
         if context.run_kind == "live" and context.eeg_enabled
         else None
     )

@@ -68,18 +68,18 @@ def build_hub_factory(args: argparse.Namespace, settings: HubSettings) -> Callab
         if not getattr(args, "eeg_source", None):
             args.eeg_source = "inference.unicorn_source:make_source"
         if args.eeg_source == "inference.unicorn_source:make_source":
-            from inference.unicorn_baseline import (
-                inference_factory as unicorn_factory,  # type: ignore[import-not-found,unused-ignore]
+            from inference.unicorn_baseline import (  # type: ignore[import-not-found]
+                inference_factory as unicorn_factory,
             )
 
             live_detector_factory = unicorn_factory
         else:
-            from inference.live_attention import (
-                inference_factory as live_attention_factory,  # type: ignore[import-not-found,unused-ignore]
+            from inference.live_attention import (  # type: ignore[import-not-found]
+                inference_factory as live_attention_factory,
             )
 
             live_detector_factory = live_attention_factory
-        settings.experimental_live_modes = frozenset({"eeg_only"})
+        settings.experimental_live_modes = frozenset({"eeg_only", "both"})
     if args.allow_simulated and getattr(args, "simulated_detector", "placeholder") == "baseline":
         _repo_root_on_path()
         from inference.adapter import inference_factory  # type: ignore[import-not-found,unused-ignore]  # P3
