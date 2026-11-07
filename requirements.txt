@@ -1,0 +1,8 @@
+numpy
+scipy
+pandas
+matplotlib
+PyYAML
+pytest
+PySide6
+scikit-learn
