@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-playback_eligibility",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "playback_eligibility",
+  "payload": {
+    "videoId": "video-fixture",
+    "segmentId": null,
+    "eligible": false,
+    "reason": "seeking",
+    "epoch": 5,
+    "eligibleSinceBackendMs": null,
+    "tBackendMs": 60000.0
+  }
+}

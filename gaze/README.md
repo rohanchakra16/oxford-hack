@@ -28,7 +28,7 @@ are stored or sent anywhere.
 | Map gaze coordinates to video coordinates | Done: normalised video point (0..1 inside), on/off/uncertain with per-axis error margins |
 | Handle viewport resize and fullscreen changes | Implemented (calibration stored in screen space; video rect re-read every frame). **Not yet tested live** |
 | Produce gaze measurements and quality output | Done: shared-contract `gaze_observations` / `gaze_calibration` via `src/contract.ts`, validated against the 0.1.0 JSON Schema |
-| Bound processing to maintain responsiveness | Implemented: 15 fps cap, frames dropped rather than queued, batches ≤ 64. **Per-frame cost not yet measured on the target laptop** |
+| Bound processing to maintain responsiveness on the target laptop | Implemented: 15 fps cap, frames dropped rather than queued, batches ≤ 64. **Per-frame cost not yet measured on the target laptop** |
 | Document setup, calibration, performance, and limitations | This file; performance numbers pending |
 
 ## Inputs
@@ -38,6 +38,10 @@ are stored or sent anywhere.
   (`getVideoElement`) and reads its `getBoundingClientRect()` on every frame.
 
 ## Outputs
+- Timestamped gaze measurements.
+- Quality diagnostics.
+- Camera and tracking status.
+
 Over the wire, only the shared contract (`contracts/`, schemaVersion 0.1.0, owner @rohanchakra16):
 
 | Message | When | Notes |
@@ -139,4 +143,7 @@ Harness (`index.html`), in order:
 - Viewport-to-screen conversion approximates the browser toolbar height; docked devtools can offset it.
 
 ## Completion post
-Not posted yet. Draft once the pending evidence is in: branch/PR, changes, tests, limitations, next handoff.
+Post the branch/PR, changes, tests, limitations, and next handoff
+on Message Board issue #1.
+
+Status: not posted yet (pending the completion evidence above).

@@ -1,0 +1,3976 @@
+{
+  "$defs": {
+    "BackendInterval": {
+      "additionalProperties": false,
+      "description": "Closed interval on the backend clock. ``end >= start``.",
+      "properties": {
+        "endBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Endbackendms",
+          "type": "number"
+        },
+        "startBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Startbackendms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "startBackendMs",
+        "endBackendMs"
+      ],
+      "title": "BackendInterval",
+      "type": "object"
+    },
+    "CandidateRejected": {
+      "additionalProperties": false,
+      "description": "Backend -> browser (diagnostics only). Owner: P5.",
+      "properties": {
+        "detail": {
+          "maxLength": 500,
+          "title": "Detail",
+          "type": "string"
+        },
+        "eventId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Eventid"
+        },
+        "reason": {
+          "enum": [
+            "duplicate",
+            "obsolete_session",
+            "mode_not_automatic",
+            "too_old",
+            "clock_unsynchronised",
+            "clock_uncertain",
+            "not_playing",
+            "crosses_boundary",
+            "history_expired",
+            "stale_telemetry",
+            "video_mismatch",
+            "out_of_media_bounds",
+            "invalid"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "eventId",
+        "reason",
+        "detail"
+      ],
+      "title": "CandidateRejected",
+      "type": "object"
+    },
+    "CandidateRejectedMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/CandidateRejected"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "candidate_rejected",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "CandidateRejectedMessage",
+      "type": "object"
+    },
+    "ClientCapabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "title": "Diagnostics",
+          "type": "boolean"
+        },
+        "gaze": {
+          "title": "Gaze",
+          "type": "boolean"
+        },
+        "playbackTelemetry": {
+          "title": "Playbacktelemetry",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "playbackTelemetry",
+        "gaze",
+        "diagnostics"
+      ],
+      "title": "ClientCapabilities",
+      "type": "object"
+    },
+    "ClientHello": {
+      "additionalProperties": false,
+      "description": "First message on every WebSocket. Browser -> backend. Owner: P5.\n\n``sessionToken`` comes from POST /api/v0/handshake and is bound to ``clientInstanceId``.",
+      "properties": {
+        "capabilities": {
+          "$ref": "#/$defs/ClientCapabilities"
+        },
+        "clientInstanceId": {
+          "description": "Random per page load; a reload is a new client.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Clientinstanceid",
+          "type": "string"
+        },
+        "resume": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResumeRequest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sessionToken": {
+          "maxLength": 256,
+          "minLength": 16,
+          "title": "Sessiontoken",
+          "type": "string"
+        },
+        "tBrowserMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "clientInstanceId",
+        "sessionToken",
+        "resume",
+        "capabilities",
+        "tBrowserMs"
+      ],
+      "title": "ClientHello",
+      "type": "object"
+    },
+    "ClientHelloMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClientHello"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "client_hello",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ClientHelloMessage",
+      "type": "object"
+    },
+    "ClockCorrection": {
+      "additionalProperties": false,
+      "description": "How device time was converted to backend time (P1 applies it; P5 provides mappers).",
+      "properties": {
+        "driftPpm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Driftppm"
+        },
+        "method": {
+          "enum": [
+            "lsl_time_correction",
+            "linear_fit",
+            "same_clock",
+            "fixed_offset"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "offsetS": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Offsets"
+        },
+        "uncertaintyMs": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Uncertaintyms"
+        }
+      },
+      "required": [
+        "method",
+        "offsetS",
+        "driftPpm",
+        "uncertaintyMs"
+      ],
+      "title": "ClockCorrection",
+      "type": "object"
+    },
+    "ClockPing": {
+      "additionalProperties": false,
+      "description": "Backend -> browser. The browser must answer immediately with ClockPong. Owner: P5.",
+      "properties": {
+        "pingId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Pingid",
+          "type": "string"
+        },
+        "tBackendSendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tbackendsendms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pingId",
+        "tBackendSendMs"
+      ],
+      "title": "ClockPing",
+      "type": "object"
+    },
+    "ClockPingMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClockPing"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "clock_ping",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ClockPingMessage",
+      "type": "object"
+    },
+    "ClockPong": {
+      "additionalProperties": false,
+      "description": "Browser -> backend. Echoes the ping and adds browser receive/send times. Owner: P5.",
+      "properties": {
+        "pingId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Pingid",
+          "type": "string"
+        },
+        "tBackendSendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tbackendsendms",
+          "type": "number"
+        },
+        "tBrowserRecvMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserrecvms",
+          "type": "number"
+        },
+        "tBrowserSendMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowsersendms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pingId",
+        "tBackendSendMs",
+        "tBrowserRecvMs",
+        "tBrowserSendMs"
+      ],
+      "title": "ClockPong",
+      "type": "object"
+    },
+    "ClockPongMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClockPong"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "clock_pong",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ClockPongMessage",
+      "type": "object"
+    },
+    "ClockStatus": {
+      "additionalProperties": false,
+      "description": "Backend -> browser (diagnostics). Estimate of browser-minus-backend offset. Owner: P5.\n\nbrowserMs = backendMs + offsetBrowserMinusBackendMs (+/- uncertaintyMs).",
+      "properties": {
+        "bestRttMs": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Bestrttms"
+        },
+        "offsetBrowserMinusBackendMs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Offsetbrowserminusbackendms"
+        },
+        "sampleCount": {
+          "minimum": 0,
+          "title": "Samplecount",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "unsynchronised",
+            "synchronised",
+            "degraded"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "tBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tbackendms",
+          "type": "number"
+        },
+        "uncertaintyMs": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Uncertaintyms"
+        }
+      },
+      "required": [
+        "state",
+        "offsetBrowserMinusBackendMs",
+        "uncertaintyMs",
+        "bestRttMs",
+        "sampleCount",
+        "tBackendMs"
+      ],
+      "title": "ClockStatus",
+      "type": "object"
+    },
+    "ClockStatusMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClockStatus"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "clock_status",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ClockStatusMessage",
+      "type": "object"
+    },
+    "ContributingSignal": {
+      "additionalProperties": false,
+      "properties": {
+        "scores": {
+          "items": {
+            "$ref": "#/$defs/SignalScore"
+          },
+          "title": "Scores",
+          "type": "array"
+        },
+        "signal": {
+          "enum": [
+            "eeg",
+            "gaze"
+          ],
+          "title": "Signal",
+          "type": "string"
+        },
+        "windowIds": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+            "type": "string"
+          },
+          "title": "Windowids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "signal",
+        "windowIds",
+        "scores"
+      ],
+      "title": "ContributingSignal",
+      "type": "object"
+    },
+    "CssRect": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "number"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "CssRect",
+      "type": "object"
+    },
+    "DetectorInfo": {
+      "additionalProperties": false,
+      "description": "Identity of the experimental detector (P3's model bundle).",
+      "properties": {
+        "configVersion": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Configversion",
+          "type": "string"
+        },
+        "detectorId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Detectorid",
+          "type": "string"
+        },
+        "detectorVersion": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Detectorversion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "detectorId",
+        "detectorVersion",
+        "configVersion"
+      ],
+      "title": "DetectorInfo",
+      "type": "object"
+    },
+    "EegChannelQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Channel",
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "enum": [
+              "disconnected",
+              "flatline",
+              "clipping",
+              "missing_samples",
+              "poor_contact",
+              "large_artifact",
+              "settling",
+              "gap_recovery",
+              "units_unverified",
+              "clock_uncertain"
+            ],
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "good",
+            "poor",
+            "bad",
+            "unknown"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "state",
+        "flags"
+      ],
+      "title": "EegChannelQuality",
+      "type": "object"
+    },
+    "EegDeviceInfo": {
+      "additionalProperties": false,
+      "description": "Device metadata as reported by P1's adapter. Unconfirmed values stay null.",
+      "properties": {
+        "channelNames": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Channelnames"
+        },
+        "confirmed": {
+          "description": "True only once P1 has verified this against the device.",
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "sampleRateHz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sampleratehz"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Units"
+        }
+      },
+      "required": [
+        "model",
+        "confirmed",
+        "sampleRateHz",
+        "channelNames",
+        "units"
+      ],
+      "title": "EegDeviceInfo",
+      "type": "object"
+    },
+    "EegFeature": {
+      "additionalProperties": false,
+      "description": "One feature value. ``value`` null requires ``missingReason``; a valid zero is a real zero.",
+      "properties": {
+        "channel": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Channel"
+        },
+        "missingReason": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Missingreason"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "channel",
+        "value",
+        "missingReason"
+      ],
+      "title": "EegFeature",
+      "type": "object"
+    },
+    "EegFeatureWindow": {
+      "additionalProperties": false,
+      "description": "P1 -> backend hub -> P3. One complete, continuous window of features.\n\n``evidence`` is the acquisition interval converted to backend time. ``deviceEvidence`` keeps the\noriginal device timestamps. ``tProcessedBackendMs`` is when features became available.",
+      "properties": {
+        "channels": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "clockCorrection": {
+          "$ref": "#/$defs/ClockCorrection"
+        },
+        "deviceEvidenceEndDeviceS": {
+          "anyOf": [
+            {
+              "description": "Acquisition-device / LSL clock seconds.",
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deviceevidenceenddevices"
+        },
+        "deviceEvidenceStartDeviceS": {
+          "anyOf": [
+            {
+              "description": "Acquisition-device / LSL clock seconds.",
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deviceevidencestartdevices"
+        },
+        "evidence": {
+          "$ref": "#/$defs/BackendInterval"
+        },
+        "featureSetVersion": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Featuresetversion",
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "$ref": "#/$defs/EegFeature"
+          },
+          "title": "Features",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/EegWindowQuality"
+        },
+        "samples": {
+          "$ref": "#/$defs/SampleCounts"
+        },
+        "streamId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Streamid",
+          "type": "string"
+        },
+        "tProcessedBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tprocessedbackendms",
+          "type": "number"
+        },
+        "windowId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Windowid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "windowId",
+        "streamId",
+        "featureSetVersion",
+        "evidence",
+        "deviceEvidenceStartDeviceS",
+        "deviceEvidenceEndDeviceS",
+        "clockCorrection",
+        "samples",
+        "channels",
+        "features",
+        "quality",
+        "tProcessedBackendMs",
+        "provenance"
+      ],
+      "title": "EegFeatureWindow",
+      "type": "object"
+    },
+    "EegFeatureWindowMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/EegFeatureWindow"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "eeg_features",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "EegFeatureWindowMessage",
+      "type": "object"
+    },
+    "EegStatus": {
+      "additionalProperties": false,
+      "description": "P1 -> backend hub. Stream-level status, sent on change and at least every 5 s.",
+      "properties": {
+        "device": {
+          "$ref": "#/$defs/EegDeviceInfo"
+        },
+        "droppedPackets": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Droppedpackets"
+        },
+        "flags": {
+          "items": {
+            "enum": [
+              "disconnected",
+              "flatline",
+              "clipping",
+              "missing_samples",
+              "poor_contact",
+              "large_artifact",
+              "settling",
+              "gap_recovery",
+              "units_unverified",
+              "clock_uncertain"
+            ],
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "state": {
+          "enum": [
+            "disabled",
+            "unavailable",
+            "connecting",
+            "warming_up",
+            "ok",
+            "degraded",
+            "lost"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "streamId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Streamid",
+          "type": "string"
+        },
+        "tBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tbackendms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "streamId",
+        "state",
+        "flags",
+        "device",
+        "droppedPackets",
+        "tBackendMs",
+        "provenance"
+      ],
+      "title": "EegStatus",
+      "type": "object"
+    },
+    "EegStatusMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/EegStatus"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "eeg_status",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "EegStatusMessage",
+      "type": "object"
+    },
+    "EegWindowQuality": {
+      "additionalProperties": false,
+      "description": "Quality checks reduce contamination; they do not prove remaining activity is neural.",
+      "properties": {
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/EegChannelQuality"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "flags": {
+          "items": {
+            "enum": [
+              "disconnected",
+              "flatline",
+              "clipping",
+              "missing_samples",
+              "poor_contact",
+              "large_artifact",
+              "settling",
+              "gap_recovery",
+              "units_unverified",
+              "clock_uncertain"
+            ],
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "usable": {
+          "title": "Usable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "usable",
+        "flags",
+        "channels"
+      ],
+      "title": "EegWindowQuality",
+      "type": "object"
+    },
+    "ErrorMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ErrorReport"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "error",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ErrorMessage",
+      "type": "object"
+    },
+    "ErrorReport": {
+      "additionalProperties": false,
+      "description": "Either direction. Never contains signal values. Owner: P5.",
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_json",
+            "invalid_message",
+            "schema_version_mismatch",
+            "unknown_type",
+            "unexpected_type",
+            "message_too_large",
+            "not_authenticated",
+            "no_session",
+            "obsolete_session",
+            "video_mismatch",
+            "out_of_order",
+            "duplicate",
+            "stale",
+            "rate_limited",
+            "backpressure",
+            "internal"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "propertyNames": {
+            "maxLength": 64
+          },
+          "title": "Details",
+          "type": "object"
+        },
+        "fatal": {
+          "title": "Fatal",
+          "type": "boolean"
+        },
+        "message": {
+          "maxLength": 500,
+          "title": "Message",
+          "type": "string"
+        },
+        "refMessageId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Refmessageid"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "refMessageId",
+        "fatal",
+        "details"
+      ],
+      "title": "ErrorReport",
+      "type": "object"
+    },
+    "GazeCalibration": {
+      "additionalProperties": false,
+      "description": "Browser -> backend, on every calibration state change. Owner: P2.\n\nAccuracy is measured on held-out points excluded from fitting.",
+      "properties": {
+        "calibrationId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Calibrationid",
+          "type": "string"
+        },
+        "fitPoints": {
+          "minimum": 0,
+          "title": "Fitpoints",
+          "type": "integer"
+        },
+        "heldOutErrorNorm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mean held-out error as a fraction of video width.",
+          "title": "Heldouterrornorm"
+        },
+        "heldOutPoints": {
+          "minimum": 0,
+          "title": "Heldoutpoints",
+          "type": "integer"
+        },
+        "invalidatedReason": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Invalidatedreason"
+        },
+        "measurementKind": {
+          "enum": [
+            "screen_gaze",
+            "head_direction"
+          ],
+          "title": "Measurementkind",
+          "type": "string"
+        },
+        "method": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Method",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "status": {
+          "enum": [
+            "in_progress",
+            "valid",
+            "invalid",
+            "expired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tBrowserMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserms",
+          "type": "number"
+        },
+        "videoRectCssPx": {
+          "$ref": "#/$defs/CssRect"
+        },
+        "viewportCssPx": {
+          "$ref": "#/$defs/CssRect"
+        }
+      },
+      "required": [
+        "calibrationId",
+        "status",
+        "measurementKind",
+        "method",
+        "fitPoints",
+        "heldOutPoints",
+        "heldOutErrorNorm",
+        "viewportCssPx",
+        "videoRectCssPx",
+        "invalidatedReason",
+        "tBrowserMs",
+        "provenance"
+      ],
+      "title": "GazeCalibration",
+      "type": "object"
+    },
+    "GazeCalibrationMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/GazeCalibration"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "gaze_calibration",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "GazeCalibrationMessage",
+      "type": "object"
+    },
+    "GazeObservation": {
+      "additionalProperties": false,
+      "description": "One processed webcam frame. ``tBrowserFrameMs`` is when the frame was captured/observed.\n\n``measurementKind`` must say ``head_direction`` if the model does not estimate screen gaze.\n``insideVideo`` false is a valid observation (\"looking outside video\"), distinct from invalid.",
+      "properties": {
+        "calibrationId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Calibrationid"
+        },
+        "insideVideo": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Insidevideo"
+        },
+        "invalidReasons": {
+          "items": {
+            "enum": [
+              "face_not_detected",
+              "eyes_not_detected",
+              "calibration_missing",
+              "calibration_invalid",
+              "low_confidence",
+              "camera_unavailable",
+              "video_not_visible",
+              "tab_hidden",
+              "frame_dropped"
+            ],
+            "type": "string"
+          },
+          "title": "Invalidreasons",
+          "type": "array"
+        },
+        "measurementKind": {
+          "enum": [
+            "screen_gaze",
+            "head_direction"
+          ],
+          "title": "Measurementkind",
+          "type": "string"
+        },
+        "modelConfidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Model-specific; not comparable with other models or with EEG scores.",
+          "title": "Modelconfidence"
+        },
+        "observationId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Observationid",
+          "type": "string"
+        },
+        "tBrowserFrameMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserframems",
+          "type": "number"
+        },
+        "tBrowserProcessedMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserprocessedms",
+          "type": "number"
+        },
+        "valid": {
+          "title": "Valid",
+          "type": "boolean"
+        },
+        "videoPoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NormalisedPoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "observationId",
+        "tBrowserFrameMs",
+        "tBrowserProcessedMs",
+        "measurementKind",
+        "calibrationId",
+        "valid",
+        "invalidReasons",
+        "videoPoint",
+        "insideVideo",
+        "modelConfidence"
+      ],
+      "title": "GazeObservation",
+      "type": "object"
+    },
+    "GazeObservationBatch": {
+      "additionalProperties": false,
+      "description": "Browser -> backend, at most ~10 batches/s. Owner: P2.",
+      "properties": {
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/GazeObservation"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "title": "Observations",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "observations",
+        "provenance"
+      ],
+      "title": "GazeObservationBatch",
+      "type": "object"
+    },
+    "GazeObservationBatchMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/GazeObservationBatch"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "gaze_observations",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "GazeObservationBatchMessage",
+      "type": "object"
+    },
+    "Heartbeat": {
+      "additionalProperties": false,
+      "description": "Liveness. Either direction. ``clock`` names the sender's clock. Owner: P5.",
+      "properties": {
+        "clock": {
+          "enum": [
+            "browser",
+            "backend"
+          ],
+          "title": "Clock",
+          "type": "string"
+        },
+        "sentMs": {
+          "minimum": 0,
+          "title": "Sentms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "clock",
+        "sentMs"
+      ],
+      "title": "Heartbeat",
+      "type": "object"
+    },
+    "HeartbeatMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/Heartbeat"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "heartbeat",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "HeartbeatMessage",
+      "type": "object"
+    },
+    "ManualBookmark": {
+      "additionalProperties": false,
+      "description": "Browser -> backend: the viewer pressed 'mark'. Owner: P4.",
+      "properties": {
+        "bookmarkId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Bookmarkid",
+          "type": "string"
+        },
+        "mediaTimeS": {
+          "description": "Media playback position in seconds.",
+          "minimum": 0,
+          "title": "Mediatimes",
+          "type": "number"
+        },
+        "tBrowserMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserms",
+          "type": "number"
+        },
+        "videoId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Videoid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bookmarkId",
+        "videoId",
+        "mediaTimeS",
+        "tBrowserMs"
+      ],
+      "title": "ManualBookmark",
+      "type": "object"
+    },
+    "ManualBookmarkMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ManualBookmark"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "manual_bookmark",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ManualBookmarkMessage",
+      "type": "object"
+    },
+    "MappingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "boundaryMarginMs": {
+          "description": "Duration in milliseconds.",
+          "minimum": 0,
+          "title": "Boundarymarginms",
+          "type": "number"
+        },
+        "leadInS": {
+          "maximum": 60,
+          "minimum": 0,
+          "title": "Leadins",
+          "type": "number"
+        },
+        "maxCandidateAgeMs": {
+          "description": "Duration in milliseconds.",
+          "minimum": 0,
+          "title": "Maxcandidateagems",
+          "type": "number"
+        },
+        "maxClockUncertaintyMs": {
+          "description": "Duration in milliseconds.",
+          "minimum": 0,
+          "title": "Maxclockuncertaintyms",
+          "type": "number"
+        },
+        "maxTelemetryStalenessMs": {
+          "description": "Duration in milliseconds.",
+          "minimum": 0,
+          "title": "Maxtelemetrystalenessms",
+          "type": "number"
+        },
+        "pendingTimeoutMs": {
+          "description": "Duration in milliseconds.",
+          "minimum": 0,
+          "title": "Pendingtimeoutms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "leadInS",
+        "boundaryMarginMs",
+        "maxClockUncertaintyMs",
+        "maxTelemetryStalenessMs",
+        "pendingTimeoutMs",
+        "maxCandidateAgeMs"
+      ],
+      "title": "MappingConfig",
+      "type": "object"
+    },
+    "MediaInterval": {
+      "additionalProperties": false,
+      "description": "Closed interval in media seconds. ``end >= start``.",
+      "properties": {
+        "endMediaS": {
+          "description": "Media playback position in seconds.",
+          "minimum": 0,
+          "title": "Endmedias",
+          "type": "number"
+        },
+        "startMediaS": {
+          "description": "Media playback position in seconds.",
+          "minimum": 0,
+          "title": "Startmedias",
+          "type": "number"
+        }
+      },
+      "required": [
+        "startMediaS",
+        "endMediaS"
+      ],
+      "title": "MediaInterval",
+      "type": "object"
+    },
+    "ModePolicy": {
+      "additionalProperties": false,
+      "description": "Which operating modes may produce automatic suggestions.\n\nA mode is ``automatic`` only if the detector bundle declares it evaluated (or the run is\nsimulated). Otherwise automatic suggestions are disabled in that mode.",
+      "properties": {
+        "both": {
+          "enum": [
+            "automatic",
+            "manual_only"
+          ],
+          "title": "Both",
+          "type": "string"
+        },
+        "eegOnly": {
+          "enum": [
+            "automatic",
+            "manual_only"
+          ],
+          "title": "Eegonly",
+          "type": "string"
+        },
+        "gazeOnly": {
+          "enum": [
+            "automatic",
+            "manual_only"
+          ],
+          "title": "Gazeonly",
+          "type": "string"
+        }
+      },
+      "required": [
+        "both",
+        "eegOnly",
+        "gazeOnly"
+      ],
+      "title": "ModePolicy",
+      "type": "object"
+    },
+    "NormalisedPoint": {
+      "additionalProperties": false,
+      "description": "Point in the displayed video content rectangle. (0,0)=top-left, (1,1)=bottom-right.\n\nValues outside [0,1] are allowed and mean the estimate is outside the video.",
+      "properties": {
+        "x": {
+          "maximum": 10,
+          "minimum": -10,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 10,
+          "minimum": -10,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "NormalisedPoint",
+      "type": "object"
+    },
+    "PlaybackEligibility": {
+      "additionalProperties": false,
+      "description": "Backend -> inference (P3) and browser (diagnostics). Owner: P5.\n\nWhen ``eligible`` becomes false or ``segmentId`` changes, the detector must clear pending\ndecisions and wait for a complete evidence window starting at or after ``eligibleSinceBackendMs``.\nThis does NOT mean EEG filters should be reset (P1 keeps filter state continuous).\n``epoch`` increases by one on every change.",
+      "properties": {
+        "eligible": {
+          "title": "Eligible",
+          "type": "boolean"
+        },
+        "eligibleSinceBackendMs": {
+          "anyOf": [
+            {
+              "description": "Backend monotonic milliseconds.",
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Eligiblesincebackendms"
+        },
+        "epoch": {
+          "minimum": 0,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "reason": {
+          "enum": [
+            "playing",
+            "not_started",
+            "paused",
+            "seeking",
+            "buffering",
+            "ended",
+            "source_change",
+            "error",
+            "stale_telemetry",
+            "clock_unsynchronised",
+            "session_ended"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "segmentId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Segmentid"
+        },
+        "tBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tbackendms",
+          "type": "number"
+        },
+        "videoId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Videoid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "videoId",
+        "segmentId",
+        "eligible",
+        "reason",
+        "epoch",
+        "eligibleSinceBackendMs",
+        "tBackendMs"
+      ],
+      "title": "PlaybackEligibility",
+      "type": "object"
+    },
+    "PlaybackEligibilityMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PlaybackEligibility"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "playback_eligibility",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "PlaybackEligibilityMessage",
+      "type": "object"
+    },
+    "PlaybackState": {
+      "additionalProperties": false,
+      "description": "Browser -> backend. Sent on every media event and every ~1 s while playing. Owner: P4 (P5 contract).\n\n``segmentId`` is non-null exactly when ``state == \"playing\"``. A new segment id starts whenever\nframes start advancing after any interruption (pause, seek, buffering, rate change, source change).\nWithin one segment ``playbackRate`` is constant. ``tBrowserMs`` is when the media element event\nwas observed, not when the message was sent.",
+      "properties": {
+        "event": {
+          "enum": [
+            "load",
+            "playing",
+            "pause",
+            "seeking",
+            "seeked",
+            "waiting",
+            "ratechange",
+            "source_change",
+            "ended",
+            "heartbeat",
+            "error"
+          ],
+          "title": "Event",
+          "type": "string"
+        },
+        "mediaDurationS": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mediadurations"
+        },
+        "mediaTimeS": {
+          "description": "Media playback position in seconds.",
+          "minimum": 0,
+          "title": "Mediatimes",
+          "type": "number"
+        },
+        "playbackRate": {
+          "exclusiveMinimum": 0,
+          "maximum": 16,
+          "title": "Playbackrate",
+          "type": "number"
+        },
+        "segmentId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Segmentid"
+        },
+        "state": {
+          "enum": [
+            "loading",
+            "playing",
+            "paused",
+            "seeking",
+            "buffering",
+            "ended",
+            "error"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "tBrowserMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserms",
+          "type": "number"
+        },
+        "telemetrySeq": {
+          "description": "Monotonic per video within a page load.",
+          "minimum": 0,
+          "title": "Telemetryseq",
+          "type": "integer"
+        },
+        "videoId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Videoid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "videoId",
+        "segmentId",
+        "event",
+        "state",
+        "tBrowserMs",
+        "mediaTimeS",
+        "playbackRate",
+        "mediaDurationS",
+        "telemetrySeq"
+      ],
+      "title": "PlaybackState",
+      "type": "object"
+    },
+    "PlaybackStateMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PlaybackState"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "playback_state",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "PlaybackStateMessage",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Who produced a message and in what kind of run.",
+      "properties": {
+        "producer": {
+          "description": "Component name, e.g. 'synthetic-eeg' or 'unicorn-lsl-adapter'.",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Producer",
+          "type": "string"
+        },
+        "producerVersion": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Producerversion",
+          "type": "string"
+        },
+        "runKind": {
+          "enum": [
+            "live",
+            "replay",
+            "simulated"
+          ],
+          "title": "Runkind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runKind",
+        "producer",
+        "producerVersion"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "RequestedSensors": {
+      "additionalProperties": false,
+      "properties": {
+        "eeg": {
+          "title": "Eeg",
+          "type": "boolean"
+        },
+        "gaze": {
+          "title": "Gaze",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "eeg",
+        "gaze"
+      ],
+      "title": "RequestedSensors",
+      "type": "object"
+    },
+    "ResumeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "backendInstanceId": {
+          "description": "Backend instance the browser last talked to.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Backendinstanceid",
+          "type": "string"
+        },
+        "lastReceivedSeq": {
+          "description": "Highest server seq the browser processed.",
+          "minimum": 0,
+          "title": "Lastreceivedseq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Sessionid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "backendInstanceId",
+        "lastReceivedSeq"
+      ],
+      "title": "ResumeRequest",
+      "type": "object"
+    },
+    "ReviewBookmark": {
+      "additionalProperties": false,
+      "description": "Backend -> browser. A candidate mapped to media time by P5, or a manual bookmark. Owner: P5.\n\n``suggestedMediaS`` is a conservative restart suggestion derived from the evidence interval,\nnot a measured lapse onset. ``bookmarkId`` is stable per event, so clients can de-duplicate.",
+      "properties": {
+        "bookmarkId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Bookmarkid",
+          "type": "string"
+        },
+        "contributingSignals": {
+          "items": {
+            "$ref": "#/$defs/ContributingSignal"
+          },
+          "title": "Contributingsignals",
+          "type": "array"
+        },
+        "decisionBackendMs": {
+          "anyOf": [
+            {
+              "description": "Backend monotonic milliseconds.",
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Decisionbackendms"
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DetectorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Eventid"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackendInterval"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidenceMedia": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MediaInterval"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mappedBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Mappedbackendms",
+          "type": "number"
+        },
+        "mappingUncertaintyMs": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mappinguncertaintyms"
+        },
+        "runKind": {
+          "enum": [
+            "live",
+            "replay",
+            "simulated"
+          ],
+          "title": "Runkind",
+          "type": "string"
+        },
+        "segmentId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Segmentid"
+        },
+        "source": {
+          "enum": [
+            "experimental_eeg",
+            "experimental_gaze",
+            "experimental_combined",
+            "manual"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "suggestedMediaS": {
+          "description": "Media playback position in seconds.",
+          "minimum": 0,
+          "title": "Suggestedmedias",
+          "type": "number"
+        },
+        "transcriptContext": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TranscriptContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "videoId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Videoid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bookmarkId",
+        "eventId",
+        "videoId",
+        "segmentId",
+        "source",
+        "runKind",
+        "suggestedMediaS",
+        "evidenceMedia",
+        "evidence",
+        "decisionBackendMs",
+        "mappedBackendMs",
+        "mappingUncertaintyMs",
+        "detector",
+        "contributingSignals",
+        "transcriptContext"
+      ],
+      "title": "ReviewBookmark",
+      "type": "object"
+    },
+    "ReviewBookmarkMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReviewBookmark"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "review_bookmark",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ReviewBookmarkMessage",
+      "type": "object"
+    },
+    "ReviewCandidate": {
+      "additionalProperties": false,
+      "description": "P3 detector -> P5 hub. Backend clock only: the detector never needs media time.\n\n``evidence`` is the interval the decision is based on. ``decisionBackendMs`` is when it was made.\n``eventId`` must be stable: re-sending the same event must reuse it (duplicates are dropped).\n``eligibilityEpoch`` is the latest PlaybackEligibility.epoch the detector saw (diagnostic only).",
+      "properties": {
+        "contributingSignals": {
+          "items": {
+            "$ref": "#/$defs/ContributingSignal"
+          },
+          "minItems": 1,
+          "title": "Contributingsignals",
+          "type": "array"
+        },
+        "decisionBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Decisionbackendms",
+          "type": "number"
+        },
+        "detector": {
+          "$ref": "#/$defs/DetectorInfo"
+        },
+        "eligibilityEpoch": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Eligibilityepoch"
+        },
+        "eventId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Eventid",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/BackendInterval"
+        },
+        "mode": {
+          "enum": [
+            "both",
+            "eeg_only",
+            "gaze_only"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "eventId",
+        "detector",
+        "mode",
+        "evidence",
+        "decisionBackendMs",
+        "eligibilityEpoch",
+        "contributingSignals",
+        "provenance"
+      ],
+      "title": "ReviewCandidate",
+      "type": "object"
+    },
+    "ReviewCandidateMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReviewCandidate"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "review_candidate",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ReviewCandidateMessage",
+      "type": "object"
+    },
+    "SampleCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "minimum": 0,
+          "title": "Expected",
+          "type": "integer"
+        },
+        "received": {
+          "minimum": 0,
+          "title": "Received",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expected",
+        "received"
+      ],
+      "title": "SampleCounts",
+      "type": "object"
+    },
+    "SensorState": {
+      "additionalProperties": false,
+      "properties": {
+        "reasons": {
+          "items": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "sinceBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Sincebackendms",
+          "type": "number"
+        },
+        "state": {
+          "enum": [
+            "disabled",
+            "unavailable",
+            "connecting",
+            "warming_up",
+            "ok",
+            "degraded",
+            "lost"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "reasons",
+        "sinceBackendMs"
+      ],
+      "title": "SensorState",
+      "type": "object"
+    },
+    "SensorStatus": {
+      "additionalProperties": false,
+      "description": "Backend -> browser and inference. Sent on change. Owner: P5.",
+      "properties": {
+        "automaticReason": {
+          "maxLength": 500,
+          "title": "Automaticreason",
+          "type": "string"
+        },
+        "automaticSuggestions": {
+          "title": "Automaticsuggestions",
+          "type": "boolean"
+        },
+        "eeg": {
+          "$ref": "#/$defs/SensorState"
+        },
+        "gaze": {
+          "$ref": "#/$defs/SensorState"
+        },
+        "mode": {
+          "enum": [
+            "both",
+            "eeg_only",
+            "gaze_only",
+            "manual_only"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "tBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tbackendms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "eeg",
+        "gaze",
+        "mode",
+        "automaticSuggestions",
+        "automaticReason",
+        "tBackendMs"
+      ],
+      "title": "SensorStatus",
+      "type": "object"
+    },
+    "SensorStatusMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SensorStatus"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "sensor_status",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "SensorStatusMessage",
+      "type": "object"
+    },
+    "ServerHello": {
+      "additionalProperties": false,
+      "description": "Reply to ClientHello. Backend -> browser. Owner: P5.\n\n``backend_restarted`` means every backend-clock timestamp and segment the browser knew is void:\nstart a new session. ``resumed`` is followed by a SessionSnapshot.",
+      "properties": {
+        "backendInstanceId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Backendinstanceid",
+          "type": "string"
+        },
+        "connectionId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Connectionid",
+          "type": "string"
+        },
+        "heartbeatIntervalMs": {
+          "description": "Duration in milliseconds.",
+          "minimum": 0,
+          "title": "Heartbeatintervalms",
+          "type": "number"
+        },
+        "heartbeatTimeoutMs": {
+          "description": "Duration in milliseconds.",
+          "minimum": 0,
+          "title": "Heartbeattimeoutms",
+          "type": "number"
+        },
+        "resumeOutcome": {
+          "enum": [
+            "new",
+            "resumed",
+            "backend_restarted",
+            "session_expired",
+            "session_unknown"
+          ],
+          "title": "Resumeoutcome",
+          "type": "string"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "tBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Tbackendms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "backendInstanceId",
+        "connectionId",
+        "resumeOutcome",
+        "sessionId",
+        "heartbeatIntervalMs",
+        "heartbeatTimeoutMs",
+        "tBackendMs"
+      ],
+      "title": "ServerHello",
+      "type": "object"
+    },
+    "ServerHelloMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ServerHello"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "server_hello",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "ServerHelloMessage",
+      "type": "object"
+    },
+    "SessionConfig": {
+      "additionalProperties": false,
+      "description": "Backend -> browser: authoritative session configuration. Owner: P5.",
+      "properties": {
+        "createdBackendMs": {
+          "description": "Backend monotonic milliseconds.",
+          "minimum": 0,
+          "title": "Createdbackendms",
+          "type": "number"
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DetectorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eegDevice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EegDeviceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "enabledSensors": {
+          "$ref": "#/$defs/RequestedSensors"
+        },
+        "featureSetVersion": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Featuresetversion"
+        },
+        "mapping": {
+          "$ref": "#/$defs/MappingConfig"
+        },
+        "modePolicy": {
+          "$ref": "#/$defs/ModePolicy"
+        },
+        "runKind": {
+          "enum": [
+            "live",
+            "replay",
+            "simulated"
+          ],
+          "title": "Runkind",
+          "type": "string"
+        },
+        "sessionId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Sessionid",
+          "type": "string"
+        },
+        "videoId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Videoid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "videoId",
+        "runKind",
+        "enabledSensors",
+        "modePolicy",
+        "detector",
+        "eegDevice",
+        "featureSetVersion",
+        "mapping",
+        "createdBackendMs"
+      ],
+      "title": "SessionConfig",
+      "type": "object"
+    },
+    "SessionConfigMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SessionConfig"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "session_config",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "SessionConfigMessage",
+      "type": "object"
+    },
+    "SessionEnd": {
+      "additionalProperties": false,
+      "description": "Browser -> backend. Owner: P5.",
+      "properties": {
+        "reason": {
+          "enum": [
+            "user_ended",
+            "video_changed",
+            "page_closing"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "SessionEnd",
+      "type": "object"
+    },
+    "SessionEndMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SessionEnd"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "session_end",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "SessionEndMessage",
+      "type": "object"
+    },
+    "SessionEnded": {
+      "additionalProperties": false,
+      "description": "Backend -> browser. Owner: P5.",
+      "properties": {
+        "reason": {
+          "enum": [
+            "client_ended",
+            "expired",
+            "superseded",
+            "backend_shutdown"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "SessionEnded",
+      "type": "object"
+    },
+    "SessionEndedMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SessionEnded"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "session_ended",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "SessionEndedMessage",
+      "type": "object"
+    },
+    "SessionSnapshot": {
+      "additionalProperties": false,
+      "description": "Backend -> browser after a successful resume. Replaces any client-side session state.",
+      "properties": {
+        "bookmarks": {
+          "items": {
+            "$ref": "#/$defs/ReviewBookmark"
+          },
+          "title": "Bookmarks",
+          "type": "array"
+        },
+        "config": {
+          "$ref": "#/$defs/SessionConfig"
+        },
+        "lastSeq": {
+          "minimum": 0,
+          "title": "Lastseq",
+          "type": "integer"
+        },
+        "sensorStatus": {
+          "$ref": "#/$defs/SensorStatus"
+        }
+      },
+      "required": [
+        "config",
+        "bookmarks",
+        "sensorStatus",
+        "lastSeq"
+      ],
+      "title": "SessionSnapshot",
+      "type": "object"
+    },
+    "SessionSnapshotMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SessionSnapshot"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "session_snapshot",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "SessionSnapshotMessage",
+      "type": "object"
+    },
+    "SessionStart": {
+      "additionalProperties": false,
+      "description": "Browser -> backend: start a session for one video. Owner: P5 (sent by P4's player).\n\nOne session = one video. To change video, send SessionEnd then a new SessionStart.",
+      "properties": {
+        "mediaDurationS": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mediadurations"
+        },
+        "requestedSensors": {
+          "$ref": "#/$defs/RequestedSensors"
+        },
+        "runKind": {
+          "enum": [
+            "live",
+            "replay",
+            "simulated"
+          ],
+          "title": "Runkind",
+          "type": "string"
+        },
+        "videoId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Videoid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "videoId",
+        "runKind",
+        "requestedSensors",
+        "mediaDurationS"
+      ],
+      "title": "SessionStart",
+      "type": "object"
+    },
+    "SessionStartMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SessionStart"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "session_start",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "SessionStartMessage",
+      "type": "object"
+    },
+    "SignalScore": {
+      "additionalProperties": false,
+      "description": "A named score from one signal. Scores from different sources are not interchangeable.",
+      "properties": {
+        "missingReason": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Missingreason"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "scale": {
+          "description": "e.g. 'logit', 'uncalibrated_probability', 'fraction_of_window'.",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Scale",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "value",
+        "scale",
+        "missingReason"
+      ],
+      "title": "SignalScore",
+      "type": "object"
+    },
+    "TranscriptContext": {
+      "additionalProperties": false,
+      "description": "Filled by the browser (P4) from its transcript; the backend always sends null.",
+      "properties": {
+        "endMediaS": {
+          "description": "Media playback position in seconds.",
+          "minimum": 0,
+          "title": "Endmedias",
+          "type": "number"
+        },
+        "startMediaS": {
+          "description": "Media playback position in seconds.",
+          "minimum": 0,
+          "title": "Startmedias",
+          "type": "number"
+        },
+        "text": {
+          "maxLength": 500,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "startMediaS",
+        "endMediaS"
+      ],
+      "title": "TranscriptContext",
+      "type": "object"
+    },
+    "UserFeedback": {
+      "additionalProperties": false,
+      "description": "Browser -> backend. Owner: P4. Logged for evaluation (P3).",
+      "properties": {
+        "action": {
+          "enum": [
+            "replay",
+            "dismiss",
+            "move_earlier",
+            "rated_useful",
+            "rated_not_useful"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "bookmarkId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Bookmarkid",
+          "type": "string"
+        },
+        "feedbackId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Feedbackid",
+          "type": "string"
+        },
+        "mediaTimeS": {
+          "anyOf": [
+            {
+              "description": "Media playback position in seconds.",
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mediatimes"
+        },
+        "tBrowserMs": {
+          "description": "Browser performance.now() milliseconds.",
+          "minimum": 0,
+          "title": "Tbrowserms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "feedbackId",
+        "bookmarkId",
+        "action",
+        "tBrowserMs",
+        "mediaTimeS"
+      ],
+      "title": "UserFeedback",
+      "type": "object"
+    },
+    "UserFeedbackMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Messageid",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/UserFeedback"
+        },
+        "schemaVersion": {
+          "const": "0.1.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sessionid"
+        },
+        "type": {
+          "const": "user_feedback",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "messageId",
+        "sessionId",
+        "seq",
+        "type",
+        "payload"
+      ],
+      "title": "UserFeedbackMessage",
+      "type": "object"
+    }
+  },
+  "$id": "https://oxford-hack.local/schema/0.1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/ClientHelloMessage"
+    },
+    {
+      "$ref": "#/$defs/ServerHelloMessage"
+    },
+    {
+      "$ref": "#/$defs/HeartbeatMessage"
+    },
+    {
+      "$ref": "#/$defs/ClockPingMessage"
+    },
+    {
+      "$ref": "#/$defs/ClockPongMessage"
+    },
+    {
+      "$ref": "#/$defs/ClockStatusMessage"
+    },
+    {
+      "$ref": "#/$defs/SessionStartMessage"
+    },
+    {
+      "$ref": "#/$defs/SessionEndMessage"
+    },
+    {
+      "$ref": "#/$defs/SessionConfigMessage"
+    },
+    {
+      "$ref": "#/$defs/SessionEndedMessage"
+    },
+    {
+      "$ref": "#/$defs/SessionSnapshotMessage"
+    },
+    {
+      "$ref": "#/$defs/ErrorMessage"
+    },
+    {
+      "$ref": "#/$defs/PlaybackStateMessage"
+    },
+    {
+      "$ref": "#/$defs/PlaybackEligibilityMessage"
+    },
+    {
+      "$ref": "#/$defs/EegFeatureWindowMessage"
+    },
+    {
+      "$ref": "#/$defs/EegStatusMessage"
+    },
+    {
+      "$ref": "#/$defs/GazeObservationBatchMessage"
+    },
+    {
+      "$ref": "#/$defs/GazeCalibrationMessage"
+    },
+    {
+      "$ref": "#/$defs/ReviewCandidateMessage"
+    },
+    {
+      "$ref": "#/$defs/ReviewBookmarkMessage"
+    },
+    {
+      "$ref": "#/$defs/ManualBookmarkMessage"
+    },
+    {
+      "$ref": "#/$defs/CandidateRejectedMessage"
+    },
+    {
+      "$ref": "#/$defs/UserFeedbackMessage"
+    },
+    {
+      "$ref": "#/$defs/SensorStatusMessage"
+    }
+  ],
+  "description": "PROPOSED - generated from platform/src/oxford_hack/contracts. Do not edit by hand. Structural rules only; cross-field rules are documented in descriptions and enforced by the backend.",
+  "title": "oxford-hack shared message contracts",
+  "x-messages": {
+    "candidate_rejected": {
+      "$ref": "#/$defs/CandidateRejectedMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser (diagnostics)",
+      "sender": "backend"
+    },
+    "client_hello": {
+      "$ref": "#/$defs/ClientHelloMessage",
+      "channel": "browser_to_backend",
+      "owner": "P5",
+      "receiver": "backend",
+      "sender": "browser"
+    },
+    "clock_ping": {
+      "$ref": "#/$defs/ClockPingMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser",
+      "sender": "backend"
+    },
+    "clock_pong": {
+      "$ref": "#/$defs/ClockPongMessage",
+      "channel": "browser_to_backend",
+      "owner": "P5",
+      "receiver": "backend",
+      "sender": "browser"
+    },
+    "clock_status": {
+      "$ref": "#/$defs/ClockStatusMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser",
+      "sender": "backend"
+    },
+    "eeg_features": {
+      "$ref": "#/$defs/EegFeatureWindowMessage",
+      "channel": "backend_internal",
+      "owner": "P1",
+      "receiver": "hub, inference",
+      "sender": "EEG (P1)"
+    },
+    "eeg_status": {
+      "$ref": "#/$defs/EegStatusMessage",
+      "channel": "backend_internal",
+      "owner": "P1",
+      "receiver": "hub",
+      "sender": "EEG (P1)"
+    },
+    "error": {
+      "$ref": "#/$defs/ErrorMessage",
+      "channel": "both_ws",
+      "owner": "P5",
+      "receiver": "backend|browser",
+      "sender": "browser|backend"
+    },
+    "gaze_calibration": {
+      "$ref": "#/$defs/GazeCalibrationMessage",
+      "channel": "browser_to_backend",
+      "owner": "P2",
+      "receiver": "backend",
+      "sender": "browser (P2)"
+    },
+    "gaze_observations": {
+      "$ref": "#/$defs/GazeObservationBatchMessage",
+      "channel": "browser_to_backend",
+      "owner": "P2",
+      "receiver": "backend",
+      "sender": "browser (P2)"
+    },
+    "heartbeat": {
+      "$ref": "#/$defs/HeartbeatMessage",
+      "channel": "both_ws",
+      "owner": "P5",
+      "receiver": "backend|browser",
+      "sender": "browser|backend"
+    },
+    "manual_bookmark": {
+      "$ref": "#/$defs/ManualBookmarkMessage",
+      "channel": "browser_to_backend",
+      "owner": "P4",
+      "receiver": "backend",
+      "sender": "browser (P4)"
+    },
+    "playback_eligibility": {
+      "$ref": "#/$defs/PlaybackEligibilityMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "inference (P3), browser",
+      "sender": "backend"
+    },
+    "playback_state": {
+      "$ref": "#/$defs/PlaybackStateMessage",
+      "channel": "browser_to_backend",
+      "owner": "P4",
+      "receiver": "backend",
+      "sender": "browser (P4)"
+    },
+    "review_bookmark": {
+      "$ref": "#/$defs/ReviewBookmarkMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser (P4)",
+      "sender": "backend"
+    },
+    "review_candidate": {
+      "$ref": "#/$defs/ReviewCandidateMessage",
+      "channel": "backend_internal",
+      "owner": "P3",
+      "receiver": "hub",
+      "sender": "inference (P3)"
+    },
+    "sensor_status": {
+      "$ref": "#/$defs/SensorStatusMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser, inference",
+      "sender": "backend"
+    },
+    "server_hello": {
+      "$ref": "#/$defs/ServerHelloMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser",
+      "sender": "backend"
+    },
+    "session_config": {
+      "$ref": "#/$defs/SessionConfigMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser",
+      "sender": "backend"
+    },
+    "session_end": {
+      "$ref": "#/$defs/SessionEndMessage",
+      "channel": "browser_to_backend",
+      "owner": "P5",
+      "receiver": "backend",
+      "sender": "browser (P4)"
+    },
+    "session_ended": {
+      "$ref": "#/$defs/SessionEndedMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser",
+      "sender": "backend"
+    },
+    "session_snapshot": {
+      "$ref": "#/$defs/SessionSnapshotMessage",
+      "channel": "backend_to_browser",
+      "owner": "P5",
+      "receiver": "browser",
+      "sender": "backend"
+    },
+    "session_start": {
+      "$ref": "#/$defs/SessionStartMessage",
+      "channel": "browser_to_backend",
+      "owner": "P5",
+      "receiver": "backend",
+      "sender": "browser (P4)"
+    },
+    "user_feedback": {
+      "$ref": "#/$defs/UserFeedbackMessage",
+      "channel": "browser_to_backend",
+      "owner": "P4",
+      "receiver": "backend",
+      "sender": "browser (P4)"
+    }
+  },
+  "x-schemaVersion": "0.1.0"
+}

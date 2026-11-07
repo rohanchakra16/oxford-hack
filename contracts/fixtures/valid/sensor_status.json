@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-sensor_status",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "sensor_status",
+  "payload": {
+    "eeg": {
+      "state": "ok",
+      "reasons": [],
+      "sinceBackendMs": 2000.0
+    },
+    "gaze": {
+      "state": "degraded",
+      "reasons": [
+        "calibration expired"
+      ],
+      "sinceBackendMs": 3000.0
+    },
+    "mode": "eeg_only",
+    "automaticSuggestions": true,
+    "automaticReason": "mode eeg_only is automatic (simulated run)",
+    "tBackendMs": 3000.0
+  }
+}

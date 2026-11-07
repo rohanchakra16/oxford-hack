@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-clock_pong",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "clock_pong",
+  "payload": {
+    "pingId": "ping-1",
+    "tBackendSendMs": 50010.0,
+    "tBrowserRecvMs": 1530.2,
+    "tBrowserSendMs": 1530.4
+  }
+}

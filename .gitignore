@@ -1,0 +1,70 @@
+# ---- Dependencies, environments, build output ----
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+coverage/
+.coverage
+*.tsbuildinfo
+
+# ---- Secrets and local state (launch tokens, local config) ----
+.env
+.env.*
+!.env.example
+.local/
+*.pem
+*.key
+*.p12
+secrets/
+credentials*
+
+# ---- Participant data, recordings, media: NEVER commit ----
+# Use .local/ or data/ (both ignored) for anything recorded on a real device or person.
+data/
+recordings/
+participants/
+*.mp4
+*.webm
+*.mov
+*.mkv
+*.avi
+*.m4v
+*.wav
+*.mp3
+*.jpg
+*.jpeg
+*.png
+!docs/**/*.png
+*.edf
+*.bdf
+*.gdf
+*.xdf
+*.fif
+*.set
+*.fdt
+*.vhdr
+*.eeg
+*.hdf5
+*.h5
+*.npy
+*.npz
+*.pkl
+*.csv
+*.jsonl
+# Small synthetic fixtures are explicitly allowed:
+!contracts/fixtures/**
+
+# ---- Editors / OS ----
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.claude/
+.board/

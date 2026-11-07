@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-session_snapshot",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "session_snapshot",
+  "payload": {
+    "config": {
+      "sessionId": "ses-fixture",
+      "videoId": "video-fixture",
+      "runKind": "simulated",
+      "enabledSensors": {
+        "eeg": true,
+        "gaze": true
+      },
+      "modePolicy": {
+        "both": "automatic",
+        "eegOnly": "automatic",
+        "gazeOnly": "automatic"
+      },
+      "detector": {
+        "detectorId": "placeholder-scripted",
+        "detectorVersion": "0.1.0",
+        "configVersion": "sim-1"
+      },
+      "eegDevice": {
+        "model": null,
+        "confirmed": false,
+        "sampleRateHz": null,
+        "channelNames": null,
+        "units": null
+      },
+      "featureSetVersion": "synthetic-features-0",
+      "mapping": {
+        "leadInS": 2.0,
+        "boundaryMarginMs": 250.0,
+        "maxClockUncertaintyMs": 50.0,
+        "maxTelemetryStalenessMs": 2500.0,
+        "pendingTimeoutMs": 3000.0,
+        "maxCandidateAgeMs": 30000.0
+      },
+      "createdBackendMs": 1000.0
+    },
+    "bookmarks": [
+      {
+        "bookmarkId": "bm-evt-1",
+        "eventId": "evt-1",
+        "videoId": "video-fixture",
+        "segmentId": "seg-2",
+        "source": "experimental_combined",
+        "runKind": "simulated",
+        "suggestedMediaS": 40.0,
+        "evidenceMedia": {
+          "startMediaS": 42.0,
+          "endMediaS": 46.0
+        },
+        "evidence": {
+          "startBackendMs": 52000.0,
+          "endBackendMs": 56000.0
+        },
+        "decisionBackendMs": 56200.0,
+        "mappedBackendMs": 56250.0,
+        "mappingUncertaintyMs": 3.5,
+        "detector": {
+          "detectorId": "placeholder-scripted",
+          "detectorVersion": "0.1.0",
+          "configVersion": "sim-1"
+        },
+        "contributingSignals": [
+          {
+            "signal": "eeg",
+            "windowIds": [
+              "eegw-12"
+            ],
+            "scores": [
+              {
+                "name": "placeholder",
+                "value": null,
+                "scale": "none",
+                "missingReason": "no model"
+              }
+            ]
+          },
+          {
+            "signal": "gaze",
+            "windowIds": [
+              "gazew-12"
+            ],
+            "scores": [
+              {
+                "name": "outside_video_fraction",
+                "value": 0.6,
+                "scale": "fraction_of_window",
+                "missingReason": null
+              }
+            ]
+          }
+        ],
+        "transcriptContext": null
+      }
+    ],
+    "sensorStatus": {
+      "eeg": {
+        "state": "ok",
+        "reasons": [],
+        "sinceBackendMs": 2000.0
+      },
+      "gaze": {
+        "state": "degraded",
+        "reasons": [
+          "calibration expired"
+        ],
+        "sinceBackendMs": 3000.0
+      },
+      "mode": "eeg_only",
+      "automaticSuggestions": true,
+      "automaticReason": "mode eeg_only is automatic (simulated run)",
+      "tBackendMs": 3000.0
+    },
+    "lastSeq": 41
+  }
+}
