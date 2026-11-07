@@ -3,7 +3,7 @@
 Owner: @aryanmorarji (Person 4, playback). Issue: #3. Branch: `person4/video-player`.
 
 Status: **Milestone 1 (standalone local-video player) implemented on this branch. Not merged.**
-The interface below is **PROPOSED** until @Betty505 agrees it on the board (#1).
+The interface below was agreed with @Betty505 on the board (#1), 2026-11-07.
 
 ## Location
 
@@ -26,9 +26,9 @@ This code lives in `frontend/src/player/`, following `docs/frontend-integration.
   source is set, so `loadedmetadata` reaches the new session. `endSession('page_closing')` on unmount.
 - Exposes a `PlayerHandle` for the review UI and transcript: state, `seek`, `replayRange`.
 
-Transcript: see `src/transcript/README.md`. Not done yet (see #3): video geometry for gaze, Panopto (`docs/panopto.md`).
+Transcript: see `src/transcript/README.md`. Not done yet: Panopto feasibility (`docs/panopto.md`).
 
-## Interface (PROPOSED)
+## Interface
 
 ```ts
 import { LecturePlayer, type PlayerHandle } from '../player';
@@ -74,7 +74,7 @@ must be posted on the board (#1) for @ShinJuKim first.
 - The replay **destination** (sentence start, "move earlier") is chosen by the caller from
   `ReviewBookmark.suggestedMediaS` plus the transcript; the player just plays the range it is given.
 
-### videoId for local files (PROPOSED on #1)
+### videoId for local files (agreed on #1)
 
 `"local-" + first 16 hex of SHA-256(name | size | lastModified)`. Stable for the same file on the
 same device, instant (does not read contents), matches the contract pattern
@@ -159,8 +159,28 @@ tests (needs a DOM test library: shared config, Person 5 review).
 - The dev harness is a temporary stand-in. Mounting in the product app is @Betty505's call
   (asked on #1); `src/product/App.tsx` and `src/main.tsx` are untouched.
 
+## Integration agreement with Person 5
+
+Person 4 (Aryan) agreed `docs/frontend-integration.md` and `docs/TIMING.md` as written, with no
+changes, on [#1](https://github.com/rohanchakra16/oxford-hack/issues/1#issuecomment-6711130299)
+(2026-11-07). Checked against this player (#4, #16) and Rohan's real-video e2e (#17).
+
+- Telemetry: `attachMediaElement` only, once per `<video>`. No `src/telemetry/` folder: segments,
+  sequencing and heartbeats are Person 5's `PlaybackReporter`.
+- Sessions: `LecturePlayer` calls `startSession` (`mediaDurationS: null`, duration follows in
+  `playback_state`) and `endSession`. The composition passes the `session` prop and must not call
+  `startSession`/`endSession` itself.
+- Units: media seconds everywhere; no clock conversion in Person 4 code. Detection never pauses or seeks.
+- §8 decisions: (1) `attachMediaElement`; (2) `videoId` as above, URL/Panopto ids TBD in
+  `docs/panopto.md`; (3) replay starts at the sentence containing `suggestedMediaS`, "Move earlier"
+  steps one sentence, no transcript falls back to `suggestedMediaS` (agreed with @Betty505);
+  (4) product e2e on the synthetic adapter by default, Betty's call; (5) bookmarks across a backend
+  restart: no Person 4 preference.
+
 ## Handoffs
 
-- @Betty505: agree `PlayerHandle` and how the player is mounted; the replay-destination rule.
-- @ShinJuKim: video geometry (`viewportCssPx`, `videoRectCssPx`) and update events.
-- @rohanchakra16: telemetry units/timing (media seconds, forwarding via `attachMediaElement`).
+- @Betty505: agreed: mount `LecturePlayer` + `TranscriptPanel` in PR #11 and use the sentence replay
+  rule. Pending her integration.
+- @ShinJuKim: agreed: gaze reads `getVideoElement()` each frame (no update events needed). Post on #1
+  before changing the video's `object-fit`, `object-position`, padding or border.
+- @rohanchakra16: agreed (see above).
