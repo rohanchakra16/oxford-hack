@@ -258,6 +258,19 @@ export function fitCalibration(samples: CalibrationSample[], opts: FitOptions): 
   };
 }
 
+/**
+ * Per-axis error (standard deviation, px) for the P(inside) decision: the held-out RMS on each axis
+ * (an estimate of σ for zero-mean errors), floored so a lucky calibration can't claim pixel precision.
+ * Calibrations saved before per-axis error existed split the overall RMS evenly across axes.
+ */
+export function calibrationSigma(m: CalibrationModel, minSigmaPx = 25): { x: number; y: number } {
+  const fallback = m.heldoutRmsPx / Math.SQRT2;
+  return {
+    x: Math.max(minSigmaPx, m.heldoutRmsXPx ?? fallback),
+    y: Math.max(minSigmaPx, m.heldoutRmsYPx ?? fallback),
+  };
+}
+
 /** Calibration targets as fractions of the video rect. Held-out points are interleaved so drift affects both sets. */
 export const DEFAULT_TARGETS: { u: number; v: number; holdout: boolean }[] = [
   { u: 0.5, v: 0.5, holdout: false },

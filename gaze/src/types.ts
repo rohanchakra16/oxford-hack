@@ -80,9 +80,14 @@ export interface GazeObservation {
     video_u: number | null;
     video_v: number | null;
     region: GazeRegion | null;
-    /** Horizontal/vertical distance from the video edge that counts as "uncertain" (from held-out error per axis). */
-    margin_x_px: number | null;
-    margin_y_px: number | null;
+    /**
+     * Probability that the true gaze is inside the video, given the estimate and the per-axis
+     * calibration error. `region` is decided from it with asymmetric thresholds.
+     */
+    p_inside: number | null;
+    /** Per-axis error (standard deviation, px) used for p_inside: held-out RMS per axis, floored. */
+    sigma_x_px: number | null;
+    sigma_y_px: number | null;
   };
   calibration: {
     id: string | null;

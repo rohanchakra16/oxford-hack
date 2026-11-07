@@ -103,6 +103,9 @@ const clampPoint = (v: number) => Math.min(10, Math.max(-10, v));
  *   `low_confidence`. The contract's `insideVideo` is a yes/no claim, and inside the band we can't
  *   make it honestly.
  * - Eyes closed → invalid with `eyes_not_detected` (a gaze location is meaningless then).
+ * - `modelConfidence` (valid only) = probability the reported `insideVideo` is right:
+ *   P(inside) for inside, 1 − P(inside) for outside. Based on held-out calibration error, so it is
+ *   only as good as that estimate; not comparable with EEG scores.
  */
 export function toContractObservation(o: GazeObservation): ContractGazeObservation {
   const base = {
@@ -114,13 +117,16 @@ export function toContractObservation(o: GazeObservation): ContractGazeObservati
   };
   const region = o.gaze.region;
   if ((region === "on_video" || region === "off_video") && o.gaze.video_u !== null && o.gaze.video_v !== null) {
+    const inside = region === "on_video";
+    const p = o.gaze.p_inside;
     return {
       ...base,
       valid: true,
       invalidReasons: [],
       videoPoint: { x: clampPoint(o.gaze.video_u), y: clampPoint(o.gaze.video_v) },
-      insideVideo: region === "on_video",
-      modelConfidence: null,
+      insideVideo: inside,
+      // Probability that the reported insideVideo value is right, from the calibration error model.
+      modelConfidence: p === null ? null : Math.min(1, Math.max(0, inside ? p : 1 - p)),
     };
   }
   const reasons = new Set<ContractGazeInvalidReason>(o.reasons.map((r) => REASON_MAP[r]));

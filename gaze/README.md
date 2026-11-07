@@ -25,7 +25,7 @@ are stored or sent anywhere.
 | Select and document a reproducible gaze model setup | Done: MediaPipe Face Landmarker, pinned model, served locally (see Run and test) |
 | Implement camera permission and camera-loss handling | Done: explicit permission/not-found/in-use/disconnected states, reconnect on device change. Camera-denied path verified in browser; live unplug not yet tested |
 | Implement calibration and a held-out accuracy check | Done: dot calibration with held-out dots inside and outside the video, per-axis error, plus a scripted look-away accuracy test |
-| Map gaze coordinates to video coordinates | Done: normalised video point (0..1 inside), on/off/uncertain with per-axis error margins |
+| Map gaze coordinates to video coordinates | Done: normalised video point (0..1 inside), probability of being inside the video, on/off/uncertain decision |
 | Handle viewport resize and fullscreen changes | Implemented (calibration stored in screen space; video rect re-read every frame). **Not yet tested live** |
 | Produce gaze measurements and quality output | Done: shared-contract `gaze_observations` / `gaze_calibration` via `src/contract.ts`, validated against the 0.1.0 JSON Schema |
 | Bound processing to maintain responsiveness on the target laptop | Implemented: 15 fps cap, frames dropped rather than queued, batches ≤ 64. **Per-frame cost not yet measured on the target laptop** |
@@ -51,11 +51,12 @@ Over the wire, only the shared contract (`contracts/`, schemaVersion 0.1.0, owne
 
 How internal results map to the contract:
 - `on_video` / `off_video` → `valid: true`, `insideVideo: true/false`.
-- `uncertain` (estimate within the calibration error band of the video edge) → `valid: false`,
+- `uncertain` (probability of being inside the video between the two thresholds) → `valid: false`,
   `invalidReasons: ["low_confidence"]`. The contract's `insideVideo` is a yes/no claim we can't make honestly there.
 - Eyes closed → `eyes_not_detected`. Camera problems → `camera_unavailable`. No/stale/too-coarse calibration →
   `calibration_missing` / `calibration_invalid`. Face not found → `face_not_detected`.
-- `modelConfidence` is always `null` (no meaningful per-frame confidence yet).
+- `modelConfidence` (valid frames) = probability the reported `insideVideo` is right: P(inside) when inside,
+  1 − P(inside) when outside. It comes from the held-out calibration error, so it's only as good as that estimate.
 
 The richer internal types (`src/types.ts`: head pose, per-axis margins, drift diagnostics) are for the
 harness and evaluation only.
@@ -94,9 +95,27 @@ seat still; recalibrate if you move seats or the module reports calibration expi
 | Evidence | Status |
 |---|---|
 | Tracking demonstrated on the target laptop | Tracking demonstrated on @ShinJuKim's MacBook (Chrome). Target/demo laptop still to confirm |
-| Held-out calibration accuracy and limitations documented | Partly. Dot calibration: ~90-100 px held-out RMS in good conditions; moving dot ~150 px (worse, kept experimental). Accuracy test (run 2026-11-07, before per-axis margins/outside dots): phone 100%, away from screen 100%, side panel 14%, false alarms 7%, on-video confirmed 0% (mostly `uncertain`, vertical error dominates). Re-run after the latest changes pending |
+| Held-out calibration accuracy and limitations documented | Done for one person and setup; more participants pending. Dot calibration: ~90-100 px held-out RMS in good conditions, vertical error much larger than horizontal; moving dot ~150 px (worse, kept experimental). Accuracy-test history below |
+
 | Tested resize, fullscreen, and camera-loss behaviour | Camera denied: verified. Resize, fullscreen, camera unplug: **pending** (harness has a "Shrink video" toggle) |
 | Documented processing performance | **Pending**: read ms/frame and fps from the harness header chip on the target laptop |
+
+### Accuracy-test history
+All runs by @ShinJuKim on @ShinJuKim's MacBook (Chrome), 2026-11-07, scripted ~75 s test (`Run accuracy test`), dot calibration
+immediately before. Rates are fractions of frames per step after a 2.5 s transition; "uncertain"/unavailable count as not detected.
+
+| Version | Look-away detected | False alarms | On-video confirmed | Balanced acc. | Coverage | Phone / side panel / away |
+|---|---|---|---|---|---|---|
+| Fixed band, single margin | 66% | 20% | 33% | 73% | 84% | 89% / 95% / 13% |
+| + smoothing, diagnostics | 49% | 0% | 35% | 75% | 87% | 99% / 29% / 20% (head-turn staleness bug) |
+| + depth-based distance (bug fix) | 71% | 7% | 0% | 82% | 100% | 100% / 14% / 100% |
+| + per-axis margins, dots outside video | 85% | 2% | 14% | 91% | 100% | 99% / 56% / 100% |
+| **+ probability decision (current)** | **97%** | **0%** | **88%** | **98%** | **98%** | **95% / 95% / 100%** |
+
+Caveats: one person, one desk, one run per version; the side-panel step is near calibration dots, so it is
+optimistic. Right after looking down at the phone, the vertical estimate stays low for a few seconds (head stays
+tilted while the eyes return), giving extra `uncertain` frames (current run: video-2 73% vs. 91%/99% for the other
+video steps), not false alarms. Next: runs by other teammates and on the demo laptop.
 
 ## Run and test
 Requires Node 22+ (verified with 22.23.4). From `gaze/`:
@@ -129,7 +148,7 @@ Harness (`index.html`), in order:
 | Features | Head yaw/pitch/roll and depth from the face transform; iris position within each eye opening; eye openness from blink blendshapes. |
 | Calibration | Ridge regression from `[yaw, pitch, iris_x, iris_y]` to screen px on per-dot medians. Held-out error per dot, overall and per axis; quality judged per axis against the video's size along it. |
 | Smoothing | 700 ms rolling median of the screen estimate, restarted after gaps (~0.35 s lag). |
-| Region | Per-axis uncertainty band of ±max(40 px, 1.5 × held-out RMS on that axis) around the video edge → `on_video` / `uncertain` / `off_video`. |
+| Region | P(inside video), treating the held-out RMS on each axis as the error's standard deviation (floor 25 px) with independent Gaussian errors. **Asymmetric thresholds:** `off_video` only if P ≤ 7% (strict, since false alarms trigger wrong suggestions; equivalent to the earlier 1.5σ band), `on_video` if P ≥ 60% (lenient, since a missed "off" costs little), else `uncertain`. Configurable via `onThreshold` / `offThreshold`. The earlier fixed band was replaced because with large vertical error it left no point that could count as on-video. |
 | Staleness | Head moves >12% of the frame or distance changes >25% for >1.5 s → `CALIBRATION_STALE`; after 10 s → expired. Distance uses the model's 3D depth, so head turns don't count as moving. |
 | Unavailability | Explicit reasons; a 1 Hz heartbeat when no frame is processed, so silence never means "fine". |
 

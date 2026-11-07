@@ -1,5 +1,6 @@
 import {
   DEFAULT_PHASES,
+  calibrationSigma,
   GazeEngine,
   scoreValidation,
   screenToViewport,
@@ -75,10 +76,8 @@ function showCalibration(m: CalibrationModel | null) {
       m.heldoutErrorsPx.map((e) => Math.round(e)).join(", ") + " px",
     ],
     ["fit RMS", `${Math.round(m.fitRmsPx)} px${m.fitSamples ? ` (${m.fitSamples} samples)` : ""}`],
-    [
-      "edge margin x / y",
-      m.marginXPx !== undefined ? `${Math.round(m.marginXPx)} / ${Math.round(m.marginYPx)} px` : `${Math.round(m.marginPx)} px`,
-    ],
+    ["error σ x / y", (() => { const s = calibrationSigma(m); return `${Math.round(s.x)} / ${Math.round(s.y)} px`; })()],
+    ["decision", "on if P(inside) ≥ 60%, off if ≤ 7%"],
     ["id", m.id],
   ]);
 }
@@ -151,6 +150,7 @@ engine.on("observation", (o: GazeObservation) => {
     ["eye openness", fmt(o.face.eye_openness, "", 2)],
     ["eyes closed", o.face.eyes_closed === null ? null : String(o.face.eyes_closed)],
     ["video u / v", o.gaze.video_u === null ? null : `${o.gaze.video_u.toFixed(2)} / ${o.gaze.video_v!.toFixed(2)}`],
+    ["P(inside video)", o.gaze.p_inside === null ? null : `${Math.round(o.gaze.p_inside * 100)}%`],
     ["head moved since cal.", fmt(o.face.pose_shift, "", 3)],
     ["distance vs cal.", fmt(o.face.scale_ratio, "×", 2)],
   ]);

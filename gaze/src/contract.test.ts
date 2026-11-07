@@ -18,6 +18,7 @@ function obs(over: {
   reasons?: GazeReasonCode[];
   eyesClosed?: boolean | null;
   calId?: string | null;
+  pInside?: number | null;
 }): GazeObservation {
   return {
     schema: "gaze_observation/v0",
@@ -46,8 +47,9 @@ function obs(over: {
       video_u: over.u === undefined ? 0.5 : over.u,
       video_v: over.v === undefined ? 0.5 : over.v,
       region: over.region === undefined ? "on_video" : over.region,
-      margin_x_px: 50,
-      margin_y_px: 120,
+      p_inside: over.pInside === undefined ? 0.9 : over.pInside,
+      sigma_x_px: 50,
+      sigma_y_px: 120,
     },
     calibration: {
       id: over.calId === undefined ? "cal-abc" : over.calId,
@@ -195,5 +197,14 @@ describe("ObservationBatcher", () => {
     b.push(c);
     expect(() => b.flush()).not.toThrow();
     warn.mockRestore();
+  });
+});
+
+describe("modelConfidence", () => {
+  it("is the probability that the reported insideVideo value is right", () => {
+    expect(toContractObservation(obs({ region: "on_video", pInside: 0.82 })).modelConfidence).toBeCloseTo(0.82);
+    expect(toContractObservation(obs({ region: "off_video", u: 1.4, pInside: 0.03 })).modelConfidence).toBeCloseTo(0.97);
+    expect(toContractObservation(obs({ region: "on_video", pInside: null })).modelConfidence).toBeNull();
+    expect(toContractObservation(obs({ region: "uncertain", pInside: 0.4 })).modelConfidence).toBeNull();
   });
 });

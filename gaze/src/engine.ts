@@ -1,6 +1,7 @@
 import { FaceLandmarker, FilesetResolver, type FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 import {
   DEFAULT_PURSUIT,
+  calibrationSigma,
   calibrationTargets,
   fitCalibration,
   fitPursuitCalibration,
@@ -16,7 +17,7 @@ import {
 import { Camera, type CameraState } from "./camera";
 import { extractFeatures, medianFeatures, type Landmark } from "./features";
 import { elementScreenRect, pointInRect, screenToViewport, viewportScreenRect } from "./geometry";
-import { classifyRegion, videoUV } from "./region";
+import { classifyByProbability, DEFAULT_THRESHOLDS, videoUV } from "./region";
 import { PointSmoother } from "./smoothing";
 import { summarise } from "./summary";
 import {
@@ -45,6 +46,12 @@ export interface GazeEngineOptions {
   eyesClosedThreshold?: number;
   /** Rolling-median window for the gaze estimate (ms); 0 disables smoothing. */
   smoothingMs?: number;
+  /** P(inside video) at or above which a frame is "on_video" (default 0.6). */
+  onThreshold?: number;
+  /** P(inside video) at or below which a frame is "off_video" (default 0.07, strict to avoid false alarms). */
+  offThreshold?: number;
+  /** Floor on the per-axis error used for P(inside), px (default 25). */
+  minSigmaPx?: number;
   summaryIntervalMs?: number;
 }
 
@@ -119,6 +126,9 @@ export class GazeEngine {
       targetFps: 15,
       eyesClosedThreshold: 0.35,
       smoothingMs: 700,
+      onThreshold: DEFAULT_THRESHOLDS.onThreshold,
+      offThreshold: DEFAULT_THRESHOLDS.offThreshold,
+      minSigmaPx: 25,
       summaryIntervalMs: 1000,
       ...options,
     };
@@ -287,8 +297,9 @@ export class GazeEngine {
       video_u: null,
       video_v: null,
       region: null,
-      margin_x_px: null,
-      margin_y_px: null,
+      p_inside: null,
+      sigma_x_px: null,
+      sigma_y_px: null,
     };
     // A gaze location while the eyes are closed is meaningless; eyes_closed reports that finding instead.
     const canMap = f && faces === 1 && cal && calStatus === "valid" && !eyesClosed;
@@ -296,15 +307,19 @@ export class GazeEngine {
       const p = this.smoother.push(capturedMs, predictScreen(cal, f));
       gaze.screen_x_px = p.x;
       gaze.screen_y_px = p.y;
-      // Calibrations saved before per-axis margins existed fall back to the single margin.
-      const margins = { x: cal.marginXPx ?? cal.marginPx, y: cal.marginYPx ?? cal.marginPx };
-      gaze.margin_x_px = Math.round(margins.x);
-      gaze.margin_y_px = Math.round(margins.y);
+      const sigma = calibrationSigma(cal, this.opts.minSigmaPx);
+      gaze.sigma_x_px = Math.round(sigma.x);
+      gaze.sigma_y_px = Math.round(sigma.y);
       if (rect) {
         const uv = videoUV(p, rect);
         gaze.video_u = uv.u;
         gaze.video_v = uv.v;
-        gaze.region = classifyRegion(p, rect, margins);
+        const d = classifyByProbability(p, rect, sigma, {
+          onThreshold: this.opts.onThreshold,
+          offThreshold: this.opts.offThreshold,
+        });
+        gaze.region = d.region;
+        gaze.p_inside = Math.round(d.pInside * 1000) / 1000;
       }
     } else if (!eyesClosed) {
       // Don't let estimates from before a gap (face lost, stale) leak into the next ones. A blink keeps the window.

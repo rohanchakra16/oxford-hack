@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PURSUIT,
+  calibrationSigma,
   calibrationTargets,
   fitCalibration,
   fitPursuitCalibration,
@@ -8,13 +9,14 @@ import {
   pursuitPath,
   pursuitSamples,
   StalenessTracker,
+  type CalibrationModel,
   type CalibrationPoint,
   type TimedFeatures,
 } from "./calibration";
 import { PointSmoother } from "./smoothing";
 import { scoreValidation, type PhaseWindow } from "./validation";
 import { extractFeatures, headPoseFromMatrix, medianFeatures, type Landmark } from "./features";
-import { classifyRegion, signedDistanceToRect } from "./region";
+import { classifyByProbability, classifyRegion, normalCdf, signedDistanceToRect } from "./region";
 import { summarise } from "./summary";
 import type { FrameFeatures, GazeObservation, ScreenRect } from "./types";
 
@@ -228,7 +230,7 @@ function obs(t: number, region: GazeObservation["gaze"]["region"], detected = tr
       pose_shift: detected ? 0.01 : null,
       scale_ratio: detected ? 1 : null,
     },
-    gaze: { screen_x_px: null, screen_y_px: null, video_u: null, video_v: null, region, margin_x_px: null, margin_y_px: null },
+    gaze: { screen_x_px: null, screen_y_px: null, video_u: null, video_v: null, region, p_inside: null, sigma_x_px: null, sigma_y_px: null },
     calibration: { id: null, status: "valid", quality: "fine", heldout_rms_px: 10, heldout_rms_x_px: 6, heldout_rms_y_px: 8 },
     model: { name: "test", version: "0" },
   };
@@ -486,5 +488,54 @@ describe("calibrationTargets", () => {
     const tight: ScreenRect = { left: 0, top: 0, width: 930, height: 600 };
     expect(calibrationTargets(video, tight).every((x) => !x.outside)).toBe(true);
     expect(calibrationTargets(video, tight).length).toBe(11);
+  });
+});
+
+describe("probability-based decision", () => {
+  const video: ScreenRect = { left: 0, top: 0, width: 900, height: 500 };
+
+  it("computes the normal CDF accurately", () => {
+    expect(normalCdf(0)).toBeCloseTo(0.5, 6);
+    expect(normalCdf(1.5)).toBeCloseTo(0.93319, 4);
+    expect(normalCdf(-1.5)).toBeCloseTo(0.06681, 4);
+    expect(normalCdf(-6)).toBeLessThan(1e-6);
+  });
+
+  it("counts a central estimate as on-video even when vertical error is large (the reported failure)", () => {
+    // Estimate at u=0.5, v=0.32 with σy=170 px on a 500 px tall video: the old fixed band (1.5σ = 255 px
+    // inside every edge) could never say on_video; P(inside) is ~0.8.
+    const d = classifyByProbability({ x: 450, y: 160 }, video, { x: 60, y: 170 });
+    expect(d.pInside).toBeGreaterThan(0.75);
+    expect(d.pInside).toBeLessThan(0.85);
+    expect(d.region).toBe("on_video");
+    expect(classifyRegion({ x: 450, y: 160 }, video, { x: 90, y: 255 })).toBe("uncertain");
+  });
+
+  it("keeps false alarms strict: off-video only when clearly outside", () => {
+    const sigma = { x: 60, y: 170 };
+    // 1.5σ right of the edge, vertically centred → P ≈ Φ(-1.5) ≈ 0.067 → off (matches the old band).
+    expect(classifyByProbability({ x: 990, y: 250 }, video, sigma).region).toBe("off_video");
+    // Just past the edge → uncertain, not off.
+    expect(classifyByProbability({ x: 920, y: 250 }, video, sigma).region).toBe("uncertain");
+    // Phone below the laptop: far below → off.
+    expect(classifyByProbability({ x: 450, y: 1500 }, video, sigma).region).toBe("off_video");
+  });
+
+  it("is uncertain near the edge from the inside", () => {
+    const d = classifyByProbability({ x: 450, y: 20 }, video, { x: 60, y: 170 });
+    expect(d.region).toBe("uncertain");
+  });
+
+  it("respects custom thresholds", () => {
+    const p = { x: 450, y: 160 };
+    const sigma = { x: 60, y: 170 };
+    expect(classifyByProbability(p, video, sigma, { onThreshold: 0.9, offThreshold: 0.07 }).region).toBe("uncertain");
+  });
+
+  it("derives per-axis σ from the calibration with a floor and a legacy fallback", () => {
+    const m = { heldoutRmsPx: 100, heldoutRmsXPx: 10, heldoutRmsYPx: 170 } as unknown as CalibrationModel;
+    expect(calibrationSigma(m)).toEqual({ x: 25, y: 170 });
+    const legacy = { heldoutRmsPx: 100 } as unknown as CalibrationModel;
+    expect(calibrationSigma(legacy).x).toBeCloseTo(100 / Math.SQRT2, 6);
   });
 });
