@@ -46,6 +46,7 @@ const [player, setPlayer] = useState<PlayerHandle | null>(null);
 | `cancelReplay()` | Stop treating the range as a replay (does not pause). |
 | `play()`, `pause()` | As on `HTMLMediaElement`. |
 | `getLecture(): { videoId, fileName } \| null` | Currently loaded lecture. |
+| `getVideoElement(): HTMLVideoElement` | The `<video>` element, for gaze geometry only (@ShinJuKim reads its rect each frame). Same element for the player's lifetime. Do not control playback through it; use `seek`/`play`/`pause`. |
 | `onMediaEvent(listener)` | Raw media events with the status after each. Diagnostics/logging only. |
 
 `PlaybackStatus`: `mediaTimeS`, `durationS` (null until known), `paused`, `ended`, `seeking`,
@@ -56,6 +57,11 @@ Props: `client` (required, one per page), `session` (`runKind`, `sensors`; compo
 
 The handle is `null` until the `<video>` has mounted. With React 19, pass a state setter as `ref`
 (as above) to receive it.
+
+### Video element layout (gaze depends on this)
+`.lp-video` uses `object-fit: contain` (centred, default `object-position`), with no padding or border,
+so letterbox bars sit inside the element rect. Gaze computes the content box from this. Any change
+must be posted on the board (#1) for @ShinJuKim first.
 
 ### Units and timing
 

@@ -23,6 +23,11 @@ function Harness() {
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [earlier, setEarlier] = useState<Record<string, number>>({});
 
+  // Dev-only: expose the handle for console checks (e.g. window.__player.getVideoElement()).
+  useEffect(() => {
+    (window as unknown as { __player?: PlayerHandle | null }).__player = player;
+  }, [player]);
+
   useEffect(() => {
     if (!player) return;
     return player.onMediaEvent((event, s) => {
