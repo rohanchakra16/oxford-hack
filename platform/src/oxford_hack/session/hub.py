@@ -77,6 +77,8 @@ class HubSettings:
     playback_messages_per_s: float = 50.0
     seen_event_capacity: int = 4_096
     allowed_run_kinds: frozenset[str] = frozenset({"live", "simulated"})
+    simulation_policy_run_kinds: frozenset[str] = frozenset({"simulated"})
+    """Run kinds whose sessions may publish from unevaluated modes (synthetic data only)."""
 
 
 class SimulationBundle(Protocol):
@@ -438,8 +440,13 @@ class Hub:
             inference = self._inference_factory(ctx)
 
         def policy_for(mode: str) -> p.ModePolicyValue:
+            # Simulation-only policy: in a simulated run every mode may publish (labelled 'simulated')
+            # suggestions so the pipeline can be exercised. This is NOT evaluation evidence. Live and
+            # replay sessions allow only modes the detector bundle declares evaluated.
             if inference is None:
                 return "manual_only"
+            if req.run_kind in self.settings.simulation_policy_run_kinds:
+                return "automatic"
             return "automatic" if mode in inference.evaluated_modes else "manual_only"
 
         policy = p.ModePolicy(

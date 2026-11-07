@@ -506,3 +506,15 @@ def test_simulation_is_deterministic() -> None:
 
 
 _ = SIM_INFERENCE
+
+
+def test_simulated_sessions_use_simulation_only_policy_without_evaluated_modes() -> None:
+    sim = Sim(make_hub_factory(period_ms=5_000))
+    b, player = started(sim)
+    config = b.of_type("session_config")[0]["payload"]
+    assert config["modePolicy"] == {"both": "automatic", "eegOnly": "automatic", "gazeOnly": "automatic"}
+    session = sim.hub.sessions[b.session_id]
+    assert session.inference is not None and session.inference.evaluated_modes == frozenset()
+    player.play()
+    sim.run(15_000)
+    assert bookmarks(b) and all(x["runKind"] == "simulated" for x in bookmarks(b))

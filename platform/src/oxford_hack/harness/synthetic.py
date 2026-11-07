@@ -55,6 +55,7 @@ class QualityEvent:
     """Scripted condition relative to producer start.
 
     ``flatline``: windows unusable. ``dropout``: no data at all.
+    ``elevated``: fake feature values drawn from [0.8, 1.0] (to drive a detector deterministically).
     """
 
     start_ms: float
@@ -113,13 +114,14 @@ class SyntheticEegProducer:
             if self._active(end - self._start, "dropout"):
                 continue
             flat = self._active(end - self._start, "flatline")
+            value_range = (0.8, 1.0) if self._active(end - self._start, "elevated") else (-1.0, 1.0)
             self._n += 1
             features = [
                 EegFeature(
                     name="synthetic_value",
                     unit="a.u.",
                     channel=ch,
-                    value=None if flat else round(self._rng.uniform(-1, 1), 6),
+                    value=None if flat else round(self._rng.uniform(*value_range), 6),
                     missing_reason="flatline (synthetic)" if flat else None,
                 )
                 for ch in ("synthetic-1", "synthetic-2")
@@ -186,8 +188,8 @@ class PlaceholderInference:
 
     @property
     def evaluated_modes(self) -> frozenset[AutomaticMode]:
-        # Only acceptable because this adapter is wired exclusively into simulated sessions.
-        return frozenset({"both", "eeg_only", "gaze_only"})
+        # Nothing evaluated. Simulated sessions publish via the hub's simulation-only policy.
+        return frozenset()
 
     def on_eeg_window(self, window: EegFeatureWindow) -> None:
         self._eeg_windows.append((window.evidence.end_backend_ms, window.window_id))
@@ -271,11 +273,26 @@ SimulationFactoryType = Callable[
 ]
 
 
+DetectorFactory = Callable[[SessionContext], InferenceAdapter | None]
+
+
 def simulation_factory(
-    *, period_ms: float = 20_000.0, script: Sequence[QualityEvent] = (), seed: int = 1
+    *,
+    period_ms: float = 20_000.0,
+    script: Sequence[QualityEvent] = (),
+    seed: int = 1,
+    detector_factory: DetectorFactory | None = None,
 ) -> SimulationFactoryType:
+    """Synthetic EEG producer plus a detector for simulated sessions.
+
+    ``detector_factory`` defaults to PlaceholderInference; pass e.g. P3's
+    ``inference.adapter.BaselineInference`` to exercise a real detector on synthetic data.
+    """
+
     def factory(ctx: SessionContext) -> tuple[SyntheticEegProducer | None, InferenceAdapter | None]:
         eeg = SyntheticEegProducer(seed=seed, script=script) if ctx.eeg_enabled else None
+        if detector_factory is not None:
+            return eeg, detector_factory(ctx)
         return eeg, PlaceholderInference(ctx.session_id, period_ms=period_ms)
 
     return factory

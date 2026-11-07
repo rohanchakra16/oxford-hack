@@ -113,6 +113,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_false",
         help="refuse simulated sessions (synthetic producers)",
     )
+    s.add_argument(
+        "--simulated-detector",
+        choices=["placeholder", "baseline"],
+        default="placeholder",
+        help="simulated-session detector: scripted placeholder, or P3's inference.adapter baseline",
+    )
     s.add_argument("--enable-test-hooks", action="store_true", help="expose /api/v0/test/* (tests only)")
     s.add_argument("--log-level", default="info")
     s.set_defaults(func=serve)
