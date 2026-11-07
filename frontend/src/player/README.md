@@ -1,8 +1,8 @@
 # Playback and Transcript — Player
 
-Owner: @aryanmorarji (Person 4, playback). Issue: #3. Branch: `person4/video-player`.
+Owner: @aryanmorarji (Person 4, playback). Issue: #3.
 
-Status: **Milestone 1 (standalone local-video player) implemented on this branch. Not merged.**
+Status: **Player and transcript merged to `main`** (PR #4; `getVideoElement()` in PR #16).
 The interface below was agreed with @Betty505 on the board (#1), 2026-11-07.
 
 ## Location
