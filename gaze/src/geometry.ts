@@ -24,15 +24,54 @@ export function screenToViewport(p: ScreenPoint, win: Window = window): ScreenPo
 }
 
 /** On-screen rectangle of an element, or null if it is not visible. */
-export function elementScreenRect(el: Element | null, win: Window = window): ScreenRect | null {
+/**
+ * Box of an intrinsic-size image fitted with object-fit: contain (or scale-down), centred
+ * (default object-position). Letterboxed/pillarboxed bars are excluded.
+ */
+export function fitContain(box: ScreenRect, intrinsicW: number, intrinsicH: number, scaleDown = false): ScreenRect {
+  let scale = Math.min(box.width / intrinsicW, box.height / intrinsicH);
+  if (scaleDown) scale = Math.min(scale, 1);
+  const width = intrinsicW * scale;
+  const height = intrinsicH * scale;
+  return { left: box.left + (box.width - width) / 2, top: box.top + (box.height - height) / 2, width, height };
+}
+
+/**
+ * The displayed video content in viewport CSS px. The shared contract normalises gaze to "the
+ * displayed video content rectangle", so for a <video> with object-fit contain (the default) the
+ * letterbox bars are excluded. Other elements (or videos before metadata loads) use their box.
+ * Assumes centred object-position and no padding/border on the video element.
+ */
+export function contentClientRect(el: Element | null): ScreenRect | null {
   if (!el || !el.isConnected) return null;
   const r = el.getBoundingClientRect();
   if (r.width < 1 || r.height < 1) return null;
+  const box = { left: r.left, top: r.top, width: r.width, height: r.height };
+  const v = el as HTMLVideoElement;
+  if (typeof v.videoWidth === "number" && v.videoWidth > 0 && v.videoHeight > 0) {
+    const fit = getComputedStyle(v).objectFit || "contain";
+    if (fit === "contain" || fit === "scale-down") return fitContain(box, v.videoWidth, v.videoHeight, fit === "scale-down");
+  }
+  return box;
+}
+
+/** Full (unclipped) displayed content rect in screen coordinates; used to normalise video coordinates. */
+export function elementContentScreenRect(el: Element | null, win: Window = window): ScreenRect | null {
+  const c = contentClientRect(el);
+  if (!c) return null;
+  const o = viewportOrigin(win);
+  return { left: c.left + o.x, top: c.top + o.y, width: c.width, height: c.height };
+}
+
+/** Visible part of the displayed content in screen coordinates, or null if none is visible. */
+export function elementScreenRect(el: Element | null, win: Window = window): ScreenRect | null {
+  const c = contentClientRect(el);
+  if (!c) return null;
   // Clip to the viewport: a video scrolled half out of view only occupies its visible part.
-  const left = Math.max(0, r.left);
-  const top = Math.max(0, r.top);
-  const right = Math.min(win.innerWidth, r.right);
-  const bottom = Math.min(win.innerHeight, r.bottom);
+  const left = Math.max(0, c.left);
+  const top = Math.max(0, c.top);
+  const right = Math.min(win.innerWidth, c.left + c.width);
+  const bottom = Math.min(win.innerHeight, c.top + c.height);
   if (right - left < 1 || bottom - top < 1) return null;
   const o = viewportOrigin(win);
   return { left: left + o.x, top: top + o.y, width: right - left, height: bottom - top };

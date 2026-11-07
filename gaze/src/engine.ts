@@ -16,7 +16,14 @@ import {
 } from "./calibration";
 import { Camera, type CameraState } from "./camera";
 import { extractFeatures, medianFeatures, type Landmark } from "./features";
-import { elementScreenRect, pointInRect, screenToViewport, viewportScreenRect } from "./geometry";
+import {
+  contentClientRect,
+  elementContentScreenRect,
+  elementScreenRect,
+  pointInRect,
+  screenToViewport,
+  viewportScreenRect,
+} from "./geometry";
 import { classifyByProbability, DEFAULT_THRESHOLDS, videoUV } from "./region";
 import { PointSmoother } from "./smoothing";
 import { summarise } from "./summary";
@@ -277,18 +284,17 @@ export class GazeEngine {
           reasons.push("CALIBRATION_STALE");
           if (s === "expired") {
             this.calibrationExpired = true;
-            this.emitCalibrationState({
-              status: "expired",
-              attempt: { id: cal.id, method: cal.methodLabel ?? cal.method, geometry: cal.geometry ?? this.cssGeometry() },
-              model: cal,
-              reason: "head moved away from the calibration position for over 10 s",
-            });
+            this.announceActive(); // "expired"
           }
         }
       }
     }
 
-    const rect = elementScreenRect(this.opts.getVideoElement());
+    const videoEl = this.opts.getVideoElement();
+    // Visible part of the displayed content decides "inside"; the full content rect normalises
+    // video coordinates (contract: point in the displayed video content rectangle).
+    const rect = elementScreenRect(videoEl);
+    const contentRect = elementContentScreenRect(videoEl);
     if (!rect) reasons.push("VIDEO_NOT_VISIBLE");
 
     const gaze: GazeObservation["gaze"] = {
@@ -311,7 +317,7 @@ export class GazeEngine {
       gaze.sigma_x_px = Math.round(sigma.x);
       gaze.sigma_y_px = Math.round(sigma.y);
       if (rect) {
-        const uv = videoUV(p, rect);
+        const uv = videoUV(p, contentRect ?? rect);
         gaze.video_u = uv.u;
         gaze.video_v = uv.v;
         const d = classifyByProbability(p, rect, sigma, {
@@ -400,12 +406,42 @@ export class GazeEngine {
     return this.calibration;
   }
 
+  /**
+   * Make `model` the active calibration (null clears it) and announce the change as a
+   * calibration state, so consumers that track the latest gaze_calibration (inference) always
+   * match the calibration the observations are tagged with.
+   */
   setCalibration(model: CalibrationModel | null): void {
+    const previous = this.calibration;
     this.calibration = model;
     this.smoother.reset();
     this.calibrationExpired = false;
     this.staleness = model ? new StalenessTracker(model.baseline) : null;
     this.emit("calibration", model);
+    if (model) this.announceActive();
+    else if (previous)
+      this.emitCalibrationState({ status: "invalid", attempt: this.attemptFor(previous), model: previous, reason: "calibration cleared" });
+  }
+
+  private attemptFor(m: CalibrationModel): CalibrationAttempt {
+    return { id: m.id, method: m.methodLabel ?? m.method, geometry: m.geometry ?? this.cssGeometry() };
+  }
+
+  /** Emit the active calibration's current state (valid, or invalid if too coarse). */
+  private announceActive() {
+    const m = this.calibration;
+    if (!m) return;
+    const usable = m.quality !== "unusable";
+    this.emitCalibrationState({
+      status: this.calibrationExpired ? "expired" : usable ? "valid" : "invalid",
+      attempt: this.attemptFor(m),
+      model: m,
+      reason: this.calibrationExpired
+        ? "head moved away from the calibration position for over 10 s"
+        : usable
+          ? null
+          : "held-out error too large on both axes",
+    });
   }
 
   /**
@@ -455,10 +491,10 @@ export class GazeEngine {
 
   /** CSS-pixel geometry (viewport coordinates) for the shared GazeCalibration contract. */
   private cssGeometry(): CalibrationGeometry {
-    const r = this.opts.getVideoElement()?.getBoundingClientRect();
+    const r = contentClientRect(this.opts.getVideoElement());
     return {
       viewportCssPx: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
-      videoRectCssPx: r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null,
+      videoRectCssPx: r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null, // displayed content
     };
   }
 
@@ -475,6 +511,9 @@ export class GazeEngine {
   private failAttempt(attempt: CalibrationAttempt, err: unknown) {
     const reason = (err as Error)?.name === "AbortError" ? "cancelled" : String((err as Error)?.message ?? err);
     this.emitCalibrationState({ status: "invalid", attempt, model: null, reason });
+    // The previous calibration is still in use; re-announce it (newer timestamp) so consumers that
+    // keep only the latest gaze_calibration don't drop all gaze after a cancelled/failed attempt.
+    this.announceActive();
   }
 
   private finishAttempt(attempt: CalibrationAttempt, fit: () => CalibrationModel): CalibrationModel {
@@ -487,14 +526,7 @@ export class GazeEngine {
     }
     model.geometry = attempt.geometry;
     model.methodLabel = attempt.method;
-    this.setCalibration(model);
-    const usable = model.quality !== "unusable";
-    this.emitCalibrationState({
-      status: usable ? "valid" : "invalid",
-      attempt,
-      model,
-      reason: usable ? null : "held-out error too large on both axes",
-    });
+    this.setCalibration(model); // announces valid/invalid for this attempt's id
     return model;
   }
 

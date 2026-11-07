@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fitContain } from "./geometry";
 import {
   DEFAULT_PURSUIT,
   calibrationSigma,
@@ -537,5 +538,24 @@ describe("probability-based decision", () => {
     expect(calibrationSigma(m)).toEqual({ x: 25, y: 170 });
     const legacy = { heldoutRmsPx: 100 } as unknown as CalibrationModel;
     expect(calibrationSigma(legacy).x).toBeCloseTo(100 / Math.SQRT2, 6);
+  });
+});
+
+describe("fitContain (letterboxed video content)", () => {
+  it("pillarboxes a 4:3 video in a 16:9 player", () => {
+    const r = fitContain({ left: 100, top: 50, width: 1600, height: 900 }, 640, 480);
+    expect(r).toEqual({ left: 100 + (1600 - 1200) / 2, top: 50, width: 1200, height: 900 });
+  });
+  it("letterboxes a 21:9 video in a 16:9 player", () => {
+    const r = fitContain({ left: 0, top: 0, width: 1600, height: 900 }, 2100, 900);
+    expect(r.width).toBeCloseTo(1600);
+    expect(r.height).toBeCloseTo((1600 * 900) / 2100);
+    expect(r.top).toBeCloseTo((900 - r.height) / 2);
+  });
+  it("fills exactly when aspect ratios match", () => {
+    expect(fitContain({ left: 10, top: 20, width: 960, height: 540 }, 1920, 1080)).toEqual({ left: 10, top: 20, width: 960, height: 540 });
+  });
+  it("never upscales with scale-down", () => {
+    expect(fitContain({ left: 0, top: 0, width: 1600, height: 900 }, 640, 360, true)).toEqual({ left: 480, top: 270, width: 640, height: 360 });
   });
 });
