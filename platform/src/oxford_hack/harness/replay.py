@@ -147,9 +147,14 @@ def run_replay(path: Path, *, seed: int = 1) -> Iterator[str]:
         def inference_factory(ctx: SessionContext) -> ReplayInference | None:
             return ReplayInference(detector) if detector else None
 
+        # A fully synthetic recording may replay under the simulation-only policy; real
+        # recordings only get automatic suggestions for modes their detector declares evaluated.
+        sim_kinds = frozenset({"replay"}) if header.get("synthetic") is True else frozenset()
         return Hub(
             clock,
-            settings=HubSettings(allowed_run_kinds=frozenset({"replay"})),
+            settings=HubSettings(
+                allowed_run_kinds=frozenset({"replay"}), simulation_policy_run_kinds=sim_kinds
+            ),
             inference_factory=inference_factory,
             ids=IdFactory("replay"),
             backend_instance_id="be-replay",

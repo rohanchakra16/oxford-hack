@@ -34,6 +34,8 @@ jobs:
         run: uv run mypy
       - name: Tests
         run: uv run pytest -p no:warnings
+      - name: Inference and evaluation tests (P3 code, run in the platform environment)
+        run: PYTHONPATH="..:src" uv run pytest -p no:warnings ../inference/tests ../evaluation/tests
       - name: Generated contracts, fixtures and sample recording are up to date
         run: |
           uv run python scripts/generate_contracts.py --check

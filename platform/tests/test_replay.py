@@ -53,3 +53,15 @@ def test_rejects_wrong_format(tmp_path: Path) -> None:
     )
     with pytest.raises(RecordingError, match="schema"):
         read_recording(bad)
+
+
+def test_non_synthetic_recording_gets_no_simulation_policy(tmp_path: Path) -> None:
+    lines = SAMPLE.read_text().splitlines()
+    header = json.loads(lines[0])
+    header["synthetic"] = False
+    real = tmp_path / "real.jsonl"
+    real.write_text("\n".join([json.dumps(header), *lines[1:]]) + "\n")
+    msgs = [json.loads(line) for line in run_replay(real)]
+    reasons = {m["payload"]["reason"] for m in msgs if m["type"] == "candidate_rejected"}
+    assert reasons == {"mode_not_automatic"}  # evaluatedModes is empty in the header
+    assert not [m for m in msgs if m["type"] == "review_bookmark"]
