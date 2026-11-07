@@ -28,6 +28,11 @@ flowchart LR
     Extractor --> FeatureFrame[Feature frame]
     FeatureFrame --> Classifier[AttentionClassifier]
     Classifier --> Prediction[Attention prediction]
+    Device --> Stream[StreamingController]
+    Stream --> Buffer
+    Stream --> Pre
+    Stream --> Extractor
+    Stream --> Classifier
 
     Batch --> DB[RecordingDatabase]
     DB --> Raw[Compressed raw NPZ]

@@ -244,6 +244,16 @@ baseline normalization, missing-feature policy, and score mapping to produce a
 deterministic development score. It is not trained, validated, or calibrated,
 and does not calculate EEG features.
 
+### `StreamingController` and `StreamingStats`
+
+Defined in `eeg/realtime/streaming_controller.py`.
+
+`StreamingController` runs device acquisition, stateful preprocessing,
+timestamp/index-preserving sliding windows, feature extraction, and
+classification in producer-consumer stages. It emits complete frames even
+when features or predictions are invalid. `StreamingStats` exposes latency,
+queue, deadline, and overflow metrics.
+
 ## Dataset GUI
 
 ### `DatasetController`

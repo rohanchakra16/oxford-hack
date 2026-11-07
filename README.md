@@ -85,6 +85,9 @@ pluggable feature registry, stub features, configuration, and output schema.
 See [docs/EEG_ATTENTION_CLASSIFIER.md](docs/EEG_ATTENTION_CLASSIFIER.md) for
 the classifier interface, deterministic stub, and replacement guidance.
 
+See [docs/EEG_STREAMING_PIPELINE.md](docs/EEG_STREAMING_PIPELINE.md) for the
+producer-consumer real-time processing pipeline and frame contract.
+
 `RecordingManager` provides a GUI-independent recording lifecycle. It collects
 raw device batches in a background thread, transitions to a review-pending
 state when acquisition stops, and requires an explicit save or discard.
