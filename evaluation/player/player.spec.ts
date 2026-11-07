@@ -103,3 +103,31 @@ test('uncalibrated gaze stays unknown and never asks for camera permission on lo
   await expect(page.getByTestId('bookmark-count')).toHaveText('0');
   expect(errors).toEqual([]);
 });
+
+test('calibration can be cancelled without pausing the player or keeping the camera active', async ({ page }) => {
+  // Exercise our calibration UI/lifecycle through the public camera adapter.
+  await page.route('**/gaze-runtime*', (route) => route.fulfill({ contentType: 'application/javascript', body: `
+    export function createGazeCamera(options) {
+      return {
+        start: async () => {},
+        calibrate: (ui, signal) => new Promise((resolve, reject) => {
+          options.onCalibration({id: 'fixture-calibration', status: 'in_progress'});
+          ui.show({x: 180, y: 180}, 0, 1);
+          signal.addEventListener('abort', () => {ui.hide(); reject(new DOMException('Cancelled', 'AbortError'));}, {once: true});
+        }),
+        stop: () => {document.documentElement.dataset.cameraStopped = 'true';}
+      };
+    }
+  ` }));
+  await page.goto('/');
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
+  await page.getByRole('button', { name: 'Calibrate EEG + gaze' }).click();
+  await expect(page.getByRole('dialog', { name: 'Gaze calibration' })).toBeVisible();
+  expect(await page.locator('video').evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Gaze calibration' })).toHaveCount(0);
+  await expect(page.getByTestId('gaze-status')).toContainText('Camera stopped');
+  await expect(page.locator('html')).toHaveAttribute('data-camera-stopped', 'true');
+  await expect(page.getByTestId('bookmark-count')).toHaveText('0');
+});

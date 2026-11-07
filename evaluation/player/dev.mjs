@@ -24,6 +24,7 @@ function run(command, args) {
 }
 process.on('SIGINT', () => stop());
 process.on('SIGTERM', () => stop());
-run(python, ['-m', 'evaluation.player_api', ...process.argv.slice(2)]);
+const apiPort = new URL(process.env.EVALUATION_API_URL ?? 'http://127.0.0.1:18766').port;
+run(python, ['-m', 'evaluation.player_api', '--port', apiPort, ...process.argv.slice(2)]);
 run(process.execPath, [join(root, 'frontend/node_modules/vite/bin/vite.js'), '--config', join(root, 'evaluation/player/vite.config.mjs')]);
-console.log('\nLecture evaluation: http://127.0.0.1:15174 — open a local video of at least 40 seconds.\n');
+console.log(`\nLecture evaluation: http://127.0.0.1:${process.env.EVALUATION_PLAYER_PORT ?? 15174} — open a local video of at least 40 seconds.\n`);

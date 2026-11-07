@@ -1,5 +1,37 @@
 # Player evaluation results — 7 November 2026
 
+Follow-up #38 adds calibrated EEG + gaze fusion, timestamp flags and end review.
+Final local backend suite: **252 passed**. Existing frontend unit tests:
+**104 passed**. New elapsed-time gaze-window tests: **5 passed**. Real-player
+evaluation browser suite: **5 passed**, covering the original dip/replay path,
+end-of-lecture review, combined threshold crossing, camera-loss unknown state,
+saved replay during evaluator failure, no camera request on load and cancellable
+calibration without pausing playback. Evaluation/UI and gaze-adapter TypeScript,
+ESLint, Ruff and the production evaluation build passed.
+The unchanged product/infrastructure browser regression suite also passed
+**all 22 tests** after rebasing onto the eight-second preset.
+
+The combined browser test supplies explicitly synthetic calibrated gaze windows
+to the real Python fusion model while playing an actual 40-second video. It
+learns the focused baseline, saves one range after a sustained combined loss,
+and keeps playback running. Camera loss suppresses detection while the saved
+flag remains replayable. Unit/API tests exercise the exact 30-second monotonic
+cooldown boundary, seek bypass prevention, suppressed flags remaining suppressed,
+range updates, end/replay retention, calibration replacement and invalid inputs.
+
+The user-requested **8 s dwell from #41 is preserved**. It is separate from the
+8 s focused baseline and 30 s bookmark cooldown. Default fusion uses 60% EEG
+loss + 40% calibrated look-away with a 0.70 trigger before EMA/dwell. Original
+EEG-only evaluation is available at `/?signals=eeg`. The default combined
+script reserves 0–14 s for the baseline before its low EEG interval at 14–36 s.
+
+No hardware EEG, webcam accuracy or human attention accuracy was measured in
+these fixtures. The existing EEG source remains scripted or optional offline
+workload scores; the actual camera path reuses Shinju's public module and held-out
+dot calibration. Camera frames stay local. Aryan approved the end summary on the
+board; all jumps use the existing `replayRange`, with no player, gaze source,
+product, shared schema or transport edits.
+
 Follow-up #40 changes the current sustained-low requirement from 10 s to 8 s.
 The original verification below used 10 s. The follow-up passed 35 targeted
 lecture/API tests and TypeScript checks, including the exact eight-second
