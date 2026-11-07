@@ -46,7 +46,7 @@ pytest
 
 - `eeg/acquisition`: device interface and simulated EEG acquisition
 - `eeg/processing`: future EEG signal processing code
-- `eeg/dataset`: future labelled dataset construction code
+- `eeg/dataset`: labelled recording models and SQLite/NPZ persistence
 - `eeg/realtime`: future real-time attention estimation code
 - `eeg/utils`: shared configuration and logging utilities
 - `tests`: automated tests
@@ -72,6 +72,9 @@ removal.
 See [docs/EEG_PREPROCESSING.md](docs/EEG_PREPROCESSING.md) for the detailed
 data contract, buffering semantics, filter-state behavior, and quality
 metadata definitions.
+
+See [docs/EEG_RECORDING_DATABASE.md](docs/EEG_RECORDING_DATABASE.md) for the
+recording schema, NPZ contents, and consistency guarantees.
 
 ## EEG acquisition
 
