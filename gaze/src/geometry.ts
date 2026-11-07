@@ -38,6 +38,12 @@ export function elementScreenRect(el: Element | null, win: Window = window): Scr
   return { left: left + o.x, top: top + o.y, width: right - left, height: bottom - top };
 }
 
+/** The page's visible area in screen coordinates. */
+export function viewportScreenRect(win: Window = window): ScreenRect {
+  const o = viewportOrigin(win);
+  return { left: o.x, top: o.y, width: win.innerWidth, height: win.innerHeight };
+}
+
 /** Screen point of a target given as fractions (u, v) of a rect. */
 export function pointInRect(rect: ScreenRect, u: number, v: number): ScreenPoint {
   return { x: rect.left + u * rect.width, y: rect.top + v * rect.height };

@@ -1,5 +1,8 @@
 /**
- * Gaze module message types (draft contract v0, proposed to Person 5).
+ * Gaze module INTERNAL message types, used by the harness, evaluation and diagnostics.
+ * They are richer than the shared contract. What leaves the module is the shared
+ * `gaze_observations` / `gaze_calibration` contract (@rohanchakra16's contracts/), produced by
+ * the adapter in src/contract.ts. Don't send these internal types over the wire.
  *
  * Conventions:
  * - `*_ms` fields on the browser monotonic clock are `performance.now()` values.
@@ -44,6 +47,8 @@ export interface GazeObservation {
   frame_seq: number;
   /** Frame capture time on the browser monotonic clock (performance.now()). */
   observed_at_ms: number;
+  /** When processing of this frame finished (performance.now(), >= observed_at_ms). */
+  processed_at_ms: number;
   /** Wall-clock time for logs only; do not use for synchronisation. */
   wall_clock_ms: number;
   /** "valid" means a face was measured; gaze fields may still be null (see reasons). */
@@ -75,14 +80,17 @@ export interface GazeObservation {
     video_u: number | null;
     video_v: number | null;
     region: GazeRegion | null;
-    /** Distance from the video edge that counts as "uncertain" (from held-out calibration error). */
-    margin_px: number | null;
+    /** Horizontal/vertical distance from the video edge that counts as "uncertain" (from held-out error per axis). */
+    margin_x_px: number | null;
+    margin_y_px: number | null;
   };
   calibration: {
     id: string | null;
     status: CalibrationStatus;
     quality: CalibrationQuality | null;
     heldout_rms_px: number | null;
+    heldout_rms_x_px: number | null;
+    heldout_rms_y_px: number | null;
   };
   model: { name: string; version: string };
 }

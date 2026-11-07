@@ -64,14 +64,21 @@ function showCalibration(m: CalibrationModel | null) {
   const method = m.method ?? "dots";
   dl("cal-info", [
     ["method", method === "pursuit" ? `moving dot (eye lag ${m.lagMs} ms)` : "dots"],
-    ["quality", m.quality],
+    ["quality", m.qualityX ? `${m.quality} (x ${m.qualityX}, y ${m.qualityY})` : m.quality],
     ["held-out RMS", `${Math.round(m.heldoutRmsPx)} px`],
+    [
+      "held-out RMS x / y",
+      m.heldoutRmsXPx !== undefined ? `${Math.round(m.heldoutRmsXPx)} / ${Math.round(m.heldoutRmsYPx)} px` : null,
+    ],
     [
       method === "pursuit" ? "held-out blocks" : "held-out errors",
       m.heldoutErrorsPx.map((e) => Math.round(e)).join(", ") + " px",
     ],
     ["fit RMS", `${Math.round(m.fitRmsPx)} px${m.fitSamples ? ` (${m.fitSamples} samples)` : ""}`],
-    ["edge margin", `${Math.round(m.marginPx)} px`],
+    [
+      "edge margin x / y",
+      m.marginXPx !== undefined ? `${Math.round(m.marginXPx)} / ${Math.round(m.marginYPx)} px` : `${Math.round(m.marginPx)} px`,
+    ],
     ["id", m.id],
   ]);
 }

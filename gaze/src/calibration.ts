@@ -54,11 +54,40 @@ export interface CalibrationModel {
   /** One error per held-out group (mean over that group's samples). */
   heldoutErrorsPx: number[];
   heldoutRmsPx: number;
-  /** Error margin used to mark estimates near the video edge as "uncertain". */
+  /**
+   * Per-axis held-out RMS. Webcam gaze is usually much better horizontally than vertically,
+   * so each axis gets its own uncertainty band.
+   */
+  heldoutRmsXPx: number;
+  heldoutRmsYPx: number;
+  /** Uncertainty band around the video edge, per axis (px). */
+  marginXPx: number;
+  marginYPx: number;
+  /** @deprecated max of the per-axis margins; kept for older consumers. */
   marginPx: number;
+  /** Overall quality: the better axis decides whether the calibration is usable at all. */
   quality: CalibrationQuality;
+  qualityX: CalibrationQuality;
+  qualityY: CalibrationQuality;
   /** Head position at calibration time, used to detect when calibration goes stale. */
   baseline: { faceCenterX: number; faceCenterY: number; faceScale: number };
+  /** CSS-pixel geometry at calibration time (set by the engine; used for the shared contract). */
+  geometry?: CalibrationGeometry;
+  /** Human-readable method, e.g. "15-dot fit (11 fit, 4 held out), ridge". */
+  methodLabel?: string;
+}
+
+export interface CssRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CalibrationGeometry {
+  viewportCssPx: CssRect;
+  /** Null if the video element was not available. */
+  videoRectCssPx: CssRect | null;
 }
 
 export interface FitOptions {
@@ -172,19 +201,37 @@ export function fitCalibration(samples: CalibrationSample[], opts: FitOptions): 
   const mapping = fitMapping(fit, keys, lambda);
   const fitRmsPx = rms(fit.map((s) => sampleError(mapping, s)));
 
-  const byGroup = new Map<string, number[]>();
+  // Per held-out group: mean Euclidean error and mean absolute error on each axis.
+  const byGroup = new Map<string, { e: number[]; dx: number[]; dy: number[] }>();
   for (const s of held) {
-    const errs = byGroup.get(s.group) ?? [];
-    errs.push(sampleError(mapping, s));
-    byGroup.set(s.group, errs);
+    const g = byGroup.get(s.group) ?? { e: [], dx: [], dy: [] };
+    const q = predictScreen(mapping, s.features);
+    g.e.push(Math.hypot(q.x - s.target.x, q.y - s.target.y));
+    g.dx.push(Math.abs(q.x - s.target.x));
+    g.dy.push(Math.abs(q.y - s.target.y));
+    byGroup.set(s.group, g);
   }
-  const heldoutErrorsPx = [...byGroup.values()].map((e) => e.reduce((a, b) => a + b, 0) / e.length);
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const groups = [...byGroup.values()];
+  const heldoutErrorsPx = groups.map((g) => mean(g.e));
   const heldoutRmsPx = rms(heldoutErrorsPx);
+  const heldoutRmsXPx = rms(groups.map((g) => mean(g.dx)));
+  const heldoutRmsYPx = rms(groups.map((g) => mean(g.dy)));
 
-  const minDim = Math.min(opts.videoRect.width, opts.videoRect.height);
-  const marginPx = Math.max(opts.minMarginPx ?? 40, 1.5 * heldoutRmsPx);
+  const floor = opts.minMarginPx ?? 40;
+  const marginXPx = Math.max(floor, 1.5 * heldoutRmsXPx);
+  const marginYPx = Math.max(floor, 1.5 * heldoutRmsYPx);
+  // Each axis is judged against the video's size along that axis.
+  const tier = (err: number, size: number): CalibrationQuality =>
+    err <= 0.2 * size ? "fine" : err <= 0.6 * size ? "coarse" : "unusable";
+  const qualityX = tier(heldoutRmsXPx, opts.videoRect.width);
+  const qualityY = tier(heldoutRmsYPx, opts.videoRect.height);
   const quality: CalibrationQuality =
-    heldoutRmsPx <= 0.2 * minDim ? "fine" : heldoutRmsPx <= 0.6 * minDim ? "coarse" : "unusable";
+    qualityX === "fine" && qualityY === "fine"
+      ? "fine"
+      : qualityX === "unusable" && qualityY === "unusable"
+        ? "unusable"
+        : "coarse";
 
   const avg = (key: "faceCenterX" | "faceCenterY" | "faceScale") =>
     fit.reduce((s, p) => s + p.features[key], 0) / fit.length;
@@ -199,8 +246,14 @@ export function fitCalibration(samples: CalibrationSample[], opts: FitOptions): 
     fitRmsPx,
     heldoutErrorsPx,
     heldoutRmsPx,
-    marginPx,
+    heldoutRmsXPx,
+    heldoutRmsYPx,
+    marginXPx,
+    marginYPx,
+    marginPx: Math.max(marginXPx, marginYPx),
     quality,
+    qualityX,
+    qualityY,
     baseline: { faceCenterX: avg("faceCenterX"), faceCenterY: avg("faceCenterY"), faceScale: avg("faceScale") },
   };
 }
@@ -219,6 +272,70 @@ export const DEFAULT_TARGETS: { u: number; v: number; holdout: boolean }[] = [
   { u: 0.5, v: 0.9, holdout: false },
   { u: 0.1, v: 0.5, holdout: false },
 ];
+
+export interface CalibrationTarget {
+  id: string;
+  /** Screen CSS px. */
+  point: ScreenPoint;
+  holdout: boolean;
+  /** True for targets beyond the video edge. */
+  outside: boolean;
+}
+
+/**
+ * Full dot sequence: the 11 in-video targets plus targets beyond the video wherever the viewport
+ * has room (right, below, above, left). Off-video decisions otherwise rely on extrapolating a
+ * mapping fitted only inside the video, which is worst vertically. Some outside targets are held
+ * out so the reported error also covers the on/off boundary.
+ */
+export function calibrationTargets(video: ScreenRect, viewport: ScreenRect, minGapPx = 90): CalibrationTarget[] {
+  const inside: CalibrationTarget[] = DEFAULT_TARGETS.map((t, i) => ({
+    id: `in-${i}`,
+    point: { x: video.left + t.u * video.width, y: video.top + t.v * video.height },
+    holdout: t.holdout,
+    outside: false,
+  }));
+
+  const vRight = video.left + video.width;
+  const vBottom = video.top + video.height;
+  const pRight = viewport.left + viewport.width;
+  const pBottom = viewport.top + viewport.height;
+  const gap = {
+    right: pRight - vRight,
+    below: pBottom - vBottom,
+    above: video.top - viewport.top,
+    left: video.left - viewport.left,
+  };
+  // Midway into the free space, but at least 30 px from the viewport edge.
+  const into = (edge: number, space: number, dir: 1 | -1) => edge + dir * Math.min(space / 2, Math.max(space - 30, 0));
+  const out: CalibrationTarget[] = [];
+  const add = (id: string, x: number, y: number, holdout: boolean) =>
+    out.push({ id, point: { x, y }, holdout, outside: true });
+
+  if (gap.right >= minGapPx) {
+    const x = into(vRight, gap.right, 1);
+    add("right-mid", x, video.top + 0.5 * video.height, false);
+    add("right-low", x, video.top + 0.85 * video.height, true);
+  }
+  if (gap.below >= minGapPx) {
+    const y = into(vBottom, gap.below, 1);
+    add("below-mid", video.left + 0.5 * video.width, y, false);
+    add("below-left", video.left + 0.2 * video.width, y, true);
+  }
+  if (gap.above >= minGapPx) add("above-mid", video.left + 0.5 * video.width, into(video.top, gap.above, -1), false);
+  if (gap.left >= minGapPx) add("left-mid", into(video.left, gap.left, -1), video.top + 0.5 * video.height, false);
+
+  // Interleave so drift during calibration affects inside and outside targets alike.
+  const seq: CalibrationTarget[] = [];
+  const step = out.length ? Math.max(1, Math.floor(inside.length / out.length)) : Infinity;
+  let o = 0;
+  inside.forEach((t, i) => {
+    seq.push(t);
+    if ((i + 1) % step === 0 && o < out.length) seq.push(out[o++]);
+  });
+  while (o < out.length) seq.push(out[o++]);
+  return seq;
+}
 
 // ---------------------------------------------------------------------------
 // Moving-dot (smooth pursuit) calibration

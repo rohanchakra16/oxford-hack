@@ -1,12 +1,13 @@
 import { FaceLandmarker, FilesetResolver, type FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 import {
   DEFAULT_PURSUIT,
-  DEFAULT_TARGETS,
+  calibrationTargets,
   fitCalibration,
   fitPursuitCalibration,
   predictScreen,
   pursuitPath,
   StalenessTracker,
+  type CalibrationGeometry,
   type CalibrationModel,
   type CalibrationSample,
   type PursuitConfig,
@@ -14,7 +15,7 @@ import {
 } from "./calibration";
 import { Camera, type CameraState } from "./camera";
 import { extractFeatures, medianFeatures, type Landmark } from "./features";
-import { elementScreenRect, pointInRect, screenToViewport } from "./geometry";
+import { elementScreenRect, pointInRect, screenToViewport, viewportScreenRect } from "./geometry";
 import { classifyRegion, videoUV } from "./region";
 import { PointSmoother } from "./smoothing";
 import { summarise } from "./summary";
@@ -64,12 +65,30 @@ export interface CalibrationUI {
   hide(): void;
 }
 
+export interface CalibrationAttempt {
+  id: string;
+  /** Human-readable method label (contract `method`). */
+  method: string;
+  geometry: CalibrationGeometry;
+}
+
+/** Calibration lifecycle, mirroring the shared GazeCalibration contract's status values. */
+export interface CalibrationStateEvent {
+  status: "in_progress" | "valid" | "invalid" | "expired";
+  attempt: CalibrationAttempt;
+  /** The fitted model for valid/invalid-after-fit/expired; null while in progress or if fitting failed. */
+  model: CalibrationModel | null;
+  reason: string | null;
+  tBrowserMs: number;
+}
+
 type Events = {
   observation: GazeObservation;
   summary: GazeSummary;
   camera: CameraState;
   frame: FrameDebug;
   calibration: CalibrationModel | null;
+  calibrationState: CalibrationStateEvent;
 };
 
 export class GazeEngine {
@@ -90,6 +109,7 @@ export class GazeEngine {
   /** Frames collected during calibration, stamped with capture time. */
   private collector: { captureMs: number; features: FrameFeatures }[] | null = null;
   private smoother = new PointSmoother(700);
+  private lastCalibrationState: CalibrationStateEvent | null = null;
   private listeners: { [K in keyof Events]?: Set<(e: Events[K]) => void> } = {};
 
   constructor(options: GazeEngineOptions) {
@@ -245,7 +265,15 @@ export class GazeEngine {
         if (s !== "valid") {
           calStatus = "stale";
           reasons.push("CALIBRATION_STALE");
-          if (s === "expired") this.calibrationExpired = true;
+          if (s === "expired") {
+            this.calibrationExpired = true;
+            this.emitCalibrationState({
+              status: "expired",
+              attempt: { id: cal.id, method: cal.methodLabel ?? cal.method, geometry: cal.geometry ?? this.cssGeometry() },
+              model: cal,
+              reason: "head moved away from the calibration position for over 10 s",
+            });
+          }
         }
       }
     }
@@ -259,7 +287,8 @@ export class GazeEngine {
       video_u: null,
       video_v: null,
       region: null,
-      margin_px: null,
+      margin_x_px: null,
+      margin_y_px: null,
     };
     // A gaze location while the eyes are closed is meaningless; eyes_closed reports that finding instead.
     const canMap = f && faces === 1 && cal && calStatus === "valid" && !eyesClosed;
@@ -267,12 +296,15 @@ export class GazeEngine {
       const p = this.smoother.push(capturedMs, predictScreen(cal, f));
       gaze.screen_x_px = p.x;
       gaze.screen_y_px = p.y;
-      gaze.margin_px = cal.marginPx;
+      // Calibrations saved before per-axis margins existed fall back to the single margin.
+      const margins = { x: cal.marginXPx ?? cal.marginPx, y: cal.marginYPx ?? cal.marginPx };
+      gaze.margin_x_px = Math.round(margins.x);
+      gaze.margin_y_px = Math.round(margins.y);
       if (rect) {
         const uv = videoUV(p, rect);
         gaze.video_u = uv.u;
         gaze.video_v = uv.v;
-        gaze.region = classifyRegion(p, rect, cal.marginPx);
+        gaze.region = classifyRegion(p, rect, margins);
       }
     } else if (!eyesClosed) {
       // Don't let estimates from before a gap (face lost, stale) leak into the next ones. A blink keeps the window.
@@ -290,6 +322,7 @@ export class GazeEngine {
       session_id: this.opts.sessionId,
       frame_seq: this.seq++,
       observed_at_ms: capturedMs,
+      processed_at_ms: Math.max(capturedMs, performance.now()),
       wall_clock_ms: Date.now(),
       status: f ? "valid" : "unavailable",
       reasons,
@@ -311,6 +344,8 @@ export class GazeEngine {
         status: calStatus,
         quality: cal?.quality ?? null,
         heldout_rms_px: cal ? Math.round(cal.heldoutRmsPx) : null,
+        heldout_rms_x_px: cal?.heldoutRmsXPx !== undefined ? Math.round(cal.heldoutRmsXPx) : null,
+        heldout_rms_y_px: cal?.heldoutRmsYPx !== undefined ? Math.round(cal.heldoutRmsYPx) : null,
       },
       model: { name: MODEL_NAME, version: MODULE_VERSION },
     };
@@ -370,11 +405,14 @@ export class GazeEngine {
     const rect = this.calibrationPreflight();
     const sleep = abortableSleep(signal);
 
+    const targets = calibrationTargets(rect, viewportScreenRect());
+    const fitCount = targets.filter((t) => !t.holdout).length;
+    const attempt = this.beginAttempt(`${targets.length}-dot fit (${fitCount} fit, ${targets.length - fitCount} held out), ridge`);
     const points: CalibrationSample[] = [];
     try {
-      for (const [i, t] of DEFAULT_TARGETS.entries()) {
-        const target = pointInRect(rect, t.u, t.v);
-        ui.show(screenToViewport(target), i, DEFAULT_TARGETS.length, false);
+      for (const [i, t] of targets.entries()) {
+        const target = t.point;
+        ui.show(screenToViewport(target), i, targets.length, false);
         await sleep(settleMs);
         this.collector = [];
         await sleep(collectMs);
@@ -384,17 +422,75 @@ export class GazeEngine {
           points.push({
             target,
             features: medianFeatures(samples.map((s) => s.features)),
-            group: `dot-${i}`,
+            group: t.id,
             holdout: t.holdout,
           });
       }
+    } catch (err) {
+      this.failAttempt(attempt, err);
+      throw err;
     } finally {
       this.collector = null;
       ui.hide();
     }
-    const model = fitCalibration(points, { videoRect: rect, method: "dots" });
+    return this.finishAttempt(attempt, () =>
+      fitCalibration(points, { videoRect: rect, method: "dots", id: attempt.id }),
+    );
+  }
+
+  /** CSS-pixel geometry (viewport coordinates) for the shared GazeCalibration contract. */
+  private cssGeometry(): CalibrationGeometry {
+    const r = this.opts.getVideoElement()?.getBoundingClientRect();
+    return {
+      viewportCssPx: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
+      videoRectCssPx: r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null,
+    };
+  }
+
+  private beginAttempt(method: string): CalibrationAttempt {
+    const attempt: CalibrationAttempt = {
+      id: `cal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      method,
+      geometry: this.cssGeometry(),
+    };
+    this.emitCalibrationState({ status: "in_progress", attempt, model: null, reason: null });
+    return attempt;
+  }
+
+  private failAttempt(attempt: CalibrationAttempt, err: unknown) {
+    const reason = (err as Error)?.name === "AbortError" ? "cancelled" : String((err as Error)?.message ?? err);
+    this.emitCalibrationState({ status: "invalid", attempt, model: null, reason });
+  }
+
+  private finishAttempt(attempt: CalibrationAttempt, fit: () => CalibrationModel): CalibrationModel {
+    let model: CalibrationModel;
+    try {
+      model = fit();
+    } catch (err) {
+      this.failAttempt(attempt, err);
+      throw err;
+    }
+    model.geometry = attempt.geometry;
+    model.methodLabel = attempt.method;
     this.setCalibration(model);
+    const usable = model.quality !== "unusable";
+    this.emitCalibrationState({
+      status: usable ? "valid" : "invalid",
+      attempt,
+      model,
+      reason: usable ? null : "held-out error too large on both axes",
+    });
     return model;
+  }
+
+  private emitCalibrationState(s: Omit<CalibrationStateEvent, "tBrowserMs">) {
+    this.lastCalibrationState = { ...s, tBrowserMs: performance.now() };
+    this.emit("calibrationState", this.lastCalibrationState);
+  }
+
+  /** Latest calibration state, for UIs that subscribe late. */
+  getCalibrationState(): CalibrationStateEvent | null {
+    return this.lastCalibrationState;
   }
 
   /**
@@ -409,14 +505,14 @@ export class GazeEngine {
     const cfg: PursuitConfig = { ...DEFAULT_PURSUIT, ...opts.config };
     const rect = this.calibrationPreflight();
     const signal = opts.signal;
-
-    // Show the start position briefly so the first saccade happens before the clock starts.
-    ui.show(screenToViewport(pointInRect(rect, 0.5, 0.5)), 0, cfg.durationMs, true);
-    await abortableSleep(signal)(800);
+    const attempt = this.beginAttempt(`moving dot ${Math.round(cfg.durationMs / 1000)} s, blocked hold-out (experimental)`);
 
     const frames: TimedFeatures[] = [];
     let startMs = 0;
     try {
+      // Show the start position briefly so the first saccade happens before the clock starts.
+      ui.show(screenToViewport(pointInRect(rect, 0.5, 0.5)), 0, cfg.durationMs, true);
+      await abortableSleep(signal)(800);
       this.collector = [];
       startMs = performance.now();
       await new Promise<void>((resolve, reject) => {
@@ -431,16 +527,19 @@ export class GazeEngine {
         requestAnimationFrame(tick);
       });
       for (const s of this.collector) frames.push({ tMs: s.captureMs - startMs, features: s.features });
+    } catch (err) {
+      this.failAttempt(attempt, err);
+      throw err;
     } finally {
       this.collector = null;
       ui.hide();
     }
-    if (frames.length < 60) {
-      throw new Error(`Only ${frames.length} usable frames (face lost or eyes closed too often). Check lighting and try again.`);
-    }
-    const model = fitPursuitCalibration(frames, rect, cfg);
-    this.setCalibration(model);
-    return model;
+    return this.finishAttempt(attempt, () => {
+      if (frames.length < 60) {
+        throw new Error(`Only ${frames.length} usable frames (face lost or eyes closed too often). Check lighting and try again.`);
+      }
+      return fitPursuitCalibration(frames, rect, cfg, { id: attempt.id });
+    });
   }
 
   private calibrationPreflight() {

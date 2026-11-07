@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PURSUIT,
+  calibrationTargets,
   fitCalibration,
   fitPursuitCalibration,
   predictScreen,
@@ -152,7 +153,9 @@ describe("fitCalibration", () => {
     const m = fitCalibration(makePoints(400), { videoRect: rect });
     expect(m.heldoutRmsPx).toBeGreaterThan(90);
     expect(m.quality).not.toBe("fine");
-    expect(m.marginPx).toBeCloseTo(1.5 * m.heldoutRmsPx, 5);
+    expect(m.marginXPx).toBeCloseTo(Math.max(40, 1.5 * m.heldoutRmsXPx), 5);
+    expect(m.marginYPx).toBeCloseTo(Math.max(40, 1.5 * m.heldoutRmsYPx), 5);
+    expect(m.marginPx).toBe(Math.max(m.marginXPx, m.marginYPx));
   });
 
   it("refuses to fit without enough points or a held-out set", () => {
@@ -209,6 +212,7 @@ function obs(t: number, region: GazeObservation["gaze"]["region"], detected = tr
     session_id: "s",
     frame_seq: t,
     observed_at_ms: t,
+    processed_at_ms: t + 5,
     wall_clock_ms: t,
     status: detected ? "valid" : "unavailable",
     reasons: detected ? [] : ["FACE_NOT_DETECTED"],
@@ -224,8 +228,8 @@ function obs(t: number, region: GazeObservation["gaze"]["region"], detected = tr
       pose_shift: detected ? 0.01 : null,
       scale_ratio: detected ? 1 : null,
     },
-    gaze: { screen_x_px: null, screen_y_px: null, video_u: null, video_v: null, region, margin_px: null },
-    calibration: { id: null, status: "valid", quality: "fine", heldout_rms_px: 10 },
+    gaze: { screen_x_px: null, screen_y_px: null, video_u: null, video_v: null, region, margin_x_px: null, margin_y_px: null },
+    calibration: { id: null, status: "valid", quality: "fine", heldout_rms_px: 10, heldout_rms_x_px: 6, heldout_rms_y_px: 8 },
     model: { name: "test", version: "0" },
   };
 }
@@ -414,5 +418,73 @@ describe("PointSmoother", () => {
 
   it("passes points through when disabled", () => {
     expect(new PointSmoother(0).push(0, { x: 7, y: 8 })).toEqual({ x: 7, y: 8 });
+  });
+});
+
+describe("per-axis margins", () => {
+  const rect: ScreenRect = { left: 0, top: 0, width: 900, height: 500 };
+
+  it("lets a precise horizontal axis call 'off to the side' while vertical is rough", () => {
+    const m = { x: 50, y: 300 };
+    // 80 px right of the video, vertically centred: beyond the 50 px horizontal band.
+    expect(classifyRegion({ x: 980, y: 250 }, rect, m)).toBe("off_video");
+    // The same point with a single isotropic 300 px margin would be uncertain.
+    expect(classifyRegion({ x: 980, y: 250 }, rect, 300)).toBe("uncertain");
+    // 80 px below the video is within the rough vertical band.
+    expect(classifyRegion({ x: 450, y: 580 }, rect, m)).toBe("uncertain");
+  });
+
+  it("reports per-axis held-out error and judges quality per axis", () => {
+    const base = { ...baseFeatures };
+    // Mapping: x from yaw (exact), y from pitch plus noise on held-out points only.
+    const pts: CalibrationPoint[] = [];
+    let i = 0;
+    for (const yaw of [-8, 0, 8])
+      for (const pitch of [-6, 0, 6]) {
+        const f = { ...base, headYawDeg: yaw, headPitchDeg: pitch, irisX: 0.01 * ((i * 7) % 5), irisY: 0.01 * ((i * 3) % 4) };
+        pts.push({ features: f, target: { x: 450 + 40 * yaw, y: 250 - 30 * pitch }, group: `in-${i++}`, holdout: false });
+      }
+    const heldF = [
+      { ...base, headYawDeg: 4, headPitchDeg: 3 },
+      { ...base, headYawDeg: -4, headPitchDeg: -3 },
+    ];
+    heldF.forEach((f, k) =>
+      pts.push({ features: f, target: { x: 450 + 40 * f.headYawDeg, y: 250 - 30 * f.headPitchDeg + (k ? 200 : -200) }, group: `h-${k}`, holdout: true }),
+    );
+    const m = fitCalibration(pts, { videoRect: rect, lambda: 1e-6 });
+    expect(m.heldoutRmsXPx).toBeLessThan(2);
+    expect(m.heldoutRmsYPx).toBeCloseTo(200, 0);
+    expect(m.marginXPx).toBe(40);
+    expect(m.marginYPx).toBeCloseTo(300, 0);
+    expect(m.qualityX).toBe("fine");
+    expect(m.qualityY).toBe("coarse");
+    expect(m.quality).toBe("coarse");
+  });
+});
+
+describe("calibrationTargets", () => {
+  const video: ScreenRect = { left: 16, top: 60, width: 900, height: 506 };
+
+  it("adds held-out and fitted targets beside and below the video when there is room", () => {
+    const viewport: ScreenRect = { left: 0, top: 0, width: 1280, height: 800 };
+    const t = calibrationTargets(video, viewport);
+    const outside = t.filter((x) => x.outside);
+    expect(outside.map((x) => x.id).sort()).toEqual(["below-left", "below-mid", "right-low", "right-mid"]);
+    expect(t.filter((x) => x.holdout).length).toBe(4); // 2 inside + 2 outside
+    for (const x of outside) {
+      const inVideo =
+        x.point.x >= video.left && x.point.x <= video.left + video.width && x.point.y >= video.top && x.point.y <= video.top + video.height;
+      expect(inVideo).toBe(false);
+      expect(x.point.x).toBeLessThanOrEqual(viewport.width - 30);
+      expect(x.point.y).toBeLessThanOrEqual(viewport.height - 30);
+    }
+    // Interleaved, not all appended at the end.
+    expect(t.findIndex((x) => x.outside)).toBeLessThan(6);
+  });
+
+  it("falls back to in-video targets only when there is no room", () => {
+    const tight: ScreenRect = { left: 0, top: 0, width: 930, height: 600 };
+    expect(calibrationTargets(video, tight).every((x) => !x.outside)).toBe(true);
+    expect(calibrationTargets(video, tight).length).toBe(11);
   });
 });
