@@ -1,0 +1,100 @@
+:root {
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --text: #1c1c1a;
+  --muted: #6b6b66;
+  --border: #dddcd6;
+  --accent: #2f5bd3;
+  --on: #1f8a4c;
+  --off: #c2412d;
+  --unsure: #b7880f;
+  --stage: #111214;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151514;
+    --surface: #1f1f1d;
+    --text: #ecebe6;
+    --muted: #9b9a94;
+    --border: #34332f;
+    --accent: #7c9cff;
+    --on: #4cc27e;
+    --off: #ef6a55;
+    --unsure: #e2b33c;
+    --stage: #000;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+h1 { font-size: 16px; margin: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; }
+.muted { color: var(--muted); font-weight: normal; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.chip.ok { border-color: var(--on); color: var(--on); }
+.chip.bad { border-color: var(--off); color: var(--off); }
+.chip.warn { border-color: var(--unsure); color: var(--unsure); }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; padding: 16px; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+.stage { min-width: 0; }
+.lecture-wrap {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--stage);
+  border-radius: 8px; outline: 4px solid transparent; outline-offset: 2px; transition: outline-color .15s, width .2s;
+  margin: 0 auto;
+}
+.lecture-wrap.small { width: 55%; }
+.lecture-wrap.on_video { outline-color: var(--on); }
+.lecture-wrap.off_video { outline-color: var(--off); }
+.lecture-wrap.uncertain { outline-color: var(--unsure); }
+#lecture { width: 100%; height: 100%; border-radius: 8px; display: block; }
+.lecture-placeholder {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+  color: #cfcfca; pointer-events: none;
+}
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+button, .button {
+  font: inherit; border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  border-radius: 6px; padding: 6px 12px; cursor: pointer;
+}
+button.secondary, .button.secondary { background: transparent; color: var(--accent); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, .button:focus-within, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; min-width: 0; }
+.cam-wrap { position: relative; aspect-ratio: 4 / 3; background: var(--stage); border-radius: 6px; overflow: hidden; }
+#cam, #cam-overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.cam-empty { position: absolute; inset: 0; display: grid; place-content: center; color: #9b9a94; }
+.hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-variant-numeric: tabular-nums; }
+dt { color: var(--muted); }
+dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+#gaze-dot {
+  position: fixed; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  border: 3px solid var(--unsure); background: color-mix(in srgb, var(--unsure) 25%, transparent);
+  pointer-events: none; z-index: 20; transition: left .08s linear, top .08s linear;
+}
+#gaze-dot.on_video { border-color: var(--on); }
+#gaze-dot.off_video { border-color: var(--off); }
+#cal-overlay { position: fixed; inset: 0; z-index: 30; background: color-mix(in srgb, var(--bg) 70%, transparent); }
+#cal-target {
+  position: fixed; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%;
+  background: var(--off); box-shadow: 0 0 0 6px color-mix(in srgb, var(--off) 30%, transparent);
+  transition: left .35s ease, top .35s ease;
+}
+#cal-target::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: #fff; }
+#cal-text {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px;
+}

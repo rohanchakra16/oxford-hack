@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gaze Harness</title>
+    <link rel="stylesheet" href="/src/harness/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Gaze harness <span class="muted">webcam workstream · dev tool</span></h1>
+      <div class="chips">
+        <span class="chip" id="chip-camera">camera: idle</span>
+        <span class="chip" id="chip-cal">calibration: none</span>
+        <span class="chip" id="chip-region">region: —</span>
+        <span class="chip" id="chip-perf">— fps</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage">
+        <div class="lecture-wrap" id="lecture-wrap">
+          <video id="lecture" controls playsinline></video>
+          <div class="lecture-placeholder" id="lecture-placeholder">
+            Lecture video area<br /><span class="muted">Load a local video file, or calibrate against this empty frame.</span>
+          </div>
+        </div>
+        <div class="row">
+          <label class="button secondary">
+            Load lecture video…
+            <input type="file" id="file" accept="video/*" hidden />
+          </label>
+          <label class="check"><input type="checkbox" id="show-dot" checked /> Show gaze estimate</label>
+          <label class="check"><input type="checkbox" id="small-video" /> Shrink video (geometry test)</label>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="cam-wrap">
+          <video id="cam" muted playsinline></video>
+          <canvas id="cam-overlay"></canvas>
+          <div class="cam-empty" id="cam-empty">Camera off</div>
+        </div>
+
+        <div class="row">
+          <button id="btn-start">Start camera</button>
+          <button id="btn-cal" disabled>Calibrate</button>
+          <button id="btn-clear" class="secondary" disabled>Clear calibration</button>
+        </div>
+        <p class="hint" id="message">Frames are processed locally in this browser; nothing is uploaded or recorded unless you press Record.</p>
+
+        <h2>Calibration</h2>
+        <dl id="cal-info"><dt>status</dt><dd>none</dd></dl>
+
+        <h2>Live frame</h2>
+        <dl id="live-info"></dl>
+
+        <h2>Last 1 s summary</h2>
+        <dl id="summary-info"></dl>
+
+        <h2>Fixtures</h2>
+        <div class="row">
+          <button id="btn-rec" class="secondary">Record</button>
+          <button id="btn-dl" class="secondary" disabled>Download JSONL</button>
+          <span class="muted" id="rec-count">0 messages</span>
+        </div>
+      </aside>
+    </main>
+
+    <div id="gaze-dot" hidden></div>
+    <div id="cal-overlay" hidden>
+      <div id="cal-target"></div>
+      <div id="cal-text"></div>
+    </div>
+
+    <script type="module" src="/src/harness/main.ts"></script>
+  </body>
+</html>

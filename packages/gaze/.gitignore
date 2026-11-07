@@ -1,0 +1,8 @@
+node_modules/
+dist/
+# Fetched/copied by `npm run setup`
+public/mediapipe/
+public/models/
+# Never commit participant data
+recordings/
+*.jsonl

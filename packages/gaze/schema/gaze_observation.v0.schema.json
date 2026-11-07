@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gaze_observation/v0",
+  "title": "GazeObservation (draft v0, proposed by the webcam workstream)",
+  "description": "One processed webcam frame (~15 Hz), or a 1 Hz heartbeat when no frame could be processed. Missing measurements are null with a reason code, never 0. Times ending _ms are browser performance.now() unless noted. Screen coordinates are CSS px from the screen's top-left.",
+  "type": "object",
+  "required": ["schema", "session_id", "frame_seq", "observed_at_ms", "wall_clock_ms", "status", "reasons", "face", "gaze", "calibration", "model"],
+  "additionalProperties": false,
+  "$defs": {
+    "nnum": { "type": ["number", "null"] },
+    "reason": {
+      "enum": [
+        "CAMERA_PERMISSION_DENIED", "CAMERA_NOT_FOUND", "CAMERA_IN_USE", "CAMERA_DISCONNECTED",
+        "MODEL_NOT_READY", "TAB_HIDDEN", "FACE_NOT_DETECTED", "MULTIPLE_FACES",
+        "CALIBRATION_NONE", "CALIBRATION_STALE", "CALIBRATION_TOO_COARSE", "VIDEO_NOT_VISIBLE"
+      ]
+    }
+  },
+  "properties": {
+    "schema": { "const": "gaze_observation/v0" },
+    "session_id": { "type": "string" },
+    "frame_seq": { "type": "integer", "minimum": 0 },
+    "observed_at_ms": { "type": "number", "description": "Frame capture time, browser monotonic clock." },
+    "wall_clock_ms": { "type": "number", "description": "Date.now(); logging only, not for sync." },
+    "status": { "enum": ["valid", "unavailable"], "description": "valid = a face was measured. Gaze fields may still be null; see reasons." },
+    "reasons": { "type": "array", "items": { "$ref": "#/$defs/reason" }, "description": "Why data is missing or degraded. Findings such as looking away are not reasons." },
+    "face": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detected", "head_yaw_deg", "head_pitch_deg", "head_roll_deg", "iris_x", "iris_y", "eye_openness", "eyes_closed"],
+      "properties": {
+        "detected": { "type": "boolean" },
+        "head_yaw_deg": { "$ref": "#/$defs/nnum" },
+        "head_pitch_deg": { "$ref": "#/$defs/nnum" },
+        "head_roll_deg": { "$ref": "#/$defs/nnum" },
+        "iris_x": { "$ref": "#/$defs/nnum", "description": "Iris offset in the eye opening, approx -0.5..0.5, + = camera-image right." },
+        "iris_y": { "$ref": "#/$defs/nnum", "description": "Approx -0.5..0.5, + = down." },
+        "eye_openness": { "$ref": "#/$defs/nnum", "description": "0 closed .. 1 open." },
+        "eyes_closed": { "type": ["boolean", "null"] }
+      }
+    },
+    "gaze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["screen_x_px", "screen_y_px", "video_u", "video_v", "region", "margin_px"],
+      "properties": {
+        "screen_x_px": { "$ref": "#/$defs/nnum" },
+        "screen_y_px": { "$ref": "#/$defs/nnum" },
+        "video_u": { "$ref": "#/$defs/nnum", "description": "Fraction of the video rect width; outside 0..1 = off the video." },
+        "video_v": { "$ref": "#/$defs/nnum" },
+        "region": { "enum": ["on_video", "off_video", "uncertain", null], "description": "Null when eyes closed or not mappable." },
+        "margin_px": { "$ref": "#/$defs/nnum", "description": "Uncertainty band around the video edge, from held-out calibration error." }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "quality", "heldout_rms_px"],
+      "properties": {
+        "id": { "type": ["string", "null"] },
+        "status": { "enum": ["none", "valid", "stale", "too_coarse"] },
+        "quality": { "enum": ["fine", "coarse", "unusable", null] },
+        "heldout_rms_px": { "$ref": "#/$defs/nnum" }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": { "name": { "type": "string" }, "version": { "type": "string" } }
+    }
+  }
+}

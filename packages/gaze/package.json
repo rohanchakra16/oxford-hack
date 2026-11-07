@@ -1,0 +1,23 @@
+{
+  "name": "@oxford-hack/gaze",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Webcam head-pose and coarse gaze estimation for the lecture review player (Person 2 workstream).",
+  "main": "src/index.ts",
+  "scripts": {
+    "setup": "node scripts/setup-assets.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.2"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}
