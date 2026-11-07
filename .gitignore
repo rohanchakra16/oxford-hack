@@ -67,3 +67,4 @@ participants/
 .vscode/*
 !.vscode/extensions.json
 .claude/
+.board/
