@@ -45,27 +45,26 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
 - Docs: `docs/TIMING.md`, `docs/SECURITY.md`, `docs/INTEGRATION.md`, `docs/REPLAY.md`, `contracts/README.md`.
   These are referenced in code comments but not written yet.
 
-## 4b. Open PRs and pending handoffs (updated after the lead's integration authorisation)
+## 4b. Integration state (updated after lead's layout decision: keep current layout, src/ migration deferred)
 
-Handoff requests are posted on the board; nothing on teammates' branches has been changed yet.
+Merged by me, CI green: #24 (Annie's #14 integrated under `eeg/`), #25 (Betty's #11 integrated with the shared
+player/transcript), #29 (`--eeg-source`, and the previously unwired `--simulated-detector`). GitHub shows #11 and #14 as merged
+because their commits are ancestors of main. #26 (Seikaro's src/ move) is a DRAFT and deferred: do not merge.
 
-- **#14 Annie (EEG input)**: not merged. Needs her go-ahead before I push to `feature/EEG-input`. Verified in a local,
-  unpushed scratch merge with main (42 tests pass, GUI test excluded):
-  - `.gitignore` add/add conflict: keep main's file (already contains her three entries).
-  - Root `README.md` must stay the shared one; her EEG instructions go in component docs (`eeg/`).
-  - Bare `pytest` at the repo root now collects platform/inference/evaluation tests and fails; her suite needs
-    `pytest tests` or a `testpaths`, and CI has no job for it yet.
-  - Confirmed adapter bugs in `eeg/acquisition/unicorn_device.py`: (1) `connect()` assigned `self._sdk` after
-    `_load_configuration()`, so a lazily loaded SDK made `SamplingRate` lookup fail; (2) `get_device_info()` lacked
-    `sampling_frequency_hz`, which `StreamingController` reads (the mock device had it). Both fixed in the scratch copy with
-    regression tests; the lazy-SDK test fails without the fix.
-  - Layout (repo root vs `eeg/` vs `src/eeg`) depends on #15; undecided.
-  - Merge readiness is separate from hardware validation: no real Unicorn hardware has been tested, and the EegSource
-    adapter to the platform is not written.
-- **#11 Betty (product UI)**: draft, no activity since 17:28. Waiting to hear whether she is implementing the
-  `LecturePlayer`/`TranscriptPanel` switch or hands it over. Product e2e follow.
-- **#15 Seikaro (folder move to `src/`)**: not a PR yet at last check. I validate paths after it lands.
-- Still to do: `--eeg-source module:factory`, gaze wiring (ShinJu's question), combined-main startup/shutdown/port-release check.
+Verified on combined main: platform ruff/mypy/pytest, P3 tests (1 optional skip), `eeg` tests (non-GUI locally; GUI in CI),
+frontend lint/typecheck/104 unit/build, 22 Playwright tests, schema/fixture/recording/type drift checks, and `npm run dev`
+start plus shutdown on SIGINT and SIGTERM with ports 8765 and 5173 released and no leftover processes.
+
+Still open (explicit):
+- **Hardware**: the Unicorn adapter has never run on a real headset. g.Pype alternative and its licence/macOS thread
+  caveats are on the board (ShinJu).
+- **EEG to hub**: `--eeg-source` loads any `EegSource`, but no mapper exists from Annie's `StreamingController` frames to
+  `EegFeatureWindow` (names/units, quality flags, clock correction); who computes the features is undecided.
+- **Gaze wiring**: no gaze code on main yet. Proposal: `file:../gaze` dependency and an adapter around
+  `player.getVideoElement()` and `client.sendGazeObservations/sendGazeCalibration`, done when ShinJu opens a PR.
+- **Qt GUI test**: the PySide6 process crashes at exit on Linux CI after passing; CI gates on JUnit and warns.
+- **question_request** (Seikaro's new P3 task) needs a contract change from me with a schemaVersion bump; payload pending.
+- Bookmarks do not survive a backend restart (decision for lead/Betty).
 
 ## 5. Known issues and decisions awaiting the team
 
