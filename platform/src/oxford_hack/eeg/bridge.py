@@ -61,6 +61,12 @@ class LiveEegBridge:
     def poll(self, now_backend_ms: float) -> list[EegFeatureWindow | EegStatus]:
         return self.sink.drain()
 
+    def session_started(self) -> None:
+        """Tell sources that opt in (``on_live_session_started``) that a live EEG session began."""
+        notify = getattr(self.source, "on_live_session_started", None)
+        if callable(notify):
+            notify()
+
     def stop(self) -> None:
         if self._started:
             self._started = False

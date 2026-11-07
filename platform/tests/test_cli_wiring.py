@@ -116,3 +116,22 @@ def test_live_reminders_opt_in_wires_factory_and_truthful_experimental_policy() 
 def test_bad_eeg_source_specs_are_reported(spec: str) -> None:
     with pytest.raises(EegSourceLoadError):
         load_source_factory(spec)
+
+
+def test_source_declared_device_reaches_the_session_config() -> None:
+    """A rehearsal/test source labels itself; the page shows that label instead of implying a headset."""
+    fake_eeg_source.INSTANCES.clear()
+    fake_eeg_source.DeclaredSource.session_starts = 0
+    factory = build_hub_factory(
+        args(eeg_source="tests.fake_eeg_source:make_declared_source", allow_simulated=False),
+        HubSettings(allowed_run_kinds=frozenset({"live"})),
+    )
+    sim = Sim(factory)
+    b = sim.browser("c1")
+    b.connect()
+    sim.run(1_000)
+    b.start_session("video-a", eeg=True, gaze=False, run_kind="live")
+    sim.run(200)
+    config = b.of_type("session_config")[-1]["payload"]
+    assert config["eegDevice"]["model"] == "declared test source (not a headset)"
+    assert fake_eeg_source.DeclaredSource.session_starts == 1  # the source was told a live session began
