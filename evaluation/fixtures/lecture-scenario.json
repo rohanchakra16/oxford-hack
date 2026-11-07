@@ -1,0 +1,21 @@
+{
+  "name": "Synthetic lecture with sustained losses, short fluctuation and unknown input",
+  "prototype": true,
+  "source": "synthetic",
+  "duration_s": 120,
+  "baseline_score": 0.9,
+  "score_blocks": [
+    {"start_s": 5, "end_s": 6, "score": 0.1},
+    {"start_s": 10, "end_s": 23, "score": 0.1},
+    {"start_s": 29, "end_s": 42, "score": 0.3},
+    {"start_s": 55, "end_s": 69, "score": 0.1},
+    {"start_s": 85, "end_s": 99, "score": 0.3}
+  ],
+  "unknown_blocks": [{"start_s": 74, "end_s": 78}],
+  "transcript": [
+    {"start_media_s": 0.0, "end_media_s": 28.0, "text": "Synthetic lecture: a neuron maintains a voltage difference across its membrane."},
+    {"start_media_s": 28.0, "end_media_s": 50.0, "text": "Synthetic lecture: ion channels allow selected ions to cross the membrane."},
+    {"start_media_s": 50.0, "end_media_s": 80.0, "text": "Synthetic lecture: signals can propagate along an axon."},
+    {"start_media_s": 80.0, "end_media_s": 120.0, "text": "Synthetic lecture: synapses allow communication between neurons."}
+  ]
+}

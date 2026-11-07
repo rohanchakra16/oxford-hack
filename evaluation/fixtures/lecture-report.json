@@ -1,0 +1,250 @@
+{
+  "prototype": true,
+  "source": "synthetic",
+  "version": "0.1.0",
+  "cases": [
+    {
+      "scenario": "attention_bouts",
+      "mode": "normal",
+      "metrics": {
+        "review_segments": 4,
+        "qualifying_episodes": 4,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 53,
+          "medium attention": 17,
+          "low attention": 27,
+          "no attention": 19,
+          "unknown": 6
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "attention_bouts",
+      "mode": "educational-immediate",
+      "metrics": {
+        "review_segments": 4,
+        "qualifying_episodes": 4,
+        "merged_episodes": 0,
+        "question_requests": 4,
+        "minimum_prompt_interval_ms": 30000.0,
+        "prompts_per_elapsed_minute": 2.0167897748758414,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 53,
+          "medium attention": 17,
+          "low attention": 27,
+          "no attention": 19,
+          "unknown": 6
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "attention_bouts",
+      "mode": "educational-end",
+      "metrics": {
+        "review_segments": 4,
+        "qualifying_episodes": 4,
+        "merged_episodes": 0,
+        "question_requests": 4,
+        "minimum_prompt_interval_ms": 30000.0,
+        "prompts_per_elapsed_minute": 1.148319864498256,
+        "prompt_window_elapsed_minutes": 3.48335,
+        "attention_estimate_counts": {
+          "high attention": 53,
+          "medium attention": 17,
+          "low attention": 27,
+          "no attention": 19,
+          "unknown": 6
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "steady_high",
+      "mode": "normal",
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 120,
+          "medium attention": 0,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 2
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "steady_high",
+      "mode": "educational-immediate",
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 120,
+          "medium attention": 0,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 2
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "steady_high",
+      "mode": "educational-end",
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 120,
+          "medium attention": 0,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 2
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "unusable_signal",
+      "mode": "normal",
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 0,
+          "medium attention": 0,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 122
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "unusable_signal",
+      "mode": "educational-immediate",
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 0,
+          "medium attention": 0,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 122
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    },
+    {
+      "scenario": "unusable_signal",
+      "mode": "educational-end",
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 0,
+          "medium attention": 0,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 122
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      }
+    }
+  ],
+  "example_question_request": {
+    "schemaVersion": "lecture-prototype-0.1.0",
+    "type": "question_request",
+    "sessionId": "demo-session",
+    "videoId": "demo-lecture",
+    "payload": {
+      "questionId": "3b08969a91115904b8dc610fadd0fafe",
+      "segmentId": "331f3e5d381258c0bd318304433634f9",
+      "sessionId": "demo-session",
+      "videoId": "demo-lecture",
+      "lectureRevision": "demo-v1",
+      "configVersion": "0.1.0",
+      "configFingerprint": "9664c081da458e39f58c1b791f6f1d3f7e5fbc88b4f551aa3a8b559b555eb6ac",
+      "affectedRange": {
+        "startMediaS": 10.0,
+        "endMediaS": 15.0
+      },
+      "attentionLevel": "no attention",
+      "triggerReason": "sustained_low_estimate",
+      "transcriptContext": [
+        {
+          "startMediaS": 0.0,
+          "endMediaS": 28.0,
+          "text": "Synthetic lecture: a neuron maintains a voltage difference across its membrane."
+        }
+      ],
+      "requestedBackendMs": 15000.0,
+      "timing": "immediate",
+      "source": "synthetic",
+      "prototype": true,
+      "placeholder": true,
+      "questionText": "[Placeholder question] In your own words, what was the main idea explained between 10s and 15s? You can replay the segment before answering.",
+      "pausePlayback": false
+    }
+  },
+  "limitations": "Scripted behaviour only. No attention ground truth, accuracy or false-positive estimate."
+}
