@@ -56,3 +56,12 @@ Add verified installation, live acquisition, replay, and test commands here.
 ## Completion post
 Post the branch/PR, changes, tests, limitations, and next handoff
 on Message Board issue #1.
+
+## Implementation guide
+
+Setup, running, the Unicorn SDK, tests and the object reference are in [docs/GUIDE.md](docs/GUIDE.md)
+(architecture, preprocessing, features, recording database, dataset export, streaming pipeline).
+Run the EEG tests with `cd eeg && QT_QPA_PLATFORM=offscreen python -m pytest` after
+`pip install -r eeg/requirements.txt` (PySide6 is needed only for `tests/test_dataset_gui.py`).
+Status: the physical Unicorn adapter has not been validated on real hardware, and the bridge to the
+platform's `EegSource` interface is not written yet (tracked in HANDOFF.md).

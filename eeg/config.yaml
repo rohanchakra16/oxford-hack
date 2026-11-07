@@ -1,0 +1,28 @@
+project:
+  name: unicorn_attention
+  version: "0.1.0"
+
+logging:
+  level: INFO
+
+acquisition:
+  sample_rate_hz: 250
+  channel_count: 8
+
+dataset:
+  labels:
+    - Focused
+    - Distracted
+    - Relaxed
+    - Drowsy
+    - Other
+
+features:
+  enabled:
+    - posterior_alpha_suppression
+    - frontal_theta_power
+    - beta_power
+  settings:
+    posterior_alpha_suppression: {}
+    frontal_theta_power: {}
+    beta_power: {}
