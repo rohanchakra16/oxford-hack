@@ -13,7 +13,7 @@ npm run contracts:generate   # from the repo root; regenerates all of the above
 npm run contracts:check      # CI runs this; fails on drift
 ```
 
-Rules: `SCHEMA_VERSION` (currently `0.1.0`, PROPOSED) must match exactly on both sides. Any change bumps it. Times carry
+Rules: `SCHEMA_VERSION` (currently `0.2.0`, PROPOSED; 0.2.0 added `playback_state.replaying` and the `review_replay` eligibility reason) must match exactly on both sides. Any change bumps it. Times carry
 their unit and clock in the field name (`...BackendMs`, `...BrowserMs`, `...MediaS`). Missing values are `null` with a
 reason, never `0`. The frontend validates structure with the schema; cross-field rules (for example a candidate's
 signals matching its mode) are enforced by the backend only. Message owners and directions are listed in the

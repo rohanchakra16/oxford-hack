@@ -135,10 +135,10 @@ PAYLOADS: dict[str, Contract] = {
     ),
     "error": p.ErrorReport(
         code="schema_version_mismatch",
-        message="received schemaVersion '0.2.0'; this component supports exactly '0.1.0'",
+        message="received schemaVersion '0.3.0'; this component supports exactly '0.2.0'",
         ref_message_id="m-99",
         fatal=True,
-        details={"received": "0.2.0"},
+        details={"received": "0.3.0"},
     ),
     "playback_state": p.PlaybackState(
         video_id="video-fixture",
@@ -306,7 +306,7 @@ def invalid_cases() -> dict[str, dict[str, Any]]:
             "Unknown schema version is rejected with a readable error",
             "schema_version_mismatch",
             "structural",
-            mutate("playback_state", ["schemaVersion"], "0.2.0"),
+            mutate("playback_state", ["schemaVersion"], "0.3.0"),
         ),
         "unknown-type": (
             "Unknown message type",

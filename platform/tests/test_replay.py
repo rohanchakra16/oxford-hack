@@ -65,3 +65,12 @@ def test_non_synthetic_recording_gets_no_simulation_policy(tmp_path: Path) -> No
     reasons = {m["payload"]["reason"] for m in msgs if m["type"] == "candidate_rejected"}
     assert reasons == {"mode_not_automatic"}  # evaluatedModes is empty in the header
     assert not [m for m in msgs if m["type"] == "review_bookmark"]
+
+
+def test_rejects_recording_from_previous_schema_version(tmp_path: Path) -> None:
+    old = tmp_path / "old.jsonl"
+    old.write_text(
+        json.dumps({"format": "oxford-hack-recording", "formatVersion": 1, "schemaVersion": "0.1.0"}) + "\n"
+    )
+    with pytest.raises(RecordingError, match=r"0\.1\.0"):
+        read_recording(old)

@@ -45,7 +45,7 @@ def test_non_finite_numbers_rejected(token: str) -> None:
 
 def test_duplicate_keys_rejected() -> None:
     with pytest.raises(ContractError, match="duplicate key"):
-        parse_message('{"schemaVersion":"0.1.0","schemaVersion":"0.1.0"}')
+        parse_message('{"schemaVersion":"0.2.0","schemaVersion":"0.2.0"}')
 
 
 def test_error_messages_do_not_echo_values() -> None:

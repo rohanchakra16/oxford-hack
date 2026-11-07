@@ -41,7 +41,7 @@ class FakeSocket implements WebSocketLike {
 
 let seq = 0;
 function server(type: string, payload: unknown, sessionId: string | null = null) {
-  return { schemaVersion: '0.1.0', messageId: `s-${++seq}`, sessionId, seq: seq, type, payload };
+  return { schemaVersion: '0.2.0', messageId: `s-${++seq}`, sessionId, seq: seq, type, payload };
 }
 
 function hello(instance: string, outcome = 'new', sessionId: string | null = null) {
@@ -56,7 +56,7 @@ function hello(instance: string, outcome = 'new', sessionId: string | null = nul
   });
 }
 
-function setup(opts: { token?: string | null } = {}) {
+function setup(opts: { token?: string | null; schemaVersion?: string } = {}) {
   const timers = new ManualTimers(1000);
   const sockets: FakeSocket[] = [];
   let instance = 'be-1';
@@ -64,7 +64,7 @@ function setup(opts: { token?: string | null } = {}) {
   const fetchFn = (async (_url: string, init: { body: string }) => {
     handshakes.push(JSON.parse(init.body));
     return new Response(
-      JSON.stringify({ sessionToken: `tok_${handshakes.length}_0123456789abcdef`, backendInstanceId: instance, schemaVersion: '0.1.0', expiresInMs: 1, wsPath: '/ws/v0' }),
+      JSON.stringify({ sessionToken: `tok_${handshakes.length}_0123456789abcdef`, backendInstanceId: instance, schemaVersion: opts.schemaVersion ?? '0.2.0', expiresInMs: 1, wsPath: '/ws/v0' }),
       { status: 200 },
     );
   }) as unknown as typeof fetch;
@@ -106,6 +106,18 @@ describe('LiveReviewClient', () => {
     await t.flush();
     expect(t.client.getSnapshot().connection.state).toBe('pairing_required');
     expect(t.sockets).toHaveLength(0);
+  });
+
+  it('refuses a backend speaking another schema version and never opens a socket', async () => {
+    for (const version of ['0.1.0', '0.3.0']) {
+      const t = setup({ schemaVersion: version });
+      t.client.connect();
+      await t.flush();
+      const connection = t.client.getSnapshot().connection;
+      expect(connection.state).toBe('incompatible');
+      expect(connection.detail).toContain(version);
+      expect(t.sockets).toHaveLength(0);
+    }
   });
 
   it('handshakes, sends client_hello first, and starts a session', async () => {

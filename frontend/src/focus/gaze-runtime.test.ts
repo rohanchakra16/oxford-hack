@@ -23,6 +23,6 @@ it.each(['stale', 'eyes_closed', 'unavailable'])('sends %s as a contract-valid m
   expect(frame.valid).toBe(false);
   expect(frame.invalidReasons.length).toBeGreaterThan(0);
   expect(frame.videoPoint).toBeNull(); expect(frame.insideVideo).toBeNull(); expect(frame.modelConfidence).toBeNull();
-  expect(() => validateMessage({ schemaVersion: '0.1.0', messageId: 'gaze-test', sessionId: 'session', seq: 1, type: 'gaze_observations', payload: { observations: [frame], provenance: { runKind: 'live', producer: 'test', producerVersion: '1' } } })).not.toThrow();
+  expect(() => validateMessage({ schemaVersion: '0.2.0', messageId: 'gaze-test', sessionId: 'session', seq: 1, type: 'gaze_observations', payload: { observations: [frame], provenance: { runKind: 'live', producer: 'test', producerVersion: '1' } } })).not.toThrow();
   camera.stop();
 });
