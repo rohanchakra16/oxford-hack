@@ -1,0 +1,5 @@
+# Optional offline training/EEG inference tools; core platform deps are unchanged.
+numpy==2.3.5
+scipy==1.16.3
+scikit-learn==1.7.2
+mne==1.11.0

@@ -34,6 +34,8 @@ jobs:
         run: uv run mypy
       - name: Tests
         run: uv run pytest -p no:warnings
+      - name: Inference and evaluation tests (P3 code, run in the platform environment)
+        run: PYTHONPATH="..:src" uv run pytest -p no:warnings ../inference/tests ../evaluation/tests
       - name: Generated contracts, fixtures and sample recording are up to date
         run: |
           uv run python scripts/generate_contracts.py --check
@@ -61,3 +63,80 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npx vite build
+
+  e2e-infra:
+    name: Infrastructure e2e (Playwright, Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: platform/uv.lock
+      - run: uv sync --locked
+        working-directory: platform
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright infrastructure tests
+        run: npx playwright test
+      - name: Upload failure diagnostics (traces, screenshots, report)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-diagnostics
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/**/*.zip
+            frontend/test-results/**/*.png
+          retention-days: 3
+          if-no-files-found: ignore
+
+  eeg:
+    name: EEG component (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: eeg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: eeg/requirements.txt
+      - name: Qt system libraries for PySide6 (offscreen)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+        working-directory: .
+      - run: pip install -r requirements.txt
+      - name: EEG tests (non-GUI)
+        run: python -m pytest -q --ignore=tests/test_dataset_gui.py
+      - name: EEG dataset GUI tests (PySide6, offscreen)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          # On the Linux runner the Qt process crashes with a bus error at interpreter exit AFTER all GUI
+          # tests pass (exit 135). Gate on the JUnit result instead of the exit code, and say so.
+          set +e
+          python -m pytest -q tests/test_dataset_gui.py --junitxml=gui-junit.xml
+          code=$?
+          set -e
+          python - <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          root = ET.parse("gui-junit.xml").getroot()
+          suite = root if root.tag == "testsuite" else root[0]
+          tests, bad = int(suite.get("tests")), int(suite.get("failures")) + int(suite.get("errors"))
+          print(f"GUI tests: {tests} run, {bad} failed/errored")
+          sys.exit(1 if tests == 0 or bad else 0)
+          PY
+          if [ "$code" -ne 0 ]; then echo "::warning::pytest exited with $code after the GUI tests passed (known Qt teardown crash)"; fi

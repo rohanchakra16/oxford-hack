@@ -67,6 +67,39 @@ the player, inference events, and system status.
 ## Run and test
 Add verified startup, fixture/demo, and interaction test commands here.
 
+## Product experience
+
+The product experience is composed in `frontend/src/product/App.tsx`. It uses
+the public `src/integration` API, displays live or simulated mode explicitly,
+and does not maintain a second bookmark list. Local video is identified by its
+file name, size, and last-modified time; playback element events are forwarded
+with `attachMediaElement`. Selecting a different video reports the source
+change and starts a new session through the client.
+
+Optional WebVTT and SRT caption files populate the transcript. Selecting a
+caption seeks to its start. A review suggestion replays the caption containing
+the suggested media time, or the nearest preceding caption; “Move earlier”
+steps back one caption at a time. This is a caption-boundary rule, not a claim
+that every caption is exactly one sentence.
+
+Dismissal is local to the current view and is also sent as feedback; the
+authoritative bookmark remains in the integration snapshot. Sensor availability
+is shown separately from review suggestions. Synthetic bookmarks and device
+states are identified as simulated.
+
+## Development and verification
+
+From `frontend/`, use:
+
+- `npm run dev -- --host 127.0.0.1` and open
+  `http://127.0.0.1:5173/?adapter=synthetic` for the self-contained demo.
+- `npm test -- src/product/transcript.test.ts` for timed-caption parsing and
+  replay-destination tests.
+- `npm run typecheck`, `npm run lint`, and `npm run build` for frontend checks.
+
+The browser uses its native media controls. Supported video formats depend on
+the browser; files remain local and are not uploaded by the product UI.
+
 ## Completion post
 Post the branch/PR, demonstrated flow, tests, limitations, and next
 handoff on Message Board issue #1.

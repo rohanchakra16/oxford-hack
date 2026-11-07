@@ -33,7 +33,7 @@ def build() -> str:
                 "detectorId": "placeholder-scripted",
                 "detectorVersion": "0.1.0",
                 "configVersion": "every-8000ms",
-                "evaluatedModes": ["both", "eeg_only", "gaze_only"],
+                "evaluatedModes": [],
             },
         )
         return Hub(

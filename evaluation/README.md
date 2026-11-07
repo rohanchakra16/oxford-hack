@@ -3,6 +3,11 @@
 Owner: @Seikaro
 Related component: inference/
 
+Public-data experiment: [EEGMAT.md](EEGMAT.md), with machine-readable results in
+`fixtures/eegmat-report.json`. A real arithmetic-versus-rest EEG model is trained
+and evaluated on held-out participants; it is a workload proxy, not attention
+ground truth. Local lecture-attention evaluation remains pending.
+
 ## Before starting
 - Read the root AGENTS.md and inference/README.md.
 - Check Message Board issue #1:
@@ -45,7 +50,26 @@ Labelled recordings, model bundles, and inference outputs.
 - Clear limitations and failure cases.
 
 ## Run and test
-Add verified training, validation, and held-out evaluation commands here.
+See `PROTOCOL.md` for calibration, independent labels, exclusion rules,
+participant-disjoint splits and frozen event-matching rules. `REPORT.md`
+documents the initial synthetic validation and its limitations.
+
+Use the environment/setup in `inference/README.md`, then from the root:
+
+```powershell
+$env:PYTHONPATH = "$PWD;$PWD/platform/src"
+inference/.venv/Scripts/python.exe -m evaluation.labels --help
+inference/.venv/Scripts/python.exe -m evaluation.synthetic
+inference/.venv/Scripts/python.exe -m pytest inference/tests evaluation/tests -q
+```
+
+Library entry points: `splits.participant_splits` / `validate_splits`,
+`metrics.Event` / `event_metrics`, and `labels.Label` / `append_label`.
+The label collector appends validated local JSONL only under ignored `data/`.
+Public EEG download, training and recording-scoring commands are in `EEGMAT.md`.
+No local attention-labelled recordings have been evaluated.
+`evaluation.synthetic` checks scripted event plumbing only; its perfect fixture
+scores are not accuracy.
 
 ## Data handling
 Keep credentials and participant recordings out of Git.

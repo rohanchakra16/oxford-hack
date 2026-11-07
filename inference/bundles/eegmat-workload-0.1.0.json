@@ -1,0 +1,71 @@
+{
+  "detector_id": "eegmat-workload-proxy",
+  "detector_version": "0.1.0",
+  "target": "mental_arithmetic_vs_rest",
+  "feature_version": "midline-log-relative-bandpower-1",
+  "channels": [
+    "Fz",
+    "Cz",
+    "Pz"
+  ],
+  "feature_names": [
+    "Fz.log_relative_theta",
+    "Fz.log_relative_alpha",
+    "Fz.log_relative_beta",
+    "Cz.log_relative_theta",
+    "Cz.log_relative_alpha",
+    "Cz.log_relative_beta",
+    "Pz.log_relative_theta",
+    "Pz.log_relative_alpha",
+    "Pz.log_relative_beta"
+  ],
+  "sampling_rate_hz": 250.0,
+  "window_samples": 1000,
+  "settling_samples": 2500,
+  "threshold": 0.5,
+  "evaluated_modes": [],
+  "live_automatic": false,
+  "mean": [
+    -1.5454907807095284,
+    -1.388818066272205,
+    -1.9826923127771392,
+    -1.5533662515596958,
+    -1.350569430761715,
+    -2.0548115369546784,
+    -1.8773444604127498,
+    -1.0733392638866806,
+    -2.0736933035374023
+  ],
+  "scale": [
+    0.38972933864770015,
+    0.5076600492620551,
+    0.42972519438561785,
+    0.4047767673212613,
+    0.5056978471711119,
+    0.42691010423157383,
+    0.5190798441826696,
+    0.5530959234029963,
+    0.47580023592298004
+  ],
+  "coefficients": [
+    0.09962841161471545,
+    -0.11943808152677718,
+    -0.11713218695655382,
+    -0.017919527203042716,
+    -0.03030506415468635,
+    0.009511399468886501,
+    0.018768313122586953,
+    -0.13468462423894662,
+    0.12853166780698547
+  ],
+  "intercept": 0.0003150724084506865,
+  "regularization_c": 0.01,
+  "seed": 17,
+  "dataset": "EEGMAT-1.0.0",
+  "source_revision": "f20ee35c06b89ec6499bd45d79a8b67296fbabbc",
+  "source_hashes": {
+    "eeg/acquisition/base_device.py": "c717bb6ad3f1503486aa979e1641641333da83c07c40abac940747de89dfbbb4",
+    "eeg/processing/signal_preprocessor.py": "d89af9393d6f06a26956cf4c48e6cfcdc54bf964ddda530dda4853428f72a9c1"
+  },
+  "split_manifest_sha256": "7c9c6afb62dc65605775c2bebfca43fbe2ab0bc6b8f31aef961fd6a610ad5414"
+}

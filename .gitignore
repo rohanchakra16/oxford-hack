@@ -68,3 +68,11 @@ participants/
 !.vscode/extensions.json
 .claude/
 .board/
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+
+# EEG component: local recording databases and exports may contain participant data
+*.sqlite
+*.sqlite3

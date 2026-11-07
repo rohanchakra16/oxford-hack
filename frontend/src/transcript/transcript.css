@@ -1,0 +1,92 @@
+/* Transcript-only styles (Person 4). Prefixed `tp-`; shared styles are @Betty505's. */
+.tp {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: system-ui, sans-serif;
+  min-width: 0;
+}
+.tp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.tp-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.tp-meta,
+.tp-empty {
+  margin: 0;
+  color: #444;
+}
+.tp-error {
+  margin: 0;
+  color: #9b1c1c;
+}
+.tp-warning {
+  margin: 0;
+  color: #7a4a00;
+  font-size: 0.9em;
+}
+.tp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+.tp-list li + li {
+  border-top: 1px solid #eee;
+}
+/*
+ * Sentence rows are <button>s. Host pages often style buttons inside .tp (e.g. the product's
+ * `.transcript-card .tp button`, specificity 0,2,1), which would hide the current-sentence
+ * highlight. These selectors are deliberately more specific (0,3,1 and up) so a host's generic
+ * button rules cannot override the row look; style the toolbar via `.tp-toolbar button` instead.
+ */
+.tp .tp-list button.tp-sentence {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 10px;
+  text-align: left;
+  font: inherit;
+  font-weight: 400;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+.tp .tp-list button.tp-sentence:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: inherit;
+}
+.tp .tp-list button.tp-sentence:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+.tp .tp-list button.tp-sentence:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.tp .tp-list .tp-current button.tp-sentence,
+.tp .tp-list .tp-current button.tp-sentence:hover:not(:disabled) {
+  background: #fff3c4;
+  font-weight: 600;
+}
+.tp-time {
+  flex: none;
+  min-width: 7ch;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}

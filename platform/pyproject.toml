@@ -50,4 +50,4 @@ files = ["src", "tests", "scripts"]
 module = ["tests.*"]
 disallow_untyped_defs = false
 warn_unused_ignores = false
-disable_error_code = ["arg-type", "index", "union-attr", "type-arg", "attr-defined"]
+disable_error_code = ["arg-type", "index", "union-attr", "type-arg", "attr-defined", "import-not-found"]

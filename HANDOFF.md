@@ -1,6 +1,6 @@
 # HANDOFF — Person 5 (platform & integration, @rohanchakra16)
 
-Branch: `infra/shared-foundation`. The team lead has authorised merging to `main` once CI passes.
+Foundation merged to `main` (PR #2), then simulated-detector wiring (PR #9). The team lead has authorised merging infra work to `main` once CI passes.
 Last updated: 2026-11-07.
 
 ## 1. Objective and ownership
@@ -22,6 +22,11 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
 | `5d8f731` | FastAPI/WebSocket transport, origin/host/token checks, test hooks (opt-in), `oxford-backend serve/replay` |
 | `4b408a4` | CI (platform + frontend jobs), PR template |
 | `0875430` | `backend/` moved to `platform/` to match `AGENTS.md` |
+| PR #2 | All of the above merged to `main` (CI green) |
+| PR #13 | `/diagnostics` page + Playwright infra e2e (13 tests) + CI job `e2e-infra`. CI green, merged |
+| PR #4 | Aryan's player + transcript, merged by me after CI 3/3 and a local merge-result check |
+| PR #17 | Real-video player e2e tests + `frontend/e2e/README.md`. CI green, merged |
+| PR #9 | Simulation-only policy; `--simulated-detector {placeholder,baseline}`; CI also runs `inference/tests` and `evaluation/tests`. CI green, merged |
 
 ## 3. Tests actually run (locally, macOS, Python 3.12.4, Node 26)
 
@@ -40,6 +45,27 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
 - Docs: `docs/TIMING.md`, `docs/SECURITY.md`, `docs/INTEGRATION.md`, `docs/REPLAY.md`, `contracts/README.md`.
   These are referenced in code comments but not written yet.
 
+## 4b. Integration state (updated after lead's layout decision: keep current layout, src/ migration deferred)
+
+Merged by me, CI green: #24 (Annie's #14 integrated under `eeg/`), #25 (Betty's #11 integrated with the shared
+player/transcript), #29 (`--eeg-source`, and the previously unwired `--simulated-detector`). GitHub shows #11 and #14 as merged
+because their commits are ancestors of main. #26 (Seikaro's src/ move) is a DRAFT and deferred: do not merge.
+
+Verified on combined main: platform ruff/mypy/pytest, P3 tests (1 optional skip), `eeg` tests (non-GUI locally; GUI in CI),
+frontend lint/typecheck/104 unit/build, 22 Playwright tests, schema/fixture/recording/type drift checks, and `npm run dev`
+start plus shutdown on SIGINT and SIGTERM with ports 8765 and 5173 released and no leftover processes.
+
+Still open (explicit):
+- **Hardware**: the Unicorn adapter has never run on a real headset. g.Pype alternative and its licence/macOS thread
+  caveats are on the board (ShinJu).
+- **EEG to hub**: `--eeg-source` loads any `EegSource`, but no mapper exists from Annie's `StreamingController` frames to
+  `EegFeatureWindow` (names/units, quality flags, clock correction); who computes the features is undecided.
+- **Gaze wiring**: no gaze code on main yet. Proposal: `file:../gaze` dependency and an adapter around
+  `player.getVideoElement()` and `client.sendGazeObservations/sendGazeCalibration`, done when ShinJu opens a PR.
+- **Qt GUI test**: the PySide6 process crashes at exit on Linux CI after passing; CI gates on JUnit and warns.
+- **question_request** (Seikaro's new P3 task) needs a contract change from me with a schemaVersion bump; payload pending.
+- Bookmarks do not survive a backend restart (decision for lead/Betty).
+
 ## 5. Known issues and decisions awaiting the team
 
 - Contracts are PROPOSED. `schemaVersion` must match exactly, and any change bumps it.
@@ -47,15 +73,15 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
   `gaze_observations` / `gaze_calibration` contract. It needs reconciling with @ShinJuKim; I haven't edited their files.
 - `feature/EEG-input` (@annieqqa) is a root-level pip project (`requirements.txt`, `eeg/`) with `config.yaml` hard-coding
   250 Hz / 8 channels. Their adapter should implement `oxford_hack.eeg.interface.EegSource`. How it's loaded is still open.
-- `AGENTS.md` asks agents to post on the "Message Board" via `tools/board`. That tool isn't in the repo, so I haven't posted.
+- Board: `bash tools/board post "[Rohan's Claude] ..."` (the script is not executable on checkout). Posted the PR #9 policy note.
 - One session per video. Bookmarks don't survive a backend restart.
 - Sandbox on this machine: npm and uv need `npm_config_cache=$TMPDIR/npm-cache` and `UV_CACHE_DIR=$TMPDIR/uv-cache`.
   Binding local ports and `git` network operations need running outside the sandbox (or `allowLocalBinding`).
 
 ## 6. Next steps
 
-1. Push, open the PR, wait for CI, merge (authorised).
-2. Diagnostics page, then Playwright infra tests and a CI job.
+1. Rebase `infra/diagnostics-wip` onto main and finish the diagnostics page.
+2. Then Playwright infra tests and a CI job.
 3. `npm run dev`, then the docs listed above.
 
 ```bash
