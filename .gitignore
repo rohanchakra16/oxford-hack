@@ -68,3 +68,7 @@ participants/
 !.vscode/extensions.json
 .claude/
 .board/
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/

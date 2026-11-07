@@ -545,6 +545,11 @@ export class LiveReviewClient implements ReviewClient {
     this.store.addError({ code, message, fatal, source, atBrowserMs: this.timers.now() });
   }
 
+  /** Diagnostics only: drop the socket as a network failure would; the client reconnects and resumes. */
+  simulateTransportDrop(): void {
+    this.ws?.close(4000, 'diagnostics: simulated transport drop');
+  }
+
   /** Diagnostics only: send arbitrary text through the real socket (used to prove rejection paths). */
   sendRawForDiagnostics(text: string): boolean {
     if (!this.ws || this.ws.readyState !== OPEN) return false;
