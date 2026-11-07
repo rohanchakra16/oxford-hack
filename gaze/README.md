@@ -123,7 +123,7 @@ Requires Node 22+ (verified with 22.23.4). From `gaze/`:
 ```bash
 npm install
 npm run setup        # once: copies MediaPipe WASM, downloads the pinned face model into public/ (git-ignored)
-npm test             # 42 unit tests: features, calibration, per-axis margins, region, smoothing, accuracy scoring, contract adapter
+npm test             # 55 unit tests: features, calibration, probability decision, letterbox geometry, smoothing, accuracy scoring, contract adapter, capture recorder
 npm run typecheck
 npm run dev          # harness at http://localhost:5174; open in Chrome and allow the camera
 ```
@@ -135,12 +135,33 @@ the demo works offline after `npm run setup`. GPU delegate with CPU fallback.
 Harness (`index.html`), in order:
 1. **Start camera.** The preview shows eye corners (blue) and iris centres (red).
 2. **Calibrate** (~30 s): 11 dots inside the video plus up to 6 beyond its edges where the window has room;
-   2 inside and up to 2 outside dots are held out. Shows held-out RMS overall and per axis, quality per axis, and margins.
-   **Moving dot (experimental)** is kept for comparison only; it tested worse.
+   2 inside and up to 2 outside dots are held out. Shows held-out RMS overall and per axis, quality per axis, and
+   per-axis error σ. **Moving dot (experimental)** is kept for comparison only; it tested worse.
 3. **Run accuracy test** (~75 s): scripted look at video / phone / side panel / away from screen. Reports
    look-away detection, false alarms, balanced accuracy, coverage, the main reason for unavailable frames,
    and drift diagnostics per step.
-4. **Shrink video** to test geometry changes. **Record → Download JSONL** exports messages (no images) as fixtures.
+4. **Shrink video** to test geometry changes.
+5. **Record** (press it *before* calibrating and running the accuracy test), then **Stop** and download:
+   - **Download contract capture** → `<session>.gaze-capture.jsonl`, for @Seikaro / @rohanchakra16 (format below).
+   - **Download internal JSONL** → `<session>.internal.jsonl`, with head pose, per-axis error and diagnostics.
+   Neither contains images. Don't commit captures of people to Git (`*.jsonl` is git-ignored here).
+
+### Gaze capture format (`oxford-hack-gaze-capture`, v1)
+Real webcam output in the shared contract, for replaying through inference and the platform instead of synthetic
+data. It is *not* the backend's `oxford-hack-recording` replay format, which records a whole session on the backend
+clock; the harness has no backend session. A capture holds browser-side gaze messages on the **browser clock**, plus
+ground-truth labels from the accuracy test, so it can be spliced into a recording or fed to the inference adapter
+after clock mapping. Every envelope validates against `contracts/schema` 0.1.0.
+
+```text
+line 1:  {"format":"oxford-hack-gaze-capture","formatVersion":1,"schemaVersion":"0.1.0","runKind":"live",
+          "producer":"gaze-webcam-mediapipe","producerVersion":…,"sessionId":…,"createdAt":…,"clock":…,"description":…}
+message: {"kind":"message","tBrowserMs":…,"message":{<gaze_calibration | gaze_observations envelope>}}
+label:   {"kind":"label","phaseId":"phone","expected":"off_video","startBrowserMs":…,"endBrowserMs":…,
+          "scoredFromBrowserMs":…,"instruction":…}
+```
+`scoredFromBrowserMs` skips the 2.5 s transition the accuracy test ignores. The capture starts with the
+calibration in force when recording began, so it is self-contained.
 
 ## How it works
 | Stage | Method |

@@ -65,11 +65,15 @@
         <h2>Last 1 s summary</h2>
         <dl id="summary-info"></dl>
 
-        <h2>Fixtures</h2>
+        <h2>Recording</h2>
+        <p class="hint">Records gaze messages only, never images. Start recording before calibrating and running the accuracy test, so the capture includes the calibration and the test's ground-truth labels.</p>
         <div class="row">
           <button id="btn-rec" class="secondary">Record</button>
-          <button id="btn-dl" class="secondary" disabled>Download JSONL</button>
-          <span class="muted" id="rec-count">0 messages</span>
+          <span class="muted" id="rec-count">not recording</span>
+        </div>
+        <div class="row">
+          <button id="btn-dl-capture" class="secondary" disabled title="Shared-contract gaze_calibration / gaze_observations envelopes plus accuracy-test labels, for inference and platform replay">Download contract capture</button>
+          <button id="btn-dl" class="secondary" disabled title="Internal format with head pose, per-axis error and diagnostics">Download internal JSONL</button>
         </div>
       </aside>
     </main>

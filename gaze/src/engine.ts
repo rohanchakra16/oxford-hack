@@ -375,7 +375,8 @@ export class GazeEngine {
   /** Emits an explicit "unavailable" observation when no frame was processed recently, so silence never means "fine". */
   private heartbeat() {
     const now = performance.now();
-    if (now - this.lastEmitMs < 1000) return;
+    // Below the 1 s timer period, so timer jitter doesn't skip every other heartbeat.
+    if (now - this.lastEmitMs < 900) return;
     const reasons: GazeReasonCode[] = [];
     const cam = this.camera.state;
     if (cam.status === "error") reasons.push(cam.reason);

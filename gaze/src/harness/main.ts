@@ -1,5 +1,8 @@
 import {
   DEFAULT_PHASES,
+  DEFAULT_TRANSITION_MS,
+  GazeCaptureRecorder,
+  MODULE_VERSION,
   calibrationSigma,
   GazeEngine,
   scoreValidation,
@@ -335,6 +338,7 @@ $("btn-validate").addEventListener("click", async () => {
     showValidation(result);
     $("val-heading").scrollIntoView({ behavior: "smooth", block: "start" });
     record({ type: "validation_result", calibration: engine.getCalibration(), result, windows });
+    if (recording) for (const w of windows) capture?.label(w, DEFAULT_TRANSITION_MS);
     message.textContent = "Accuracy test complete.";
   } catch {
     message.textContent = "Accuracy test cancelled.";
@@ -358,17 +362,38 @@ $<HTMLInputElement>("file").addEventListener("change", (e) => {
   $("lecture-placeholder").hidden = true;
 });
 
-// ---------- fixture recording (in memory only until downloaded) ----------
+// ---------- recording (in memory only until downloaded) ----------
+// Two formats from the same session: the shared-contract capture (for inference/platform) and the
+// richer internal messages (for our own debugging).
 let recording = false;
 let recorded: unknown[] = [];
+let capture: GazeCaptureRecorder | null = null;
+
+function updateRecCount() {
+  const n = capture?.size.observations ?? 0;
+  $("rec-count").textContent = recording ? `recording: ${n} observations` : capture ? `${n} observations recorded` : "not recording";
+}
 function record(msg: unknown) {
   if (!recording) return;
   recorded.push(msg);
-  $("rec-count").textContent = `${recorded.length} messages`;
 }
+engine.on("observation", (o) => {
+  if (!recording || !capture) return;
+  capture.observation(o);
+  if (capture.size.observations % 15 === 0) updateRecCount();
+});
+engine.on("calibrationState", (e) => {
+  if (recording) capture?.calibration(e);
+});
+
 $("btn-rec").addEventListener("click", () => {
   recording = !recording;
   if (recording) {
+    capture?.dispose();
+    capture = new GazeCaptureRecorder({ sessionId, producerVersion: MODULE_VERSION, runKind: "live" });
+    // Start with the calibration currently in force so the capture is self-contained.
+    const state = engine.getCalibrationState();
+    if (state) capture.calibration({ ...state, tBrowserMs: performance.now() });
     recorded = [
       {
         type: "fixture_header",
@@ -381,14 +406,23 @@ $("btn-rec").addEventListener("click", () => {
   }
   $("btn-rec").textContent = recording ? "Stop" : "Record";
   $<HTMLButtonElement>("btn-dl").disabled = recording || recorded.length === 0;
+  $<HTMLButtonElement>("btn-dl-capture").disabled = recording || !capture;
+  updateRecCount();
 });
-$("btn-dl").addEventListener("click", () => {
-  const blob = new Blob([recorded.map((r) => JSON.stringify(r)).join("\n") + "\n"], { type: "application/x-ndjson" });
+
+function download(text: string, filename: string) {
+  const blob = new Blob([text], { type: "application/x-ndjson" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${sessionId}.jsonl`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+$("btn-dl").addEventListener("click", () =>
+  download(recorded.map((r) => JSON.stringify(r)).join("\n") + "\n", `${sessionId}.internal.jsonl`),
+);
+$("btn-dl-capture").addEventListener("click", () => {
+  if (capture) download(capture.toJsonl(), `${sessionId}.gaze-capture.jsonl`);
 });
 
 // ---------- restore last calibration (convenience; staleness checks still apply) ----------

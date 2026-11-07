@@ -26,3 +26,5 @@ export {
 } from "./contract";
 export type { ContractGazeObservation, ContractGazeCalibration, ContractProvenance, RunKind } from "./contract";
 export type { CalibrationStateEvent, CalibrationAttempt } from "./engine";
+export { GazeCaptureRecorder, CAPTURE_FORMAT, CAPTURE_FORMAT_VERSION } from "./recording";
+export type { CaptureHeader, CaptureLine, GazeEnvelope } from "./recording";
