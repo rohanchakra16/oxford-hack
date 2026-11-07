@@ -23,6 +23,9 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
 | `4b408a4` | CI (platform + frontend jobs), PR template |
 | `0875430` | `backend/` moved to `platform/` to match `AGENTS.md` |
 | PR #2 | All of the above merged to `main` (CI green) |
+| PR #13 | `/diagnostics` page + Playwright infra e2e (13 tests) + CI job `e2e-infra`. CI green, merged |
+| PR #4 | Aryan's player + transcript, merged by me after CI 3/3 and a local merge-result check |
+| PR #17 | Real-video player e2e tests + `frontend/e2e/README.md`. CI green, merged |
 | PR #9 | Simulation-only policy; `--simulated-detector {placeholder,baseline}`; CI also runs `inference/tests` and `evaluation/tests`. CI green, merged |
 
 ## 3. Tests actually run (locally, macOS, Python 3.12.4, Node 26)
@@ -41,6 +44,14 @@ plus the frontend integration layer (`frontend/src/{contracts,integration,diagno
 - `--eeg-source module:factory` CLI hook for P1's adapter: not started.
 - Docs: `docs/TIMING.md`, `docs/SECURITY.md`, `docs/INTEGRATION.md`, `docs/REPLAY.md`, `contracts/README.md`.
   These are referenced in code comments but not written yet.
+
+## 4b. Open PRs I reviewed for merge (not merged)
+
+- #11 (Betty, draft): still has its own `<video>`+`attachMediaElement` and `product/transcript.ts`; she agreed on the board to
+  switch to `LecturePlayer`/`TranscriptPanel` and Aryan's sentence replay rule. Waiting for her rebase; then merge + product e2e.
+- #14 (Annie, EEG input): conflicts in `.gitignore`; replaces the root README with the EEG README; project files at repo root
+  (`main.py`, `config.yaml`, `requirements.txt`, `tests/`) instead of `eeg/`; empty description. Her 29 tests pass. Asked her on the board.
+- Seikaro's folder-restructure proposal (#15): a lead decision, not mine; no files moved.
 
 ## 5. Known issues and decisions awaiting the team
 
