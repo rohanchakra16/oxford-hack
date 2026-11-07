@@ -1,0 +1,784 @@
+{
+  "report_kind": "public_source_domain_workload_evaluation",
+  "dataset": "EEGMAT-1.0.0",
+  "dataset_url": "https://physionet.org/content/eegmat/1.0.0/",
+  "licence": "ODC-By-1.0",
+  "target": "rest=0; mental_arithmetic=1 (not attention or lecture lapse)",
+  "model_version": "0.1.0",
+  "seed": 17,
+  "bundle_sha256": "9ee4faefc64d66d3cc9c6df3bf79847b6b754f5ab29de4c17d1750a26e2d88ed",
+  "upstream_checksum_manifest_sha256": "85c71151495c8543e80fd48559cb62eca7b6c407ed5e96c8e490db7ecabf1fa0",
+  "recording_sha256": {
+    "Subject00_1.edf": "8b23c443f2f5f733f8ccc31a54377898009c28c7563d1107692a8735212d2f15",
+    "Subject00_2.edf": "635bbf035777008ff6c23d9c7bfc497d584fc71c56217022946d1fd056527e43",
+    "Subject01_1.edf": "9ece09029ed7d6911d96a776eb86905dd00a53c065c8eb9e0fd3c7aefd0f7ac4",
+    "Subject01_2.edf": "cbc4a053c2c8ce0e77ff62b4608a2cc2fe584886a6cd2fa0b343cfce3212376f",
+    "Subject02_1.edf": "02da547be13c67b310a020d48be83be6a1faad72b26519e8084038aea1aa30f8",
+    "Subject02_2.edf": "2ff3c97cbc6be7c4b3e43df85f42621d2837bd860463747557a6c3a558d802ee",
+    "Subject03_1.edf": "8f22c7eb40e2d2b2f61dadd874172f395fed9ca83c843e9d92b492ec2b3d4f41",
+    "Subject03_2.edf": "d4792fe50ad51d7ad607caeaf3c24f2d19087cb96311c4c2cbdfdd6418f56cf0",
+    "Subject04_1.edf": "0c96ec8a36767673772d35c1c8e8328c6a51f18e83b806f5776d02f388c65a73",
+    "Subject04_2.edf": "4455d8e910ac8f5a18a5c050e2b544d147b092458cd135c04e3030f2ee63f90f",
+    "Subject05_1.edf": "844f7c4c0868f64003f50d02ecd9db3a7e60cd51df66f9ad2a460e279001eaf8",
+    "Subject05_2.edf": "651a9f1cbe3e85605ef6a8e3c13c8d8d130e1c41bb8ac23ac3c2fa9ab63665f7",
+    "Subject06_1.edf": "cd5697ace53d4a824b7a89846a0a2e2ca40ec7ee661488551d44d6f2a301b5c1",
+    "Subject06_2.edf": "206452b3d030ba9f04b43f2747bcd24ecd0466e7abe27676ad054428286cf24d",
+    "Subject07_1.edf": "3991d7b4667065de53f80e5b40b69cee5c819f62c7352dca3b06ca5333fd1308",
+    "Subject07_2.edf": "f8381e8f22a118f772e316bfb4c87f2a41581d9590a7c58f3b8c95c62a1789f1",
+    "Subject08_1.edf": "02acf02d25d333fd9bc38b9b513b9f72072d5bd36b6ffa5a9a5be6f54fd9b853",
+    "Subject08_2.edf": "461c2f9c95b5d1128e32bd1272e44b3d5366493f57d88092278b440a7b30d0df",
+    "Subject09_1.edf": "68f2c002f30831ead8fc9418a24fe044419f430686beec62ddb46ab2c731036a",
+    "Subject09_2.edf": "05d4449075a6e62d61737a939cf142b27f84b60a9bdad788fd87a9fc9737b3b9",
+    "Subject10_1.edf": "25a392a6816c74da10539694e51210030742ced96379761afe02aa05f60bfcc8",
+    "Subject10_2.edf": "aa76531d0a6f72ebc163014383a42fdd7252ea310559d270943922607e51a13a",
+    "Subject11_1.edf": "8c85e9c32acbb18145bbc29126c19239beeba53c136d3014de285d5d359df9ac",
+    "Subject11_2.edf": "df36afd690987a373f0de02b91059760e155a7bf49732d05b7cce42bbe4de354",
+    "Subject12_1.edf": "e3e6985558b94bdbec4ec93745b353dbd090b3e160bc9e97546ea9b5e416c37d",
+    "Subject12_2.edf": "984c866e886a4c17f0f9196cc0ec072a3b492ef7af92d4dea48a451a433cfd13",
+    "Subject13_1.edf": "226fc6946d5b2181f4a219530b7eb642561d3acd8257a224d14c6aecd50e92bb",
+    "Subject13_2.edf": "12cb297ce1c1506d07418353900bcea3472b5c8bdb26d73db3c25c07d752ae71",
+    "Subject14_1.edf": "e9b5d97eb5dd4778dfb6e279f3e03b27cf4ad5881641f2eaabedeaf2b0475ee5",
+    "Subject14_2.edf": "4c0c71fc2f7962efea32593eeadeb96c38c44db6a203e9a6353662cd8b941544",
+    "Subject15_1.edf": "3bfa5357e3cf6bb849f0e950be34f14ee10f90348a1d1246c863936ce923e07c",
+    "Subject15_2.edf": "b107158d3d23fe53559712db1a13416391dd963038b1c73918de7483343393ad",
+    "Subject16_1.edf": "2e59fdf714c36f6c1520f5011aba46dca543e0561e98c3ca509dfe6112709130",
+    "Subject16_2.edf": "451eea5902ab279785fa98d474837c97ba2bc389b4b46f914a408555744b1774",
+    "Subject17_1.edf": "cc6be6007c4e029ee7d32b754fa07d1f514db9e8dce82a167b99af45caab7610",
+    "Subject17_2.edf": "9c9a0cbf89ed1152244b7c3d191c584cd59d3d99ff067e1610010d805cee62af",
+    "Subject18_1.edf": "ba4323db350812274637dafd018c5563ad8f46d8fc302ef0e3be0c5b6a4016a8",
+    "Subject18_2.edf": "5d8425c622e33be4990c4e1c91bb8411f448a9594393ee46738d96b23dfb7646",
+    "Subject19_1.edf": "7cd2b2609e184c777b613b8522ae44f84396d9eedcf857821ba535c701f88a83",
+    "Subject19_2.edf": "e9c53b3bb46cbbfef45cfed8d56d67a2d145f16babaa65e6eb0f1284958fc9c2",
+    "Subject20_1.edf": "d3f5eea33d1f0fbf6483a38bd9fbd929ef32bd9266a6e9c6c0a883520f9bd5ee",
+    "Subject20_2.edf": "f726b0b9bfd3a3300819f111af0f3f28151db03fe84f3b4531d8334b55333fd4",
+    "Subject21_1.edf": "77e3e122db2e1d8a302c125c23c63e0fe19f7c9850118f6215213a8e3331b4ad",
+    "Subject21_2.edf": "036cf82700fc3a635b390d4e72cb5ab3a93321bf8024d33bae963f4d6ac826dd",
+    "Subject22_1.edf": "656b1b96f5aa8118e3412ef816b918a085a38c29379a25fa4ecc862bd481684f",
+    "Subject22_2.edf": "814190dabd5a01f6532f9229458acd8e2fe995ae9a6e790109dd638c9eb46d92",
+    "Subject23_1.edf": "66204fb1ded55bf94a11f2fc33be3f2e54d2b0cac3663b4b1210a4deeaa97049",
+    "Subject23_2.edf": "ff7679c7e2af46a6ba16323c3239b461bbffce0672cfaaca746e721b18bb47bd",
+    "Subject24_1.edf": "8fc47eb62b9c3cfbf378996631023a699f1c116dc09d300e45d6e78660d16309",
+    "Subject24_2.edf": "06fbe6d6858f20bad550d379f80cea24e4758b4c858c0802e3cb076ecfeb70b6",
+    "Subject25_1.edf": "034d43d65ba88c9ae8006ef2f143a0b2e8b9c398b31b3b3d04c50820e385b27f",
+    "Subject25_2.edf": "249da1cdf89e86bc94dcc7c7e15327b4be1ec57af101afbe54fc225862362933",
+    "Subject26_1.edf": "aea2dbcb71f24ba64abbed986a52911641c464f41b4a0f0ec17f887c5d1e32a2",
+    "Subject26_2.edf": "327d6dba1a7a9afbfab376cfd62d0af8f57e875d66020bfcdf67be384376cb1b",
+    "Subject27_1.edf": "4da0de4c55117b3471f177ac63a91a40eacc55c954decbe93d1012c60635b7ac",
+    "Subject27_2.edf": "0261aa7b798e43d06405349a499c96fb5fe2cdaaa0c150c1e3c0ab3bd70575f9",
+    "Subject28_1.edf": "91482e34abc5832a4cee054d83698c87a717d0b2a5b82a18841adc5dc1ca9a24",
+    "Subject28_2.edf": "2585a5fa2b1288eb4924aec00d430e7456b3f0dab77363099476d67c8f0d35e1",
+    "Subject29_1.edf": "3c89cf82670f3441fb0e9fa8fb67b7861914f28fb9b8cf01d750ff6e8ab70e50",
+    "Subject29_2.edf": "6c3817cba4fd98ae1b42b914fcce96796184ac7c3484ad1e9cfeb0ad89bda61f",
+    "Subject30_1.edf": "3c0be4bb0770d56ae2f138e733c7d533c6d4de3635c7b8b5ac597f90aa9f5ec1",
+    "Subject30_2.edf": "cedd6ea81919a70aabf16da09a9553a0b1c8ea59f844089c3b8c5573936a4321",
+    "Subject31_1.edf": "b34b2a26dcb5183b990ccad6d708353713206649733ace6a4f217f62c8fd1672",
+    "Subject31_2.edf": "2a1e9617bf8db8205884241f0587adb26e9c3d262be53fc01a561c706f487054",
+    "Subject32_1.edf": "f49446c61f98c31e297f5da7fc488989ce1d71285802041c8a4b7bc06dab3489",
+    "Subject32_2.edf": "9af326b483841a3a13213c201985bab7acb8ec43964af7cea6a93de68a415b2c",
+    "Subject33_1.edf": "e05cf658e1ae91007f82cadfe024575fc13fe4d1f582da8bc8e3390c04c28640",
+    "Subject33_2.edf": "7c10fc307530f24c63309b71862916a1254d4e1f33af193fc73311f408475d7c",
+    "Subject34_1.edf": "6b1e12c0d21fb3e89d2ec760d33757aa24f042a29edcbf7330a864de0c723316",
+    "Subject34_2.edf": "57594e49709a0df6aeef2207d21933a5dcca9272a39040243d7beca4af846ec0",
+    "Subject35_1.edf": "1ffc283a017da6597c68cb19245c2138bdab0aa4d0355e323c27ed710d099a29",
+    "Subject35_2.edf": "c18fdaaf9ef0faeb49389326a0a383d428e49efe662b1ca4713c61aee8153dcb"
+  },
+  "split_manifest_sha256": "7c9c6afb62dc65605775c2bebfca43fbe2ab0bc6b8f31aef961fd6a610ad5414",
+  "split_manifest": {
+    "test": [
+      {
+        "participant_id": "Subject01",
+        "session_id": "Subject01",
+        "recording_id": "Subject01_1"
+      },
+      {
+        "participant_id": "Subject01",
+        "session_id": "Subject01",
+        "recording_id": "Subject01_2"
+      },
+      {
+        "participant_id": "Subject04",
+        "session_id": "Subject04",
+        "recording_id": "Subject04_1"
+      },
+      {
+        "participant_id": "Subject04",
+        "session_id": "Subject04",
+        "recording_id": "Subject04_2"
+      },
+      {
+        "participant_id": "Subject06",
+        "session_id": "Subject06",
+        "recording_id": "Subject06_1"
+      },
+      {
+        "participant_id": "Subject06",
+        "session_id": "Subject06",
+        "recording_id": "Subject06_2"
+      },
+      {
+        "participant_id": "Subject09",
+        "session_id": "Subject09",
+        "recording_id": "Subject09_1"
+      },
+      {
+        "participant_id": "Subject09",
+        "session_id": "Subject09",
+        "recording_id": "Subject09_2"
+      },
+      {
+        "participant_id": "Subject15",
+        "session_id": "Subject15",
+        "recording_id": "Subject15_1"
+      },
+      {
+        "participant_id": "Subject15",
+        "session_id": "Subject15",
+        "recording_id": "Subject15_2"
+      },
+      {
+        "participant_id": "Subject25",
+        "session_id": "Subject25",
+        "recording_id": "Subject25_1"
+      },
+      {
+        "participant_id": "Subject25",
+        "session_id": "Subject25",
+        "recording_id": "Subject25_2"
+      },
+      {
+        "participant_id": "Subject30",
+        "session_id": "Subject30",
+        "recording_id": "Subject30_1"
+      },
+      {
+        "participant_id": "Subject30",
+        "session_id": "Subject30",
+        "recording_id": "Subject30_2"
+      }
+    ],
+    "validation": [
+      {
+        "participant_id": "Subject11",
+        "session_id": "Subject11",
+        "recording_id": "Subject11_1"
+      },
+      {
+        "participant_id": "Subject11",
+        "session_id": "Subject11",
+        "recording_id": "Subject11_2"
+      },
+      {
+        "participant_id": "Subject14",
+        "session_id": "Subject14",
+        "recording_id": "Subject14_1"
+      },
+      {
+        "participant_id": "Subject14",
+        "session_id": "Subject14",
+        "recording_id": "Subject14_2"
+      },
+      {
+        "participant_id": "Subject27",
+        "session_id": "Subject27",
+        "recording_id": "Subject27_1"
+      },
+      {
+        "participant_id": "Subject27",
+        "session_id": "Subject27",
+        "recording_id": "Subject27_2"
+      },
+      {
+        "participant_id": "Subject31",
+        "session_id": "Subject31",
+        "recording_id": "Subject31_1"
+      },
+      {
+        "participant_id": "Subject31",
+        "session_id": "Subject31",
+        "recording_id": "Subject31_2"
+      },
+      {
+        "participant_id": "Subject32",
+        "session_id": "Subject32",
+        "recording_id": "Subject32_1"
+      },
+      {
+        "participant_id": "Subject32",
+        "session_id": "Subject32",
+        "recording_id": "Subject32_2"
+      },
+      {
+        "participant_id": "Subject34",
+        "session_id": "Subject34",
+        "recording_id": "Subject34_1"
+      },
+      {
+        "participant_id": "Subject34",
+        "session_id": "Subject34",
+        "recording_id": "Subject34_2"
+      },
+      {
+        "participant_id": "Subject35",
+        "session_id": "Subject35",
+        "recording_id": "Subject35_1"
+      },
+      {
+        "participant_id": "Subject35",
+        "session_id": "Subject35",
+        "recording_id": "Subject35_2"
+      }
+    ],
+    "train": [
+      {
+        "participant_id": "Subject00",
+        "session_id": "Subject00",
+        "recording_id": "Subject00_1"
+      },
+      {
+        "participant_id": "Subject00",
+        "session_id": "Subject00",
+        "recording_id": "Subject00_2"
+      },
+      {
+        "participant_id": "Subject02",
+        "session_id": "Subject02",
+        "recording_id": "Subject02_1"
+      },
+      {
+        "participant_id": "Subject02",
+        "session_id": "Subject02",
+        "recording_id": "Subject02_2"
+      },
+      {
+        "participant_id": "Subject03",
+        "session_id": "Subject03",
+        "recording_id": "Subject03_1"
+      },
+      {
+        "participant_id": "Subject03",
+        "session_id": "Subject03",
+        "recording_id": "Subject03_2"
+      },
+      {
+        "participant_id": "Subject05",
+        "session_id": "Subject05",
+        "recording_id": "Subject05_1"
+      },
+      {
+        "participant_id": "Subject05",
+        "session_id": "Subject05",
+        "recording_id": "Subject05_2"
+      },
+      {
+        "participant_id": "Subject07",
+        "session_id": "Subject07",
+        "recording_id": "Subject07_1"
+      },
+      {
+        "participant_id": "Subject07",
+        "session_id": "Subject07",
+        "recording_id": "Subject07_2"
+      },
+      {
+        "participant_id": "Subject08",
+        "session_id": "Subject08",
+        "recording_id": "Subject08_1"
+      },
+      {
+        "participant_id": "Subject08",
+        "session_id": "Subject08",
+        "recording_id": "Subject08_2"
+      },
+      {
+        "participant_id": "Subject10",
+        "session_id": "Subject10",
+        "recording_id": "Subject10_1"
+      },
+      {
+        "participant_id": "Subject10",
+        "session_id": "Subject10",
+        "recording_id": "Subject10_2"
+      },
+      {
+        "participant_id": "Subject12",
+        "session_id": "Subject12",
+        "recording_id": "Subject12_1"
+      },
+      {
+        "participant_id": "Subject12",
+        "session_id": "Subject12",
+        "recording_id": "Subject12_2"
+      },
+      {
+        "participant_id": "Subject13",
+        "session_id": "Subject13",
+        "recording_id": "Subject13_1"
+      },
+      {
+        "participant_id": "Subject13",
+        "session_id": "Subject13",
+        "recording_id": "Subject13_2"
+      },
+      {
+        "participant_id": "Subject16",
+        "session_id": "Subject16",
+        "recording_id": "Subject16_1"
+      },
+      {
+        "participant_id": "Subject16",
+        "session_id": "Subject16",
+        "recording_id": "Subject16_2"
+      },
+      {
+        "participant_id": "Subject17",
+        "session_id": "Subject17",
+        "recording_id": "Subject17_1"
+      },
+      {
+        "participant_id": "Subject17",
+        "session_id": "Subject17",
+        "recording_id": "Subject17_2"
+      },
+      {
+        "participant_id": "Subject18",
+        "session_id": "Subject18",
+        "recording_id": "Subject18_1"
+      },
+      {
+        "participant_id": "Subject18",
+        "session_id": "Subject18",
+        "recording_id": "Subject18_2"
+      },
+      {
+        "participant_id": "Subject19",
+        "session_id": "Subject19",
+        "recording_id": "Subject19_1"
+      },
+      {
+        "participant_id": "Subject19",
+        "session_id": "Subject19",
+        "recording_id": "Subject19_2"
+      },
+      {
+        "participant_id": "Subject20",
+        "session_id": "Subject20",
+        "recording_id": "Subject20_1"
+      },
+      {
+        "participant_id": "Subject20",
+        "session_id": "Subject20",
+        "recording_id": "Subject20_2"
+      },
+      {
+        "participant_id": "Subject21",
+        "session_id": "Subject21",
+        "recording_id": "Subject21_1"
+      },
+      {
+        "participant_id": "Subject21",
+        "session_id": "Subject21",
+        "recording_id": "Subject21_2"
+      },
+      {
+        "participant_id": "Subject22",
+        "session_id": "Subject22",
+        "recording_id": "Subject22_1"
+      },
+      {
+        "participant_id": "Subject22",
+        "session_id": "Subject22",
+        "recording_id": "Subject22_2"
+      },
+      {
+        "participant_id": "Subject23",
+        "session_id": "Subject23",
+        "recording_id": "Subject23_1"
+      },
+      {
+        "participant_id": "Subject23",
+        "session_id": "Subject23",
+        "recording_id": "Subject23_2"
+      },
+      {
+        "participant_id": "Subject24",
+        "session_id": "Subject24",
+        "recording_id": "Subject24_1"
+      },
+      {
+        "participant_id": "Subject24",
+        "session_id": "Subject24",
+        "recording_id": "Subject24_2"
+      },
+      {
+        "participant_id": "Subject26",
+        "session_id": "Subject26",
+        "recording_id": "Subject26_1"
+      },
+      {
+        "participant_id": "Subject26",
+        "session_id": "Subject26",
+        "recording_id": "Subject26_2"
+      },
+      {
+        "participant_id": "Subject28",
+        "session_id": "Subject28",
+        "recording_id": "Subject28_1"
+      },
+      {
+        "participant_id": "Subject28",
+        "session_id": "Subject28",
+        "recording_id": "Subject28_2"
+      },
+      {
+        "participant_id": "Subject29",
+        "session_id": "Subject29",
+        "recording_id": "Subject29_1"
+      },
+      {
+        "participant_id": "Subject29",
+        "session_id": "Subject29",
+        "recording_id": "Subject29_2"
+      },
+      {
+        "participant_id": "Subject33",
+        "session_id": "Subject33",
+        "recording_id": "Subject33_1"
+      },
+      {
+        "participant_id": "Subject33",
+        "session_id": "Subject33",
+        "recording_id": "Subject33_2"
+      }
+    ]
+  },
+  "preprocessing": {
+    "annie_revision": "f20ee35c06b89ec6499bd45d79a8b67296fbabbc",
+    "annie_file_sha256": {
+      "eeg/acquisition/base_device.py": "c717bb6ad3f1503486aa979e1641641333da83c07c40abac940747de89dfbbb4",
+      "eeg/processing/signal_preprocessor.py": "d89af9393d6f06a26956cf4c48e6cfcdc54bf964ddda530dda4853428f72a9c1"
+    },
+    "channels": [
+      "Fz",
+      "Cz",
+      "Pz"
+    ],
+    "source_hz": 500.0,
+    "model_hz": 250.0,
+    "offline_resampler": "scipy.signal.resample_poly(up=1,down=2)",
+    "causal_bandpass_hz": [
+      1.0,
+      40.0
+    ],
+    "remove_dc_offset": true,
+    "notch": null,
+    "max_amplitude_uv": 500.0,
+    "recording_prefix_seconds": 60.0,
+    "discard_startup_seconds": 10.0,
+    "window_seconds": 4.0,
+    "stride_seconds": 4.0,
+    "welch_segment_seconds": 2.0,
+    "welch_overlap_seconds": 1.0,
+    "bands_hz_half_open": {
+      "theta": [
+        4.0,
+        8.0
+      ],
+      "alpha": [
+        8.0,
+        13.0
+      ],
+      "beta": [
+        13.0,
+        30.0
+      ]
+    }
+  },
+  "selection": [
+    {
+      "c": 0.01,
+      "validation_macro_participant_balanced_accuracy": 0.6071428571428571
+    },
+    {
+      "c": 0.1,
+      "validation_macro_participant_balanced_accuracy": 0.5833333333333334
+    },
+    {
+      "c": 1.0,
+      "validation_macro_participant_balanced_accuracy": 0.5773809523809524
+    },
+    {
+      "c": 10.0,
+      "validation_macro_participant_balanced_accuracy": 0.5773809523809524
+    }
+  ],
+  "selected_c": 0.01,
+  "threshold": 0.5,
+  "metrics": {
+    "train": {
+      "windows": 528,
+      "rest_windows": 264,
+      "arithmetic_windows": 264,
+      "participants": 22,
+      "accuracy": 0.6060606060606061,
+      "balanced_accuracy": 0.6060606060606061,
+      "macro_participant_balanced_accuracy": 0.606060606060606,
+      "f1_arithmetic": 0.6015325670498084,
+      "roc_auc": 0.6471533516988064,
+      "confusion_matrix_rest_arithmetic": [
+        [
+          163,
+          101
+        ],
+        [
+          107,
+          157
+        ]
+      ],
+      "per_participant": {
+        "Subject00": {
+          "windows": 24,
+          "balanced_accuracy": 0.6666666666666666,
+          "roc_auc": 0.7569444444444444
+        },
+        "Subject02": {
+          "windows": 24,
+          "balanced_accuracy": 0.7083333333333333,
+          "roc_auc": 0.701388888888889
+        },
+        "Subject03": {
+          "windows": 24,
+          "balanced_accuracy": 0.5416666666666666,
+          "roc_auc": 0.7291666666666667
+        },
+        "Subject05": {
+          "windows": 24,
+          "balanced_accuracy": 0.5416666666666666,
+          "roc_auc": 0.638888888888889
+        },
+        "Subject07": {
+          "windows": 24,
+          "balanced_accuracy": 0.625,
+          "roc_auc": 0.7916666666666666
+        },
+        "Subject08": {
+          "windows": 24,
+          "balanced_accuracy": 0.9583333333333333,
+          "roc_auc": 0.9930555555555555
+        },
+        "Subject10": {
+          "windows": 24,
+          "balanced_accuracy": 0.375,
+          "roc_auc": 0.18055555555555552
+        },
+        "Subject12": {
+          "windows": 24,
+          "balanced_accuracy": 0.20833333333333334,
+          "roc_auc": 0.11805555555555554
+        },
+        "Subject13": {
+          "windows": 24,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.9583333333333333
+        },
+        "Subject16": {
+          "windows": 24,
+          "balanced_accuracy": 0.7083333333333334,
+          "roc_auc": 0.9027777777777778
+        },
+        "Subject17": {
+          "windows": 24,
+          "balanced_accuracy": 0.5416666666666666,
+          "roc_auc": 0.7986111111111112
+        },
+        "Subject18": {
+          "windows": 24,
+          "balanced_accuracy": 0.41666666666666663,
+          "roc_auc": 0.42361111111111105
+        },
+        "Subject19": {
+          "windows": 24,
+          "balanced_accuracy": 0.5833333333333333,
+          "roc_auc": 0.7222222222222223
+        },
+        "Subject20": {
+          "windows": 24,
+          "balanced_accuracy": 0.7083333333333333,
+          "roc_auc": 0.7361111111111112
+        },
+        "Subject21": {
+          "windows": 24,
+          "balanced_accuracy": 0.375,
+          "roc_auc": 0.3819444444444444
+        },
+        "Subject22": {
+          "windows": 24,
+          "balanced_accuracy": 0.875,
+          "roc_auc": 0.9444444444444445
+        },
+        "Subject23": {
+          "windows": 24,
+          "balanced_accuracy": 0.6666666666666666,
+          "roc_auc": 0.8888888888888888
+        },
+        "Subject24": {
+          "windows": 24,
+          "balanced_accuracy": 0.7083333333333333,
+          "roc_auc": 0.736111111111111
+        },
+        "Subject26": {
+          "windows": 24,
+          "balanced_accuracy": 0.5833333333333334,
+          "roc_auc": 0.7152777777777777
+        },
+        "Subject28": {
+          "windows": 24,
+          "balanced_accuracy": 0.625,
+          "roc_auc": 0.7152777777777778
+        },
+        "Subject29": {
+          "windows": 24,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.3819444444444444
+        },
+        "Subject33": {
+          "windows": 24,
+          "balanced_accuracy": 0.9166666666666667,
+          "roc_auc": 0.9722222222222223
+        }
+      }
+    },
+    "validation": {
+      "windows": 168,
+      "rest_windows": 84,
+      "arithmetic_windows": 84,
+      "participants": 7,
+      "accuracy": 0.6071428571428571,
+      "balanced_accuracy": 0.6071428571428571,
+      "macro_participant_balanced_accuracy": 0.6071428571428571,
+      "f1_arithmetic": 0.6666666666666666,
+      "roc_auc": 0.7154195011337868,
+      "confusion_matrix_rest_arithmetic": [
+        [
+          36,
+          48
+        ],
+        [
+          18,
+          66
+        ]
+      ],
+      "per_participant": {
+        "Subject11": {
+          "windows": 24,
+          "balanced_accuracy": 0.5416666666666666,
+          "roc_auc": 0.4722222222222222
+        },
+        "Subject14": {
+          "windows": 24,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.9305555555555555
+        },
+        "Subject27": {
+          "windows": 24,
+          "balanced_accuracy": 0.8333333333333333,
+          "roc_auc": 1.0
+        },
+        "Subject31": {
+          "windows": 24,
+          "balanced_accuracy": 0.5833333333333334,
+          "roc_auc": 0.7083333333333334
+        },
+        "Subject32": {
+          "windows": 24,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.45833333333333326
+        },
+        "Subject34": {
+          "windows": 24,
+          "balanced_accuracy": 0.7916666666666667,
+          "roc_auc": 0.8402777777777778
+        },
+        "Subject35": {
+          "windows": 24,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.9166666666666667
+        }
+      }
+    },
+    "test": {
+      "windows": 168,
+      "rest_windows": 84,
+      "arithmetic_windows": 84,
+      "participants": 7,
+      "accuracy": 0.7142857142857143,
+      "balanced_accuracy": 0.7142857142857143,
+      "macro_participant_balanced_accuracy": 0.7142857142857143,
+      "f1_arithmetic": 0.7142857142857143,
+      "roc_auc": 0.7312925170068026,
+      "confusion_matrix_rest_arithmetic": [
+        [
+          60,
+          24
+        ],
+        [
+          24,
+          60
+        ]
+      ],
+      "per_participant": {
+        "Subject01": {
+          "windows": 24,
+          "balanced_accuracy": 0.7916666666666667,
+          "roc_auc": 1.0
+        },
+        "Subject04": {
+          "windows": 24,
+          "balanced_accuracy": 0.75,
+          "roc_auc": 0.75
+        },
+        "Subject06": {
+          "windows": 24,
+          "balanced_accuracy": 0.75,
+          "roc_auc": 0.7569444444444444
+        },
+        "Subject09": {
+          "windows": 24,
+          "balanced_accuracy": 0.75,
+          "roc_auc": 0.7916666666666666
+        },
+        "Subject15": {
+          "windows": 24,
+          "balanced_accuracy": 0.625,
+          "roc_auc": 0.6736111111111112
+        },
+        "Subject25": {
+          "windows": 24,
+          "balanced_accuracy": 0.5,
+          "roc_auc": 0.6527777777777778
+        },
+        "Subject30": {
+          "windows": 24,
+          "balanced_accuracy": 0.8333333333333333,
+          "roc_auc": 0.875
+        }
+      }
+    }
+  },
+  "constant_baseline_balanced_accuracy": 0.5,
+  "test_macro_participant_balanced_accuracy_bootstrap_95pct": [
+    0.630952380952381,
+    0.7857142857142857
+  ],
+  "exclusions": [],
+  "evaluated_live_modes": [],
+  "event_metrics": null,
+  "event_metrics_reason": "source has task labels, not lecture lapse events",
+  "gaze_only_and_combined": "not evaluated: no synchronised gaze in EEGMAT",
+  "software": {
+    "python": "3.13.18",
+    "numpy": "2.3.5",
+    "scipy": "1.16.3",
+    "scikit-learn": "1.7.2",
+    "mne": "1.11.0"
+  }
+}
