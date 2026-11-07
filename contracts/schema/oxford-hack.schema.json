@@ -3800,7 +3800,7 @@
       "$ref": "#/$defs/SensorStatusMessage"
     }
   ],
-  "description": "PROPOSED - generated from backend/src/oxford_hack/contracts. Do not edit by hand. Structural rules only; cross-field rules are documented in descriptions and enforced by the backend.",
+  "description": "PROPOSED - generated from platform/src/oxford_hack/contracts. Do not edit by hand. Structural rules only; cross-field rules are documented in descriptions and enforced by the backend.",
   "title": "oxford-hack shared message contracts",
   "x-messages": {
     "candidate_rejected": {

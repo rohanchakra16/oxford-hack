@@ -17,7 +17,7 @@ def test_sample_is_synthetic_and_up_to_date() -> None:
     header, records = read_recording(SAMPLE)
     assert header["synthetic"] is True
     assert {r["from"] for r in records} >= {"browser", "eeg", "inference", "clock"}
-    script = ROOT / "backend" / "scripts" / "make_sample_recording.py"
+    script = ROOT / "platform" / "scripts" / "make_sample_recording.py"
     assert subprocess.run([sys.executable, str(script), "--check"], capture_output=True).returncode == 0
 
 

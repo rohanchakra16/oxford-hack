@@ -6,12 +6,22 @@
 
 | Path | Owner | Notes |
 |---|---|---|
-| `contracts/` | P5 | Schema bundle and fixtures, generated from `backend/src/oxford_hack/contracts/`. Never edit by hand. |
+| `contracts/` | P5 | Schema bundle and fixtures, generated from `platform/src/oxford_hack/contracts/`. Never edit by hand. |
 | `frontend/src/contracts/` | P5 | Generated TS types (`generated/`) and runtime validator (`validate.ts`). |
 | `frontend/src/integration/` | P5 | **Public API for product code.** Live and synthetic adapters, store, playback reporter, React hooks. |
 | `frontend/src/diagnostics/` | P5 | Developer diagnostics page at `/diagnostics`. Not a product screen. |
 | `frontend/src/main.tsx` | P5 (shared) | Entry wiring only: routes `/diagnostics` and everything else to `product/App`. |
-| `frontend/src/product/` | **P4** | All product screens, styling, layout, accessibility, player, transcript, bookmark timeline, onboarding, device-status presentation. `App.tsx` is a placeholder to replace. |
+| `frontend/src/product/` | **P4** (see below) | All product screens, styling, layout, accessibility, player, transcript, bookmark timeline, onboarding, device-status presentation. `App.tsx` is a placeholder to replace. |
+
+**Matching `AGENTS.md` §4.** The lead's table splits P4's work between two people:
+- `@aryanmorarji`: player, local media, telemetry capture, transcript.
+- `@Betty505`: review timeline and recovery, onboarding, shared components, styles, and the composition root `frontend/src/App.tsx`.
+
+`AGENTS.md` writes paths like `frontend/player/`. This repo's Vite app keeps code under `frontend/src/`. **Proposal:** read those as `frontend/src/player/`, `frontend/src/telemetry/`, `frontend/src/transcript/`, `frontend/src/review/`, `frontend/src/recovery/`, `frontend/src/onboarding/`, `frontend/src/components/` and `frontend/src/styles/`. If `@Betty505` creates `frontend/src/App.tsx`, `main.tsx` will import it and `src/product/` can be deleted.
+
+"Playback telemetry" is split too:
+- Aryan's player *captures* media element events and forwards them with `reportMediaEvent` or `attachMediaElement`.
+- P5's `PlaybackReporter` turns them into contract `PlaybackState` messages, owning segment ids, sequencing and heartbeats, because segment semantics are part of the timing contract.
 | `frontend/src/gaze/` (to be created) | P2 | Webcam gaze. Sends through `client.sendGazeObservations`. |
 | `frontend/e2e/infra/` | P5 | Infrastructure browser tests. |
 | `frontend/e2e/product/` (to be created) | **P4** | Product-flow browser tests. |
@@ -134,7 +144,7 @@ npm run dev
 
 ## 7. Changing the interface or shared files
 
-- **Interface or contract changes** (anything in `src/integration/types.ts`, `index.ts` or `backend/src/oxford_hack/contracts/`): open a small PR with the `interface-change` label, or post on the team board, and say why. P5 implements it in both adapters and the backend, then regenerates types (`npm run contracts:generate`). Contracts use exact-match versions, so every contract change bumps `SCHEMA_VERSION`.
+- **Interface or contract changes** (anything in `src/integration/types.ts`, `index.ts` or `platform/src/oxford_hack/contracts/`): open a small PR with the `interface-change` label, or post on the team board, and say why. P5 implements it in both adapters and the backend, then regenerates types (`npm run contracts:generate`). Contracts use exact-match versions, so every contract change bumps `SCHEMA_VERSION`.
 - **Shared setup files** (dependencies, lockfile, Vite/TS/ESLint/Playwright config, CI): P4 may open a PR that edits them. Keep it to the minimal change, say why in the description, and P5 reviews. For adding a dependency, `npm install <pkg>` in `frontend/` plus the lockfile diff is enough. Don't wait on P5 for anything inside `src/product/`.
 - Until this document is agreed, treat everything above as a proposal and raise disagreements on the board.
 

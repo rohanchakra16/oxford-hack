@@ -1,5 +1,5 @@
 [project]
-name = "oxford-hack-backend"
+name = "oxford-hack-platform"
 version = "0.1.0"
 description = "Local backend for the oxford-hack lecture review prototype (contracts, transport, timing, harness)."
 requires-python = ">=3.11,<3.14"

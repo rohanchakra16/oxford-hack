@@ -72,7 +72,7 @@ def test_oversized_message_rejected() -> None:
 @pytest.mark.parametrize("script", ["generate_contracts.py", "make_fixtures.py"])
 def test_generated_files_up_to_date(script: str) -> None:
     result = subprocess.run(
-        [sys.executable, str(ROOT / "backend" / "scripts" / script), "--check"],
+        [sys.executable, str(ROOT / "platform" / "scripts" / script), "--check"],
         capture_output=True,
         text=True,
     )

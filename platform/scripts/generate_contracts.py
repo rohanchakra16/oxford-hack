@@ -40,7 +40,7 @@ def build() -> str:
         "$id": f"https://oxford-hack.local/schema/{SCHEMA_VERSION}",
         "title": "oxford-hack shared message contracts",
         "description": (
-            "PROPOSED - generated from backend/src/oxford_hack/contracts. Do not edit by hand. "
+            "PROPOSED - generated from platform/src/oxford_hack/contracts. Do not edit by hand. "
             "Structural rules only; cross-field rules are documented in descriptions "
             "and enforced by the backend."
         ),
