@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Additive branch navigation. Never deletes branches, stashes changes or rewrites history.
+set -euo pipefail
+
+die() { echo "branches: $*" >&2; exit 1; }
+usage() {
+  cat <<'HELP'
+Usage (run in Git Bash on Windows):
+  bash tools/branches list
+  bash tools/branches start <issue> <area> <task-slug>
+
+Areas: eeg gaze inference playback review platform repo
+Example: bash tools/branches start 12 gaze calibration-quality
+Creates 12-gaze-calibration-quality from freshly fetched origin/main.
+Requires a clean checkout, an open GitHub issue and a successful board read.
+Does not publish, delete, rename, merge or rebase any branch.
+HELP
+}
+
+command -v git >/dev/null 2>&1 || die 'git is required'
+root="$(git rev-parse --show-toplevel)" || die 'run inside this repository'
+cd "$root"
+
+case "${1:-help}" in
+  list)
+    [ "$#" -eq 1 ] || die 'list takes no arguments'
+    printf 'Current branch: %s\n' "$(git branch --show-current)"
+    printf '\nLocal branches (including upstream):\n'
+    git branch -vv
+    printf '\nFetched remote branches (run git fetch origin to refresh):\n'
+    git for-each-ref --format='%(refname:short)' refs/remotes/origin/
+    printf '\nOwnership and active workstreams: docs/BRANCHING.md\n'
+    ;;
+  start)
+    [ "$#" -eq 4 ] || die 'start requires <issue> <area> <task-slug>'
+    issue="$2"; area="$3"; slug="$4"
+    [[ "$issue" =~ ^[1-9][0-9]*$ ]] || die 'issue must be a positive integer'
+    case "$area" in
+      eeg|gaze|inference|playback|review|platform|repo) ;;
+      *) die 'unknown area; use eeg, gaze, inference, playback, review, platform or repo' ;;
+    esac
+    [[ "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || die 'task slug must use lowercase words separated by hyphens'
+    branch="$issue-$area-$slug"
+    git check-ref-format --branch "$branch" >/dev/null
+    [ -z "$(git status --porcelain)" ] || die 'checkout has local changes; leave them intact and use a separate clean checkout'
+    for operation in rebase-merge rebase-apply MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD BISECT_LOG; do
+      [ ! -e "$(git rev-parse --git-path "$operation")" ] || die 'finish the in-progress Git operation first'
+    done
+    command -v gh >/dev/null 2>&1 || die 'gh is required; authenticate with gh auth login'
+    state="$(gh issue view "$issue" --json state --jq .state)" || die 'cannot read the tracking issue'
+    [ "$state" = OPEN ] || die 'tracking issue must be open'
+    [ -f tools/board ] || die 'tools/board is required'
+    bash tools/board unread || die 'board read failed; no branch created'
+    git fetch origin || die 'fetch failed; no branch created'
+    if git show-ref --verify --quiet "refs/heads/$branch" || git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+      die 'branch already exists; inspect it instead of replacing it'
+    fi
+    git rev-parse --verify refs/remotes/origin/main >/dev/null || die 'origin/main is missing'
+    # Recheck after network operations: another process may have changed files.
+    [ -z "$(git status --porcelain)" ] || die 'checkout changed during setup; no branch created'
+    git switch --no-track -c "$branch" origin/main
+    printf '\nCreated %s. Claim the issue on tools/board before editing.\n' "$branch"
+    printf 'Push when ready: git push -u origin %s\n' "$branch"
+    ;;
+  help|--help|-h) usage ;;
+  *) usage >&2; exit 1 ;;
+esac
