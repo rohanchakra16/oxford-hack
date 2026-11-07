@@ -177,6 +177,44 @@ Defined in `eeg/dataset/recording_manager.py`.
 Raised for invalid lifecycle transitions, empty recordings, inconsistent
 batch metadata, acquisition failures, and interrupted persistence.
 
+### `DatasetController`
+
+Defined in `eeg/dataset/dataset_gui.py`.
+
+Qt `QObject` controller that adapts device selection, connection state,
+recording-manager actions, and saved-recording refreshes to signals. Device
+connection, disconnection, and persistence operations run in Qt worker
+threads; acquisition collection remains owned by `RecordingManager`.
+
+### `DatasetWindow`
+
+Defined in `eeg/dataset/dataset_gui.py`.
+
+PySide6 main window exposing device selection, connection status, configured
+labels, recording controls, duration, review decisions, and saved recording
+list. It does not implement recording or persistence logic itself.
+
+### `SaveDiscardDialog`
+
+Defined in `eeg/dataset/dataset_gui.py`.
+
+Modal dialog with explicit Save Recording and Discard Recording actions. There
+is no automatic save path after stopping.
+
+### `OperationWorker`
+
+Defined in `eeg/dataset/dataset_gui.py`.
+
+Small Qt worker object used with `QThread` to keep connection and persistence
+operations out of the GUI event loop.
+
+### `labels_from_config` and `run`
+
+Defined in `eeg/dataset/dataset_gui.py`.
+
+`labels_from_config` reads `dataset.labels` from YAML. `run` creates the
+application, database, controller, and window for desktop execution.
+
 ## Utilities
 
 ### `ConfigurationError`

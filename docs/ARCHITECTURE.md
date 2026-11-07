@@ -37,6 +37,12 @@ flowchart LR
     Manager --> Temp[Temporary raw batch collection]
     Temp --> DB
     Manager --> Status[RecordingStatus]
+    Controller[DatasetController] --> Manager
+    Controller --> Worker[Qt OperationWorker/QThread]
+    Controller --> Window[DatasetWindow]
+    Window --> Dialog[SaveDiscardDialog]
+    Config --> Labels[Configured dataset labels]
+    Labels --> Window
 
     Processed -. optional separate future storage .-> ProcessedFile[Separate processed file]
 ```
@@ -59,6 +65,9 @@ flowchart LR
 8. `RecordingManager` requires an explicit save or discard decision after
    stopping. Saving moves the temporary raw collection into
    `RecordingDatabase`; discarding releases it without a database row.
+9. `DatasetWindow` sends user actions to `DatasetController`; connection and
+   persistence operations run in Qt worker threads so the GUI event loop stays
+   responsive.
 
 ## Important boundaries
 
@@ -92,6 +101,13 @@ temporary files.
 `review_pending` means acquisition has stopped and the temporary raw samples
 must be explicitly saved or discarded. A persistence exception does not
 silently discard the session; the manager remains `review_pending`.
+
+### GUI and device setup
+
+The GUI reads labels from `dataset.labels` in `config.yaml`. The mock device
+is available for development. The Unicorn option requires the separately
+installed official vendor SDK and compatible hardware. For headless Qt
+testing, set `QT_QPA_PLATFORM=offscreen`.
 
 ## Documentation maintenance
 

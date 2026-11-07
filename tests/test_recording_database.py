@@ -1,3 +1,5 @@
+from threading import Thread
+
 import numpy as np
 
 from eeg.acquisition.base_device import SampleBatch
@@ -54,3 +56,24 @@ def test_recording_ids_are_unique(tmp_path) -> None:
     first = database.create_recording("a", make_batch())
     second = database.create_recording("b", make_batch())
     assert first.recording_id != second.recording_id
+
+
+def test_recording_can_be_created_from_worker_thread(tmp_path) -> None:
+    database = RecordingDatabase(tmp_path / "db.sqlite", tmp_path / "data")
+    result: list[object] = []
+    errors: list[Exception] = []
+
+    def save() -> None:
+        try:
+            result.append(database.create_recording("focused", make_batch()))
+        except Exception as error:
+            errors.append(error)
+
+    worker = Thread(target=save)
+    worker.start()
+    worker.join()
+
+    assert errors == []
+    assert len(result) == 1
+    assert len(database.list_recordings()) == 1
+    database.close()

@@ -128,3 +128,37 @@ All enabled channels are retained in SDK order. EEG and auxiliary channels
 described separately in `get_device_info()["channels"]`. SDK acquisition
 errors, including buffer overflow, are raised as `UnicornSDKError`; they are
 not converted into empty or simulated data.
+
+## Dataset construction GUI
+
+Install the declared dependencies, including PySide6, in the project
+environment:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Launch the GUI from the repository root:
+
+```bash
+python -c "from eeg.dataset.dataset_gui import run; raise SystemExit(run())"
+```
+
+The GUI reads recording labels from `dataset.labels` in [config.yaml](config.yaml).
+The `mock` device is available on all development systems. The `unicorn`
+option requires the separately installed official g.tec UnicornPy SDK and
+compatible hardware. On Linux, ensure the Qt platform libraries and display
+server are available; on macOS, launch from a terminal or IDE session with
+GUI permissions; on Windows, use a standard Python installation with the Qt
+wheel installed.
+
+For headless CI or development, use Qt's offscreen platform:
+
+```bash
+QT_QPA_PLATFORM=offscreen python -m pytest
+```
+
+Connection and persistence operations run in Qt worker threads, while
+`RecordingManager` owns background sample collection. Stopping a recording
+always opens an explicit Save Recording / Discard Recording decision; the GUI
+never saves automatically.

@@ -6,6 +6,7 @@ import json
 import os
 import sqlite3
 import tempfile
+from threading import RLock
 from pathlib import Path
 from typing import Iterable
 from uuid import UUID, uuid4
@@ -33,14 +34,19 @@ class RecordingDatabase:
         self.database_path = Path(database_path)
         self.data_directory = Path(data_directory or self.database_path.parent / "recordings")
         self.data_directory.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(self.database_path)
+        # GUI persistence operations run in Qt worker threads. A re-entrant
+        # lock keeps this connection's transactions serialized across those
+        # threads while still allowing nested read operations.
+        self._lock = RLock()
+        self._connection = sqlite3.connect(self.database_path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
         self._create_schema()
 
     def close(self) -> None:
         """Close the SQLite connection."""
-        self._connection.close()
+        with self._lock:
+            self._connection.close()
 
     def create_recording(
         self,
@@ -54,45 +60,46 @@ class RecordingDatabase:
         recording_id: UUID | None = None,
     ) -> RecordingMetadata:
         """Atomically store a raw batch and its metadata."""
-        recording_id = recording_id or uuid4()
-        path = self.data_directory / f"{recording_id}.npz"
-        start = start_timestamp or str(float(sample_batch.timestamps[0]))
-        end = end_timestamp or str(float(sample_batch.timestamps[-1]))
-        duration = (
-            float(sample_batch.timestamps[-1] - sample_batch.timestamps[0])
-            if len(sample_batch.timestamps) > 1
-            else 0.0
-        )
-        metadata = RecordingMetadata(
-            recording_id=recording_id,
-            label=label,
-            start_timestamp=start,
-            end_timestamp=end,
-            duration_seconds=duration,
-            sampling_rate=sample_batch.sampling_frequency_hz,
-            channel_count=sample_batch.samples.shape[1],
-            channel_names=sample_batch.channel_names,
-            device_name=device_name,
-            device_serial=device_serial,
-            data_file_path=str(path),
-            sample_count=sample_batch.samples.shape[0],
-        )
-        self._write_npz_atomically(path, sample_batch)
-        try:
-            with self._connection:
-                self._connection.execute(
-                    """INSERT INTO recordings
-                    (recording_id, label, start_timestamp, end_timestamp,
-                     duration_seconds, sampling_rate, channel_count,
-                     channel_names, device_name, device_serial, data_file_path,
-                     sample_count, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    self._metadata_values(metadata),
-                )
-        except Exception:
-            path.unlink(missing_ok=True)
-            raise
-        return metadata
+        with self._lock:
+            recording_id = recording_id or uuid4()
+            path = self.data_directory / f"{recording_id}.npz"
+            start = start_timestamp or str(float(sample_batch.timestamps[0]))
+            end = end_timestamp or str(float(sample_batch.timestamps[-1]))
+            duration = (
+                float(sample_batch.timestamps[-1] - sample_batch.timestamps[0])
+                if len(sample_batch.timestamps) > 1
+                else 0.0
+            )
+            metadata = RecordingMetadata(
+                recording_id=recording_id,
+                label=label,
+                start_timestamp=start,
+                end_timestamp=end,
+                duration_seconds=duration,
+                sampling_rate=sample_batch.sampling_frequency_hz,
+                channel_count=sample_batch.samples.shape[1],
+                channel_names=sample_batch.channel_names,
+                device_name=device_name,
+                device_serial=device_serial,
+                data_file_path=str(path),
+                sample_count=sample_batch.samples.shape[0],
+            )
+            self._write_npz_atomically(path, sample_batch)
+            try:
+                with self._connection:
+                    self._connection.execute(
+                        """INSERT INTO recordings
+                        (recording_id, label, start_timestamp, end_timestamp,
+                         duration_seconds, sampling_rate, channel_count,
+                         channel_names, device_name, device_serial, data_file_path,
+                         sample_count, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        self._metadata_values(metadata),
+                    )
+            except Exception:
+                path.unlink(missing_ok=True)
+                raise
+            return metadata
 
     def get_recording(self, recording_id: UUID | str) -> Recording | None:
         """Load metadata, raw NPZ arrays, and annotations for one recording."""
@@ -111,10 +118,11 @@ class RecordingDatabase:
 
     def list_recordings(self) -> list[RecordingMetadata]:
         """Return recording metadata ordered by creation time."""
-        rows = self._connection.execute(
-            "SELECT * FROM recordings ORDER BY created_at, recording_id"
-        ).fetchall()
-        return [self._row_to_metadata(row) for row in rows]
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT * FROM recordings ORDER BY created_at, recording_id"
+            ).fetchall()
+            return [self._row_to_metadata(row) for row in rows]
 
     def list_recordings_by_label(self, label: str) -> list[RecordingMetadata]:
         """Return metadata whose label exactly matches ``label``."""
