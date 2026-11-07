@@ -1,0 +1,5 @@
+{
+  "extends": "../../gaze/tsconfig.json",
+  "compilerOptions": { "types": [], "allowJs": true, "checkJs": true },
+  "include": ["gaze-runtime.js"]
+}

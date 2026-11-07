@@ -1,4 +1,5 @@
 import type { PlaybackStatus, PlayerHandle } from '../../frontend/src/player';
+import type { GazeWindow } from './gaze';
 
 export interface Segment {
   segmentId: string;
@@ -12,6 +13,21 @@ export interface EvaluationSnapshot {
   source: 'synthetic' | 'eegmat_demo';
   status: { level: string; reason: string; state: string; score: number | null };
   segments: Segment[];
+  bookmarks: Segment[];
+  ended: boolean;
+  bookmarkCooldownS: number;
+  config: { lowAttentionMax: number; smoothingTauMs: number; minimumLossMs: number };
+  fusion: {
+    calibrated: boolean;
+    baselineProgress: number;
+    eegWeight: number;
+    gazeWeight: number;
+    eegScore: number | null;
+    gazeAwayFraction: number | null;
+    combinedLoss: number | null;
+    threshold: number;
+    reason: string;
+  } | null;
   events: { type: string; payload: unknown }[];
 }
 
@@ -31,6 +47,7 @@ async function request(path: string, method: string, body?: unknown) {
 export function observeEvaluation(
   player: PlayerHandle, videoId: string, durationS: number,
   update: (s: EvaluationSnapshot) => void, error: (message: string) => void,
+  options: { combineGaze: boolean; readGaze: () => GazeWindow | null } = { combineGaze: false, readGaze: () => null },
 ) {
   let disposed = false;
   let sessionId: string | null = null;
@@ -43,14 +60,14 @@ export function observeEvaluation(
 
   const send = () => {
     const s = player.getState();
-    const body = { seq: ++seq, mediaS: s.mediaTimeS, state: stateFor(s), playbackRate: s.playbackRate, replaying: s.replay !== null };
+    const body = { seq: ++seq, mediaS: s.mediaTimeS, state: stateFor(s), playbackRate: s.playbackRate, replaying: s.replay !== null, gaze: options.combineGaze ? options.readGaze() : null };
     queue = queue.then(async () => {
       if (disposed || failed || !sessionId) return;
       const snapshot: EvaluationSnapshot = await request(`/sessions/${sessionId}/tick`, 'POST', body);
       if (!disposed) update(snapshot);
     }).catch((e: Error) => { failed = true; if (!disposed) error(e.message); });
   };
-  void request('/sessions', 'POST', { videoId, durationS }).then((snapshot: EvaluationSnapshot) => {
+  void request('/sessions', 'POST', { videoId, durationS, combineGaze: options.combineGaze }).then((snapshot: EvaluationSnapshot) => {
     sessionId = snapshot.sessionId;
     if (disposed) { void request(`/sessions/${sessionId}`, 'DELETE').catch(() => {}); return; }
     update(snapshot);
