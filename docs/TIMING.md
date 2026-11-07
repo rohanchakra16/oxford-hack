@@ -14,7 +14,7 @@ Four clocks never mix without an explicit mapping:
 The backend pings, the browser answers (`clock_ping` / `clock_pong`). Per exchange, with t1 backend send, t2 browser
 receive, t3 browser send, t4 backend receive: `offset = ((t2 - t1) + (t3 - t4)) / 2` (browser minus backend) and
 `rtt = (t4 - t1) - (t3 - t2)`. The estimate uses the minimum-RTT recent sample; its uncertainty is `rtt/2` (worst-case
-asymmetry) plus timer resolution plus drift since that sample. Implementation: `platform/src/oxford_hack/timing/clock_sync.py`.
+asymmetry) plus timer resolution plus drift since that sample. Implementation: `src/platform/src/oxford_hack/timing/clock_sync.py`.
 Every mapped bookmark carries `mappingUncertaintyMs`; if the clock is unsynchronised or too uncertain the candidate is
 rejected (`clock_unsynchronised`, `clock_uncertain`), never guessed.
 
@@ -38,5 +38,5 @@ instead of publishing.
 
 ## Tests
 
-`platform/tests/test_clock_sync.py`, `test_device_clock.py`, `test_playback.py`, `test_hub.py` (deterministic simulator),
-and the browser tests in `frontend/e2e/` (see its README).
+`src/platform/tests/test_clock_sync.py`, `test_device_clock.py`, `test_playback.py`, `test_hub.py` (deterministic simulator),
+and the browser tests in `src/frontend/e2e/` (see its README).

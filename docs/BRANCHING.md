@@ -7,24 +7,25 @@ Folders are ownership boundaries; they do not need to be split into separate
 repositories or removed from `main`.
 
 This guide supplements [AGENTS.md](../AGENTS.md); its ownership, handoff and
-message-board rules still apply. No existing branch or file is removed or renamed
-by this cleanup. Do not delete teammates' work. Ask the owner and team lead before
+message-board rules still apply. The folder layout is documented in
+[Repository layout](REPOSITORY-LAYOUT.md). Branch names and file contents are
+preserved. Do not delete teammates' work. Ask the owner and team lead before
 changing files outside your allocation.
 
 ## Find the right workstream
 
 | Area in new branch names | Owner | Files and integration boundary |
 | --- | --- | --- |
-| `eeg` | @annieqqa | `eeg/`; emits timestamped EEG features and quality |
-| `gaze` | @ShinJuKim | `gaze/`; emits gaze measurements and calibration/quality |
-| `inference` | @Seikaro | `inference/`, `evaluation/`; combines signals and produces review candidates |
+| `eeg` | @annieqqa | `src/eeg/`; emits timestamped EEG features and quality |
+| `gaze` | @ShinJuKim | `src/gaze/`; emits gaze measurements and calibration/quality |
+| `inference` | @Seikaro | `src/inference/`, `src/evaluation/`; combines signals and produces review candidates |
 | `playback` | @aryanmorarji | Player, telemetry capture and transcript; `docs/panopto.md` |
 | `review` | @Betty505 | Review/recovery, onboarding, shared UI and application composition |
-| `platform` | @rohanchakra16 | `contracts/`, `platform/`, `integration/`, `.github/workflows/`; transport, timing and packaging |
+| `platform` | @rohanchakra16 | `src/contracts/`, `src/platform/`, `src/integration/`, `.github/workflows/`; transport, timing and packaging |
 | `repo` | Coordinate with @rohanchakra16 / the team lead | Repository documentation and tooling; this area grants no additional file ownership |
 
-The tracked Vite application lives in `frontend/src/`. Playback work is being
-developed in `frontend/src/player/` in PR #4. The `frontend/src/` interpretation
+The tracked Vite application lives in `src/frontend/src/`. Playback work is
+located in `src/frontend/src/player/` following PR #4. The `src/frontend/src/` interpretation
 of other frontend allocations and shared integration ownership is described in
 [the frontend integration proposal](frontend-integration.md). Ask the relevant
 owners to resolve those proposals before moving folders or changing imports.
@@ -38,7 +39,7 @@ Snapshot from 7 November 2026; use GitHub and the board for current status.
 | `feature/EEG-input` | EEG | Owner continues on this branch |
 | `person2/webcam-gaze` | Gaze | Owner continues on this branch |
 | `5-inference-evaluation` | Inference / evaluation | Task branch for #5; owner continues inference / evaluation |
-| `person4/video-player` | Playback | Keep draft PR #4 targeting `main`; tracks #3 |
+| `person4/video-player` | Playback | PR #4 merged; files now under `src/frontend/src/` |
 | `infra/diagnostics-wip` | Platform | Owner continues diagnostics work |
 | `infra/shared-foundation` | Platform | PR #2 merged; retained for history |
 | `6-repo-branch-workflow` | Repository | Additive cleanup tracked by #6 |
@@ -59,7 +60,7 @@ bash tools/branches list
 gh issue list --state open
 # Pick an existing issue, or create a focused issue with gh issue create.
 bash tools/branches start 12 gaze calibration-quality
-bash tools/board post "[Shinju's Codex] Taking #12 on 12-gaze-calibration-quality; gaze/ only. @rohanchakra16 please flag contract changes."
+bash tools/board post "[Shinju's Codex] Taking #12 on 12-gaze-calibration-quality; src/gaze/ only. @rohanchakra16 please flag contract changes."
 ```
 
 The helper requires a clean checkout and an open issue, reads the existing board,
@@ -116,14 +117,14 @@ The task branches use the same setup and integration interfaces as `main`:
 ```bash
 npm run setup
 # Terminal 1
-cd platform
+cd src/platform
 uv run oxford-backend serve --help
 # Terminal 2, from the repository root
-npm --prefix frontend run dev
+npm --prefix src/frontend run dev
 ```
 
 Use the backend CLI's `--help` for launch and pairing options. Standard checks
-are `uv run pytest` from `platform/`, and
-`npm run lint`, `npm run typecheck`, `npm test`, `npm run build` from `frontend/`.
+are `uv run pytest` from `src/platform/`, and
+`npm run lint`, `npm run typecheck`, `npm test`, `npm run build` from `src/frontend/`.
 Changing branch organization does not change schemas, runtime imports, playback
 interfaces or transport routing.

@@ -1,6 +1,6 @@
 # Integration guide (Person 5)
 
-Who plugs in where. Authoritative message shapes are in `contracts/` (see `contracts/README.md`).
+Who plugs in where. Authoritative message shapes are in `src/contracts/` (see `src/contracts/README.md`).
 
 ```
 EEG source (P1) --EegSink--> hub <--InferenceAdapter-- detector (P3)
@@ -22,4 +22,4 @@ player (P4) --attachMediaElement--> ReviewClient --WebSocket--> hub --bookmarks-
   (`npm run contracts:generate`; CI fails on drift).
 
 Run it all: `npm run setup` once, then `npm run dev` (backend on 8765, frontend on 5173). Open the pairing link printed by
-the backend. Diagnostics: `/diagnostics`. Tests: `cd platform && uv run pytest`, `cd frontend && npm test && npm run e2e`.
+the backend. Diagnostics: `/diagnostics`. Tests: `cd src/platform && uv run pytest`, `cd src/frontend && npm test && npm run e2e`.

@@ -35,32 +35,40 @@ Fill this in at kickoff so every agent knows whose files are whose.
 
 | Area | Owner (GitHub login) | Folders |
 |---|---|---|
-| EEG acquisition, preprocessing, quality, and feature extraction | @annieqqa | eeg/ |
-| Webcam gaze tracking, calibration, geometry, and quality | @ShinJuKim | gaze/ |
-| Inference, signal combination, event logic, and evaluation | @Seikaro | inference/, evaluation/ |
-| Video player, local media, playback telemetry, and transcript | @aryanmorarji | frontend/player/, frontend/telemetry/, frontend/transcript/ |
+| EEG acquisition, preprocessing, quality, and feature extraction | @annieqqa | src/eeg/ |
+| Webcam gaze tracking, calibration, geometry, and quality | @ShinJuKim | src/gaze/ |
+| Inference, signal combination, event logic, and evaluation | @Seikaro | src/inference/, src/evaluation/ |
+| Video player, local media, playback telemetry, and transcript | @aryanmorarji | src/frontend/src/player/, src/frontend/src/telemetry/, src/frontend/src/transcript/ |
 | Panopto feasibility assessment | @aryanmorarji | docs/panopto.md |
-| Review timeline, bookmarks, replay/dismiss/feedback interactions | @Betty505 | frontend/review/, frontend/recovery/ |
-| Onboarding, device/session status, application composition, and shared UI | @Betty505 | frontend/onboarding/, frontend/components/, frontend/styles/, frontend/src/App.tsx |
-| Shared contracts, timing, transport, integration, and packaging | @rohanchakra16 | contracts/, platform/, integration/, .github/workflows/ |
+| Review timeline, bookmarks, replay/dismiss/feedback interactions | @Betty505 | src/frontend/src/review/, src/frontend/src/recovery/ |
+| Onboarding, device/session status, application composition, and shared UI | @Betty505 | src/frontend/src/onboarding/, src/frontend/src/components/, src/frontend/src/styles/, src/frontend/src/App.tsx, src/frontend/src/product/ |
+| Shared contracts, timing, transport, integration, and packaging | @rohanchakra16 | src/contracts/, src/platform/, src/integration/, .github/workflows/ |
 
 
 ### 5. Pipeline and handoffs
 
-1. EEG (`eeg/`) produces timestamped features and quality diagnostics.
-2. Webcam (`gaze/`) produces timestamped gaze measurements and quality.
-3. Platform (`platform/`) maps clocks and transports data using the shared
-   schemas in `contracts/`.
-4. Inference (`inference/`) combines signals and produces review events,
+1. EEG (`src/eeg/`) produces timestamped features and quality diagnostics.
+2. Webcam (`src/gaze/`) produces timestamped gaze measurements and quality.
+3. Platform (`src/platform/`) maps clocks and transports data using the shared
+   schemas in `src/contracts/`.
+4. Inference (`src/inference/`) combines signals and produces review events,
    including explicit unknown and interrupted states.
-5. Playback (`frontend/player/`, `frontend/telemetry/`,
-   `frontend/transcript/`) handles local video, transcript navigation,
+5. Playback (`src/frontend/src/player/`, `src/frontend/src/telemetry/`,
+   `src/frontend/src/transcript/`) handles local video, transcript navigation,
    and playback telemetry. It exposes playback state, seeking to a
    timestamp, and replaying a time range.
-6. Review experience (`frontend/review/`, `frontend/recovery/`) displays
+6. Review experience (`src/frontend/src/review/`, `src/frontend/src/recovery/`) displays
    inference events and bookmarks, requests replay through the player
    interface, and handles dismissals and feedback.
-7. Onboarding (`frontend/onboarding/`) presents setup, device/session
+7. Onboarding (`src/frontend/src/onboarding/`) presents setup, device/session
    status, and guidance using platform-provided status information.
-8. Integration (`integration/`) supplies fixtures and a replay harness for
+8. Integration (`src/integration/`) supplies fixtures and a replay harness for
    testing the complete pipeline.
+
+## 6. Repository layout
+
+Implementation folders live together under `src/`; their ownership is unchanged.
+Documentation lives in `docs/`, including `docs/HANDOFF.md`. GitHub discovers the
+contributing guide at `.github/CONTRIBUTING.md`. Root agent entry files and
+`tools/board` remain at their existing paths, using the same shared issue #1.
+See `docs/REPOSITORY-LAYOUT.md` before adapting an older workstream branch.

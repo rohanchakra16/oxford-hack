@@ -1,31 +1,31 @@
 # Frontend integration: the Person 4 / Person 5 boundary
 
-> **Status: PROPOSED.** Written by Person 5. Person 4 hasn't agreed to it yet. Until they do, Person 4 can start isolated UI work in `frontend/src/product/` against the synthetic adapter.
+> **Status: PROPOSED.** Written by Person 5. Person 4 hasn't agreed to it yet. Until they do, Person 4 can start isolated UI work in `src/frontend/src/product/` against the synthetic adapter.
 
 ## 1. Who owns what
 
 | Path | Owner | Notes |
 |---|---|---|
-| `contracts/` | P5 | Schema bundle and fixtures, generated from `platform/src/oxford_hack/contracts/`. Never edit by hand. |
-| `frontend/src/contracts/` | P5 | Generated TS types (`generated/`) and runtime validator (`validate.ts`). |
-| `frontend/src/integration/` | P5 | **Public API for product code.** Live and synthetic adapters, store, playback reporter, React hooks. |
-| `frontend/src/diagnostics/` | P5 | Developer diagnostics page at `/diagnostics`. Not a product screen. |
-| `frontend/src/main.tsx` | P5 (shared) | Entry wiring only: routes `/diagnostics` and everything else to `product/App`. |
-| `frontend/src/product/` | **P4** (see below) | All product screens, styling, layout, accessibility, player, transcript, bookmark timeline, onboarding, device-status presentation. `App.tsx` is a placeholder to replace. |
+| `src/contracts/` | P5 | Schema bundle and fixtures, generated from `src/platform/src/oxford_hack/contracts/`. Never edit by hand. |
+| `src/frontend/src/contracts/` | P5 | Generated TS types (`generated/`) and runtime validator (`validate.ts`). |
+| `src/frontend/src/integration/` | P5 | **Public API for product code.** Live and synthetic adapters, store, playback reporter, React hooks. |
+| `src/frontend/src/diagnostics/` | P5 | Developer diagnostics page at `/diagnostics`. Not a product screen. |
+| `src/frontend/src/main.tsx` | P5 (shared) | Entry wiring only: routes `/diagnostics` and everything else to `product/App`. |
+| `src/frontend/src/product/` | **P4** (see below) | All product screens, styling, layout, accessibility, player, transcript, bookmark timeline, onboarding, device-status presentation. `App.tsx` is a placeholder to replace. |
 
 **Matching `AGENTS.md` §4.** The lead's table splits P4's work between two people:
 - `@aryanmorarji`: player, local media, telemetry capture, transcript.
-- `@Betty505`: review timeline and recovery, onboarding, shared components, styles, and the composition root `frontend/src/App.tsx`.
+- `@Betty505`: review timeline and recovery, onboarding, shared components, styles, and the composition root `src/frontend/src/App.tsx`.
 
-`AGENTS.md` writes paths like `frontend/player/`. This repo's Vite app keeps code under `frontend/src/`. **Proposal:** read those as `frontend/src/player/`, `frontend/src/telemetry/`, `frontend/src/transcript/`, `frontend/src/review/`, `frontend/src/recovery/`, `frontend/src/onboarding/`, `frontend/src/components/` and `frontend/src/styles/`. If `@Betty505` creates `frontend/src/App.tsx`, `main.tsx` will import it and `src/product/` can be deleted.
+`AGENTS.md` records frontend ownership under `src/frontend/src/`, including `player/`, `telemetry/`, `transcript/`, `review/`, `recovery/`, `onboarding/`, `components/` and `styles/`. The composition currently lives in `src/frontend/src/product/App.tsx`. Any later move to `src/frontend/src/App.tsx` requires a separate owner handoff and entry-point update; this repository cleanup preserves the existing composition and all product files.
 
 "Playback telemetry" is split too:
 - Aryan's player *captures* media element events and forwards them with `reportMediaEvent` or `attachMediaElement`.
 - P5's `PlaybackReporter` turns them into contract `PlaybackState` messages, owning segment ids, sequencing and heartbeats, because segment semantics are part of the timing contract.
-| `frontend/src/gaze/` (to be created) | P2 | Webcam gaze. Sends through `client.sendGazeObservations`. |
-| `frontend/e2e/infra/` | P5 | Infrastructure browser tests. |
-| `frontend/e2e/product/` (to be created) | **P4** | Product-flow browser tests. |
-| `frontend/package.json`, `package-lock.json`, `playwright.config.ts`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `.github/` | P5 (shared) | Request changes as described in §7. |
+| `src/frontend/src/gaze/` (to be created) | P2 | Webcam gaze. Sends through `client.sendGazeObservations`. |
+| `src/frontend/e2e/infra/` | P5 | Infrastructure browser tests. |
+| `src/frontend/e2e/product/` (to be created) | **P4** | Product-flow browser tests. |
+| `src/frontend/package.json`, `package-lock.json`, `playwright.config.ts`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `.github/` | P5 (shared) | Request changes as described in §7. |
 
 Lint enforces part of this: product code can't use the `WebSocket` global (`no-restricted-globals`). The only socket lives in `src/integration/live/`.
 
@@ -54,7 +54,7 @@ interface ReviewClientSnapshot {
   connection: { state: 'idle' | 'pairing_required' | 'connecting' | 'connected' | 'reconnecting' | 'incompatible' | 'closed';
                 detail: string; backendInstanceId; backendRestarted: boolean; reconnectAttempt: number };
   session: { sessionId; videoId; runKind: 'live' | 'replay' | 'simulated'; config: SessionConfig } | null;
-  sensors: SensorStatus | null;      // eeg/gaze: disabled|unavailable|connecting|warming_up|ok|degraded|lost; mode; automaticSuggestions
+  sensors: SensorStatus | null;      // src/eeg/gaze: disabled|unavailable|connecting|warming_up|ok|degraded|lost; mode; automaticSuggestions
   eligibility: PlaybackEligibility | null;
   clock: ClockStatus | null;         // diagnostics
   bookmarks: readonly ReviewBookmark[];   // AUTHORITATIVE, sorted by suggestedMediaS
@@ -131,7 +131,7 @@ export function Player({ videoId, src }: { videoId: string; src: string }) {
 ## 6. Synthetic mode (no backend, no EEG, no webcam)
 
 ```bash
-cd frontend
+cd src/frontend
 npm ci
 npm run dev
 # open http://127.0.0.1:5173/?adapter=synthetic   (or set VITE_REVIEW_ADAPTER=synthetic)
@@ -144,8 +144,8 @@ npm run dev
 
 ## 7. Changing the interface or shared files
 
-- **Interface or contract changes** (anything in `src/integration/types.ts`, `index.ts` or `platform/src/oxford_hack/contracts/`): open a small PR with the `interface-change` label, or post on the team board, and say why. P5 implements it in both adapters and the backend, then regenerates types (`npm run contracts:generate`). Contracts use exact-match versions, so every contract change bumps `SCHEMA_VERSION`.
-- **Shared setup files** (dependencies, lockfile, Vite/TS/ESLint/Playwright config, CI): P4 may open a PR that edits them. Keep it to the minimal change, say why in the description, and P5 reviews. For adding a dependency, `npm install <pkg>` in `frontend/` plus the lockfile diff is enough. Don't wait on P5 for anything inside `src/product/`.
+- **Interface or contract changes** (anything in `src/integration/types.ts`, `index.ts` or `src/platform/src/oxford_hack/contracts/`): open a small PR with the `interface-change` label, or post on the team board, and say why. P5 implements it in both adapters and the backend, then regenerates types (`npm run contracts:generate`). Contracts use exact-match versions, so every contract change bumps `SCHEMA_VERSION`.
+- **Shared setup files** (dependencies, lockfile, Vite/TS/ESLint/Playwright config, CI): P4 may open a PR that edits them. Keep it to the minimal change, say why in the description, and P5 reviews. For adding a dependency, `npm install <pkg>` in `src/frontend/` plus the lockfile diff is enough. Don't wait on P5 for anything inside `src/product/`.
 - Until this document is agreed, treat everything above as a proposal and raise disagreements on the board.
 
 ## 8. Open decisions (need P4's agreement before integration)

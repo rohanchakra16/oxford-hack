@@ -20,7 +20,7 @@ need checking with a real Oxford account before anyone relies on them.
 ## 1. What we need from any video source
 
 These requirements come from the agreed interfaces (`docs/frontend-integration.md`,
-`docs/TIMING.md`, `frontend/src/player/README.md`):
+`docs/TIMING.md`, `src/frontend/src/player/README.md`):
 
 | Need | Why | Local file (today) |
 |---|---|---|
@@ -130,7 +130,7 @@ embeds Panopto's player in an iframe and controls it from JavaScript.
 - **What we do.** The local player never uploads the file: it plays from an object URL in the
   browser and sends only playback telemetry to the loopback-only backend (`docs/SECURITY.md`).
   The repo rule stands: **never commit lecture media or transcripts**. Use generated test media
-  (see `frontend/e2e/README.md`).
+  (see `src/frontend/e2e/README.md`).
 
 ## 6. Option C: browser extension (not recommended)
 

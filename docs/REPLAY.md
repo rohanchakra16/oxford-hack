@@ -1,7 +1,7 @@
 # Record and replay (Person 5)
 
 Recordings are JSONL: line 1 is a header, every other line is one accepted message. Format and code:
-`platform/src/oxford_hack/harness/replay.py`.
+`src/platform/src/oxford_hack/harness/replay.py`.
 
 ```json
 {"format": "oxford-hack-recording", "formatVersion": 1, "schemaVersion": "0.1.0", "synthetic": true,
@@ -17,7 +17,7 @@ Recordings are JSONL: line 1 is a header, every other line is one accepted messa
 simulated browser at the recorded offset, so output is **deterministic**.
 
 ```bash
-cd platform
+cd src/platform
 uv run oxford-backend replay ../contracts/fixtures/recordings/synthetic-session.v1.jsonl
 uv run python scripts/make_sample_recording.py --check   # the committed sample is reproducible
 ```
@@ -29,4 +29,4 @@ Rules:
   publish from unevaluated modes). Real recordings only publish for modes in `evaluatedModes`.
 - A recording with a different `schemaVersion` is refused, not guessed at.
 - Real recordings (any EEG or webcam data) must not be committed. To record, use the opt-in `JsonlRecorder` and write
-  under `.local/`. Only the synthetic sample lives in `contracts/fixtures/recordings/`.
+  under `.local/`. Only the synthetic sample lives in `src/contracts/fixtures/recordings/`.

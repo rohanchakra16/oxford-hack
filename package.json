@@ -1,12 +1,12 @@
 {
   "name": "oxford-hack",
   "private": true,
-  "description": "Root developer commands. Frontend deps live in frontend/, platform (Python) deps in platform/ (uv).",
+  "description": "Root developer commands. Application code and shared modules live in src/.",
   "scripts": {
-    "setup": "npm --prefix frontend ci && cd platform && uv sync --locked",
-    "contracts:generate": "cd platform && uv run python scripts/generate_contracts.py && uv run python scripts/make_fixtures.py && cd ../frontend && npm run contracts:types",
-    "contracts:check": "cd platform && uv run python scripts/generate_contracts.py --check && uv run python scripts/make_fixtures.py --check && cd ../frontend && npm run contracts:types:check",
-    "dev": "node integration/dev.mjs",
-    "e2e": "npm --prefix frontend run e2e"
+    "setup": "npm --prefix src/frontend ci && cd src/platform && uv sync --locked",
+    "contracts:generate": "cd src/platform && uv run python scripts/generate_contracts.py && uv run python scripts/make_fixtures.py && cd ../frontend && npm run contracts:types",
+    "contracts:check": "cd src/platform && uv run python scripts/generate_contracts.py --check && uv run python scripts/make_fixtures.py --check && cd ../frontend && npm run contracts:types:check",
+    "dev": "node src/integration/dev.mjs",
+    "e2e": "npm --prefix src/frontend run e2e"
   }
 }

@@ -60,6 +60,7 @@ participants/
 *.jsonl
 # Small synthetic fixtures are explicitly allowed:
 !contracts/fixtures/**
+!src/contracts/fixtures/**
 
 # ---- Editors / OS ----
 .DS_Store
@@ -72,3 +73,6 @@ participants/
 frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
+src/frontend/test-results/
+src/frontend/playwright-report/
+src/frontend/blob-report/
