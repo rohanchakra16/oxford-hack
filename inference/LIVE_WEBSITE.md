@@ -47,7 +47,8 @@ accuracy. The current physical model is session-calibrated spectral similarity.
 `evaluated_modes` stays empty; automatic live modes require explicit operator
 opt-in through the live launcher.
 
-Validation: 274 backend tests, 104 frontend unit tests, typecheck/lint/build and
+Validation: 274 backend tests, 104 existing frontend unit tests plus three live
+gaze-contract tests, typecheck/lint/build and
 a main-site test with controlled source/camera fixtures. That browser test
 verifies live calibration/observation transport, a combined mapped bookmark,
 manual replay and zero evaluation-endpoint calls. It does not establish real

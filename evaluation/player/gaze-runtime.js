@@ -12,7 +12,11 @@ export function createGazeCamera({ getVideoElement, onObservation, onObservation
   const batcher = new ObservationBatcher((batch) => onObservationBatch?.(batch));
   engine.on('observation', (observation) => {
     const frame = toContractObservation(observation);
-    if (observation.status !== 'valid' || observation.reasons.length || observation.face.eyes_closed || observation.calibration.status !== 'valid') frame.valid = false;
+    if (observation.status !== 'valid' || observation.reasons.length || observation.face.eyes_closed || observation.calibration.status !== 'valid') {
+      frame.valid = false;
+      frame.insideVideo = frame.videoPoint = frame.modelConfidence = null;
+      if (!frame.invalidReasons.length) frame.invalidReasons = [observation.calibration.status !== 'valid' ? 'calibration_invalid' : observation.face.eyes_closed ? 'eyes_not_detected' : 'low_confidence'];
+    }
     onObservation(frame);
     if (onObservationBatch) batcher.push(frame);
   });
