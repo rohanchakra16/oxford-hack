@@ -46,7 +46,7 @@ function App() {
       <span>Prototype estimates, not measured attention. This view does not use a live EEG headset.</span></div>
     <div className="layout"><section>
       <LecturePlayer client={client} session={SESSION} ref={setPlayer} onLectureChange={setLecture} />
-      <div className="settings"><strong>Conservative detection</strong><p>Lower trigger score (0.30), 5 s smoothing, and 10 s of sustained low estimates before saving a review moment.</p>
+      <div className="settings"><strong>Conservative detection</strong><p>Lower trigger score (0.30), 5 s smoothing, and 8 s of sustained low estimates before saving a review moment.</p>
         {snapshot?.source !== 'eegmat_demo' && <p>Smoke sequence: a brief dip at 0:03–0:05 is ignored; a sustained dip at 0:10–0:36 should save one moment. Use a video at least 40 seconds long.</p>}
         {snapshot?.source === 'eegmat_demo' && <p>Offline workload scores follow an explicitly hypothetical lecture timeline. Outside their coverage the estimate is unknown.</p>}</div>
     </section><aside>

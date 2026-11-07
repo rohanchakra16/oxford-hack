@@ -1,5 +1,14 @@
 # Player evaluation results — 7 November 2026
 
+Follow-up #40 changes the current sustained-low requirement from 10 s to 8 s.
+The original verification below used 10 s. The follow-up passed 35 targeted
+lecture/API tests and TypeScript checks, including the exact eight-second
+boundary and preservation of two separate review moments. Replay summaries
+were regenerated with 8 s; the scripted comparison remains 3 triggers to 1.
+Smoothing still applies before the sustained-low clock starts. Saved moments
+accumulate, while the UI displays a single latest heads-up rather than stacked
+banners.
+
 Issue #35. Tested locally on Windows, Python 3.13.18, Node 24.22.1 and
 Playwright 1.65.0 / Chromium 158. Commands and launch instructions are in
 [README.md](README.md).

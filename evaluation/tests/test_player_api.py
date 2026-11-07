@@ -140,3 +140,26 @@ def test_conservative_profile_reduces_scripted_nuisance_segments_without_disabli
     assert old["metrics"]["review_segments"] == 3
     assert new["metrics"]["review_segments"] == 1
     assert new["metrics"]["false_positive_rate"] is None
+
+
+def test_eight_second_dwell_keeps_separate_episodes_as_distinct_review_moments():
+    scenario = {
+        "baseline_score": 0.9,
+        "score_blocks": [
+            {"start_s": 0, "end_s": 12, "score": 0.05},
+            {"start_s": 30, "end_s": 55, "score": 0.05},
+        ],
+    }
+    _, _, tick = setup(scenario)
+    # The first usable low estimate is received at media time 1 s.
+    for second in range(9):
+        assert not tick(second)["segments"]
+    first = tick(9)
+    assert first["config"]["minimumLossMs"] == 8000.0
+    assert len(first["segments"]) == 1
+    first_id = first["segments"][0]["segmentId"]
+    for second in range(10, 57):
+        result = tick(second)
+    assert len(result["segments"]) == 2
+    assert result["segments"][0]["segmentId"] == first_id
+    assert result["segments"][1]["segmentId"] != first_id
