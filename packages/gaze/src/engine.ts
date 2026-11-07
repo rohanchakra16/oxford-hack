@@ -16,6 +16,7 @@ import { Camera, type CameraState } from "./camera";
 import { extractFeatures, medianFeatures, type Landmark } from "./features";
 import { elementScreenRect, pointInRect, screenToViewport } from "./geometry";
 import { classifyRegion, videoUV } from "./region";
+import { PointSmoother } from "./smoothing";
 import { summarise } from "./summary";
 import {
   GAZE_OBSERVATION_SCHEMA,
@@ -41,6 +42,8 @@ export interface GazeEngineOptions {
   targetFps?: number;
   /** Eye openness below this counts as closed (0..1). */
   eyesClosedThreshold?: number;
+  /** Rolling-median window for the gaze estimate (ms); 0 disables smoothing. */
+  smoothingMs?: number;
   summaryIntervalMs?: number;
 }
 
@@ -86,6 +89,7 @@ export class GazeEngine {
   private calibrationExpired = false;
   /** Frames collected during calibration, stamped with capture time. */
   private collector: { captureMs: number; features: FrameFeatures }[] | null = null;
+  private smoother = new PointSmoother(700);
   private listeners: { [K in keyof Events]?: Set<(e: Events[K]) => void> } = {};
 
   constructor(options: GazeEngineOptions) {
@@ -94,9 +98,11 @@ export class GazeEngine {
       modelAssetPath: "/models/face_landmarker.task",
       targetFps: 15,
       eyesClosedThreshold: 0.35,
+      smoothingMs: 700,
       summaryIntervalMs: 1000,
       ...options,
     };
+    this.smoother = new PointSmoother(this.opts.smoothingMs);
     this.camera = new Camera(options.cameraVideo);
     this.camera.onChange((s) => this.emit("camera", s));
   }
@@ -255,20 +261,27 @@ export class GazeEngine {
       region: null,
       margin_px: null,
     };
-    const canMap = f && faces === 1 && cal && calStatus === "valid";
+    // A gaze location while the eyes are closed is meaningless; eyes_closed reports that finding instead.
+    const canMap = f && faces === 1 && cal && calStatus === "valid" && !eyesClosed;
     if (canMap) {
-      const p = predictScreen(cal, f);
+      const p = this.smoother.push(capturedMs, predictScreen(cal, f));
       gaze.screen_x_px = p.x;
       gaze.screen_y_px = p.y;
       gaze.margin_px = cal.marginPx;
-      // A gaze location while the eyes are closed is meaningless; eyes_closed reports that finding instead.
-      if (rect && !eyesClosed) {
+      if (rect) {
         const uv = videoUV(p, rect);
         gaze.video_u = uv.u;
         gaze.video_v = uv.v;
         gaze.region = classifyRegion(p, rect, cal.marginPx);
       }
+    } else if (!eyesClosed) {
+      // Don't let estimates from before a gap (face lost, stale) leak into the next ones. A blink keeps the window.
+      this.smoother.reset();
     }
+
+    const poseShift =
+      f && cal ? Math.hypot(f.faceCenterX - cal.baseline.faceCenterX, f.faceCenterY - cal.baseline.faceCenterY) : null;
+    const scaleRatio = f && cal ? f.faceScale / cal.baseline.faceScale : null;
 
     const r1 = (x: number) => Math.round(x * 10) / 10;
     const r3 = (x: number) => Math.round(x * 1000) / 1000;
@@ -289,6 +302,8 @@ export class GazeEngine {
         iris_y: f ? r3(f.irisY) : null,
         eye_openness: f ? r3(f.eyeOpenness) : null,
         eyes_closed: eyesClosed,
+        pose_shift: poseShift === null ? null : r3(poseShift),
+        scale_ratio: scaleRatio === null ? null : r3(scaleRatio),
       },
       gaze,
       calibration: {
@@ -337,6 +352,7 @@ export class GazeEngine {
 
   setCalibration(model: CalibrationModel | null): void {
     this.calibration = model;
+    this.smoother.reset();
     this.calibrationExpired = false;
     this.staleness = model ? new StalenessTracker(model.baseline) : null;
     this.emit("calibration", model);

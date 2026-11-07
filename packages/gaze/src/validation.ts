@@ -1,4 +1,4 @@
-import type { GazeObservation } from "./types";
+import type { GazeObservation, GazeReasonCode } from "./types";
 
 /**
  * Look-away accuracy test: the user follows scripted instructions (look at the video, look at a
@@ -41,8 +41,18 @@ export interface PhaseResult {
   off: number;
   uncertain: number;
   unavailable: number;
+  /** Unavailable frames where the camera worked but no face was found (a subset of `unavailable`). */
+  faceLost: number;
+  /** Most common reason code among this phase's unavailable frames, or null if none were unavailable. */
+  mainUnavailableReason: GazeReasonCode | null;
   /** Fraction of frames with the expected region (unavailable counts as not correct). */
   correctFraction: number | null;
+  /** Drift diagnostics: median estimated position within the video (0..1; 0.5 = centre). */
+  medianVideoU: number | null;
+  medianVideoV: number | null;
+  /** Median head movement since calibration (fraction of camera image) and distance change. */
+  medianPoseShift: number | null;
+  medianScaleRatio: number | null;
 }
 
 export interface ValidationResult {
@@ -55,6 +65,13 @@ export interface ValidationResult {
   onVideoConfirmRate: number | null;
   /** Mean of detection rate and (1 - false alarm rate); 0.5 = chance for a flag/no-flag decision. */
   balancedAccuracy: number | null;
+  /**
+   * Same three metrics, but counting "face lost" as looking away. Turning away often loses the face
+   * entirely; whether to treat that as looking away is a product decision, so both are reported.
+   */
+  lookAwayInclFaceLost: number | null;
+  falseAlarmInclFaceLost: number | null;
+  balancedAccuracyInclFaceLost: number | null;
   /** Fraction of all scored frames with any region estimate. */
   coverage: number | null;
   /** Whether the run used a calibration, and which. */
@@ -77,6 +94,13 @@ export function scoreValidation(
     const off = obs.filter((o) => o.gaze.region === "off_video").length;
     const uncertain = obs.filter((o) => o.gaze.region === "uncertain").length;
     const unavailable = obs.length - on - off - uncertain;
+    const faceLost = obs.filter((o) => !o.face.detected && o.reasons.includes("FACE_NOT_DETECTED")).length;
+    const reasonCounts = new Map<GazeReasonCode, number>();
+    for (const o of obs) {
+      if (o.gaze.region !== null) continue;
+      for (const r of o.reasons) reasonCounts.set(r, (reasonCounts.get(r) ?? 0) + 1);
+    }
+    const mainUnavailableReason = [...reasonCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
     const correct = phase.expected === "on_video" ? on : off;
     return {
       id: phase.id,
@@ -86,7 +110,13 @@ export function scoreValidation(
       off,
       uncertain,
       unavailable,
+      faceLost,
+      mainUnavailableReason,
       correctFraction: obs.length ? correct / obs.length : null,
+      medianVideoU: medianOf(obs.map((o) => o.gaze.video_u)),
+      medianVideoV: medianOf(obs.map((o) => o.gaze.video_v)),
+      medianPoseShift: medianOf(obs.map((o) => o.face.pose_shift)),
+      medianScaleRatio: medianOf(obs.map((o) => o.face.scale_ratio)),
     };
   });
 
@@ -101,8 +131,11 @@ export function scoreValidation(
   const lookAwayDetectionRate = mean(offPhases.map((p) => rate(p, "off")));
   const falseAlarmRate = mean(onPhases.map((p) => rate(p, "off")));
   const onVideoConfirmRate = mean(onPhases.map((p) => rate(p, "on")));
-  const balancedAccuracy =
-    lookAwayDetectionRate !== null && falseAlarmRate !== null ? (lookAwayDetectionRate + 1 - falseAlarmRate) / 2 : null;
+  const balanced = (d: number | null, fa: number | null) => (d !== null && fa !== null ? (d + 1 - fa) / 2 : null);
+  const balancedAccuracy = balanced(lookAwayDetectionRate, falseAlarmRate);
+  const awayOrLost = (p: PhaseResult) => (p.frames ? (p.off + p.faceLost) / p.frames : null);
+  const lookAwayInclFaceLost = mean(offPhases.map(awayOrLost));
+  const falseAlarmInclFaceLost = mean(onPhases.map(awayOrLost));
   const total = phases.reduce((s, p) => s + p.frames, 0);
   const withRegion = phases.reduce((s, p) => s + p.on + p.off + p.uncertain, 0);
 
@@ -113,7 +146,17 @@ export function scoreValidation(
     falseAlarmRate,
     onVideoConfirmRate,
     balancedAccuracy,
+    lookAwayInclFaceLost,
+    falseAlarmInclFaceLost,
+    balancedAccuracyInclFaceLost: balanced(lookAwayInclFaceLost, falseAlarmInclFaceLost),
     coverage: total ? withRegion / total : null,
     calibrationId: scored?.calibration.id ?? null,
   };
+}
+
+function medianOf(xs: (number | null)[]): number | null {
+  const v = xs.filter((x): x is number => x !== null).sort((a, b) => a - b);
+  if (!v.length) return null;
+  const m = v.length >> 1;
+  return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
 }

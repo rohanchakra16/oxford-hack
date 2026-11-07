@@ -44,8 +44,9 @@
 
         <div class="row">
           <button id="btn-start">Start camera</button>
-          <button id="btn-pursuit" disabled title="Follow a slowly moving dot for about 24 seconds">Calibrate: moving dot</button>
-          <button id="btn-cal" class="secondary" disabled title="Look at 11 still dots">Calibrate: dots</button>
+          <button id="btn-cal" disabled title="Look at 11 still dots">Calibrate</button>
+          <button id="btn-validate" disabled title="~75 s scripted test: alternate between watching the video and looking away">Run accuracy test</button>
+          <button id="btn-pursuit" class="secondary" disabled title="Experimental: follow a moving dot for ~24 s. Tested worse than still dots.">Moving dot (experimental)</button>
           <button id="btn-clear" class="secondary" disabled>Clear calibration</button>
         </div>
         <p class="hint">Before calibrating, sit how you'll sit while watching. During calibration, look at the dot the way you'd normally watch: mostly with your eyes, letting your head turn a little. Keep your seat position still.</p>
@@ -54,11 +55,8 @@
         <h2>Calibration</h2>
         <dl id="cal-info"><dt>status</dt><dd>none</dd></dl>
 
-        <h2>Look-away accuracy test</h2>
-        <div class="row">
-          <button id="btn-validate" class="secondary" disabled>Run accuracy test (~75 s)</button>
-        </div>
-        <p class="hint">Follow the instructions in the banner. A beep marks each change. Have your phone or something on the desk to look at.</p>
+        <h2 id="val-heading">Look-away accuracy test</h2>
+        <p class="hint">Run it with the button above after calibrating (~75 s). Follow the banner; a beep marks each change. Have your phone or something on the desk to look at.</p>
         <div id="val-info"></div>
 
         <h2>Live frame</h2>

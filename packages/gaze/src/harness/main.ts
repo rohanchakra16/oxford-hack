@@ -78,8 +78,8 @@ function showCalibration(m: CalibrationModel | null) {
 engine.on("calibration", (m) => {
   showCalibration(m);
   try {
-    if (m) localStorage.setItem("gaze-harness-calibration", JSON.stringify(m));
-    else localStorage.removeItem("gaze-harness-calibration");
+    if (m) localStorage.setItem("gaze-harness-calibration-v2", JSON.stringify(m));
+    else localStorage.removeItem("gaze-harness-calibration-v2");
   } catch {
     /* storage unavailable: calibration just won't persist */
   }
@@ -144,6 +144,8 @@ engine.on("observation", (o: GazeObservation) => {
     ["eye openness", fmt(o.face.eye_openness, "", 2)],
     ["eyes closed", o.face.eyes_closed === null ? null : String(o.face.eyes_closed)],
     ["video u / v", o.gaze.video_u === null ? null : `${o.gaze.video_u.toFixed(2)} / ${o.gaze.video_v!.toFixed(2)}`],
+    ["head moved since cal.", fmt(o.face.pose_shift, "", 3)],
+    ["distance vs cal.", fmt(o.face.scale_ratio, "×", 2)],
   ]);
 });
 
@@ -246,26 +248,45 @@ function beep(freq = 880) {
   }
 }
 
+const shortReason = (r: string) =>
+  r.replace("CALIBRATION_", "cal ").replace("CAMERA_", "camera ").replace(/_/g, " ").toLowerCase();
+
 function showValidation(r: ValidationResult) {
   const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)}%`);
+  const n2 = (v: number | null) => (v === null ? "—" : v.toFixed(2));
   const rows = r.phases
     .map(
       (p) =>
         `<tr><td>${p.id}</td><td>${p.expected === "on_video" ? "on" : "off"}</td><td>${pct(p.correctFraction)}</td>` +
-        `<td>${p.on}/${p.off}/${p.uncertain}/${p.unavailable}</td></tr>`,
+        `<td>${p.on}/${p.off}/${p.uncertain}/${p.unavailable}</td>` +
+        `<td>${p.mainUnavailableReason ? shortReason(p.mainUnavailableReason) : "—"}</td></tr>`,
+    )
+    .join("");
+  const drift = r.phases
+    .map(
+      (p) =>
+        `<tr><td>${p.id}</td><td>${n2(p.medianVideoU)}, ${n2(p.medianVideoV)}</td>` +
+        `<td>${n2(p.medianPoseShift)}</td><td>${n2(p.medianScaleRatio)}</td></tr>`,
     )
     .join("");
   $("val-info").innerHTML = `
     <dl>
-      <dt>look-away detected</dt><dd>${pct(r.lookAwayDetectionRate)}</dd>
-      <dt>false alarms (on video → off)</dt><dd>${pct(r.falseAlarmRate)}</dd>
+      <dt></dt><dd><b>gaze only</b> · <b>incl. face lost</b></dd>
+      <dt>look-away detected</dt><dd>${pct(r.lookAwayDetectionRate)} · ${pct(r.lookAwayInclFaceLost)}</dd>
+      <dt>false alarms</dt><dd>${pct(r.falseAlarmRate)} · ${pct(r.falseAlarmInclFaceLost)}</dd>
+      <dt>balanced accuracy</dt><dd>${pct(r.balancedAccuracy)} · ${pct(r.balancedAccuracyInclFaceLost)}</dd>
       <dt>on-video confirmed</dt><dd>${pct(r.onVideoConfirmRate)}</dd>
-      <dt>balanced accuracy</dt><dd>${pct(r.balancedAccuracy)}</dd>
       <dt>coverage</dt><dd>${pct(r.coverage)}</dd>
     </dl>
     <table class="val">
-      <thead><tr><th>phase</th><th>expect</th><th>correct</th><th>on/off/unc/na</th></tr></thead>
+      <thead><tr><th>phase</th><th>expect</th><th>correct</th><th>on/off/unc/na</th><th>why na</th></tr></thead>
       <tbody>${rows}</tbody>
+    </table>
+    <h2>Drift diagnostics</h2>
+    <p class="hint">Median estimate position in the video (0.5, 0.5 = centre; above 1 = past the right/bottom edge), head movement since calibration (fraction of camera image), and distance change (1 = same as calibration). If on-video steps drift away from the centre as head movement grows, drift is the cause.</p>
+    <table class="val">
+      <thead><tr><th>phase</th><th>u, v</th><th>head moved</th><th>distance</th></tr></thead>
+      <tbody>${drift}</tbody>
     </table>`;
 }
 
@@ -305,6 +326,7 @@ $("btn-validate").addEventListener("click", async () => {
     beep(1200);
     const result = scoreValidation(windows, valObservations);
     showValidation(result);
+    $("val-heading").scrollIntoView({ behavior: "smooth", block: "start" });
     record({ type: "validation_result", calibration: engine.getCalibration(), result, windows });
     message.textContent = "Accuracy test complete.";
   } catch {
@@ -364,7 +386,7 @@ $("btn-dl").addEventListener("click", () => {
 
 // ---------- restore last calibration (convenience; staleness checks still apply) ----------
 try {
-  const saved = localStorage.getItem("gaze-harness-calibration");
+  const saved = localStorage.getItem("gaze-harness-calibration-v2");
   if (saved) {
     engine.setCalibration(JSON.parse(saved) as CalibrationModel);
     message.textContent = "Restored previous calibration. Recalibrate if you've moved.";

@@ -60,8 +60,16 @@ export interface GazeObservation {
     /** 0 = closed, 1 = fully open. Derived from blink blendshapes. */
     eye_openness: number | null;
     eyes_closed: boolean | null;
+    /**
+     * How far the face centre has moved in the camera image since calibration (fraction of the image).
+     * Null without a calibration. Large values mean the screen mapping is likely off.
+     */
+    pose_shift: number | null;
+    /** Face size relative to calibration (>1 = closer to the camera). Null without a calibration. */
+    scale_ratio: number | null;
   };
   gaze: {
+    /** Smoothed (rolling median) screen estimate; `region` is decided from this point. */
     screen_x_px: number | null;
     screen_y_px: number | null;
     video_u: number | null;
@@ -110,7 +118,10 @@ export interface FrameFeatures {
   /** Face centre in normalised camera-image coordinates (0..1). */
   faceCenterX: number;
   faceCenterY: number;
-  /** Outer-eye-corner distance divided by image width; proxy for distance to camera. */
+  /**
+   * Proxy for closeness to the camera (bigger = closer). From the face model's 3D depth when available
+   * (unaffected by head turns); otherwise the outer-eye-corner distance divided by image width.
+   */
   faceScale: number;
 }
 

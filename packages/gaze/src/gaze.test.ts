@@ -10,6 +10,7 @@ import {
   type CalibrationPoint,
   type TimedFeatures,
 } from "./calibration";
+import { PointSmoother } from "./smoothing";
 import { scoreValidation, type PhaseWindow } from "./validation";
 import { extractFeatures, headPoseFromMatrix, medianFeatures, type Landmark } from "./features";
 import { classifyRegion, signedDistanceToRect } from "./region";
@@ -85,6 +86,14 @@ describe("extractFeatures", () => {
       { categoryName: "eyeBlinkRight", score: 0.7 },
     ], 1)!;
     expect(f.eyeOpenness).toBeCloseTo(0.2, 5);
+  });
+
+  it("measures distance from 3D depth, so turning the head doesn't look like leaning back", () => {
+    const face = syntheticFace(0, 0);
+    const straight = extractFeatures(face, transform(0, 0, 0), null, 1)!;
+    const turned = extractFeatures(face, transform(55, 10, 0), null, 1)!;
+    expect(turned.faceScale).toBeCloseTo(straight.faceScale, 6);
+    expect(straight.faceScale).toBeCloseTo(10 / 45, 6); // tz = -45 in the test transform
   });
 
   it("rejects landmark sets without refined irises", () => {
@@ -212,6 +221,8 @@ function obs(t: number, region: GazeObservation["gaze"]["region"], detected = tr
       iris_y: null,
       eye_openness: null,
       eyes_closed: detected ? false : null,
+      pose_shift: detected ? 0.01 : null,
+      scale_ratio: detected ? 1 : null,
     },
     gaze: { screen_x_px: null, screen_y_px: null, video_u: null, video_v: null, region, margin_px: null },
     calibration: { id: null, status: "valid", quality: "fine", heldout_rms_px: 10 },
@@ -346,11 +357,62 @@ describe("scoreValidation", () => {
     expect(r.onVideoConfirmRate).toBeCloseTo(4 / 6);
     expect(r.balancedAccuracy).toBeCloseTo((3 / 4 + 5 / 6) / 2);
     expect(r.coverage).toBeCloseTo(9 / 10);
+    // The unavailable phone frame was a lost face: counted only in the "incl. face lost" metrics.
+    expect(phone.faceLost).toBe(1);
+    expect(phone.mainUnavailableReason).toBe("FACE_NOT_DETECTED");
+    expect(video.mainUnavailableReason).toBeNull();
+    expect(r.lookAwayInclFaceLost).toBeCloseTo(4 / 4);
+    expect(r.falseAlarmInclFaceLost).toBeCloseTo(1 / 6);
+    expect(r.balancedAccuracyInclFaceLost).toBeCloseTo((1 + 5 / 6) / 2);
+    expect(video.medianPoseShift).toBeCloseTo(0.01);
+  });
+
+  it("reports the median estimated position per phase for drift diagnosis", () => {
+    const withUV = (t: number, u: number, v: number) => {
+      const o = at(t, "on_video");
+      o.gaze.video_u = u;
+      o.gaze.video_v = v;
+      return o;
+    };
+    const r = scoreValidation(windows, [withUV(3000, 0.4, 0.9), withUV(4000, 0.5, 1.1), withUV(5000, 0.6, 1.0)], 2500);
+    expect(r.phases[0].medianVideoU).toBeCloseTo(0.5);
+    expect(r.phases[0].medianVideoV).toBeCloseTo(1.0);
+    expect(r.phases[1].medianVideoU).toBeNull();
   });
 
   it("returns nulls when a phase has no data", () => {
     const r = scoreValidation(windows, []);
     expect(r.lookAwayDetectionRate).toBeNull();
     expect(r.balancedAccuracy).toBeNull();
+  });
+});
+
+describe("PointSmoother", () => {
+  it("suppresses a single-frame spike", () => {
+    const s = new PointSmoother(700);
+    s.push(0, { x: 100, y: 100 });
+    s.push(66, { x: 102, y: 98 });
+    s.push(133, { x: 101, y: 101 });
+    const out = s.push(200, { x: 900, y: 900 });
+    expect(out.x).toBeLessThan(110);
+  });
+
+  it("follows a sustained change once it fills most of the window", () => {
+    const s = new PointSmoother(700);
+    for (let t = 0; t < 700; t += 66) s.push(t, { x: 100, y: 100 });
+    let out = { x: 0, y: 0 };
+    for (let t = 700; t < 1300; t += 66) out = s.push(t, { x: 900, y: 100 });
+    expect(out.x).toBe(900);
+  });
+
+  it("restarts after a gap so old estimates don't leak", () => {
+    const s = new PointSmoother(700);
+    s.push(0, { x: 100, y: 100 });
+    s.push(66, { x: 100, y: 100 });
+    expect(s.push(1000, { x: 500, y: 500 }).x).toBe(500);
+  });
+
+  it("passes points through when disabled", () => {
+    expect(new PointSmoother(0).push(0, { x: 7, y: 8 })).toEqual({ x: 7, y: 8 });
   });
 });

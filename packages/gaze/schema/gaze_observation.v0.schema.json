@@ -27,7 +27,7 @@
     "face": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["detected", "head_yaw_deg", "head_pitch_deg", "head_roll_deg", "iris_x", "iris_y", "eye_openness", "eyes_closed"],
+      "required": ["detected", "head_yaw_deg", "head_pitch_deg", "head_roll_deg", "iris_x", "iris_y", "eye_openness", "eyes_closed", "pose_shift", "scale_ratio"],
       "properties": {
         "detected": { "type": "boolean" },
         "head_yaw_deg": { "$ref": "#/$defs/nnum" },
@@ -36,7 +36,9 @@
         "iris_x": { "$ref": "#/$defs/nnum", "description": "Iris offset in the eye opening, approx -0.5..0.5, + = camera-image right." },
         "iris_y": { "$ref": "#/$defs/nnum", "description": "Approx -0.5..0.5, + = down." },
         "eye_openness": { "$ref": "#/$defs/nnum", "description": "0 closed .. 1 open." },
-        "eyes_closed": { "type": ["boolean", "null"] }
+        "eyes_closed": { "type": ["boolean", "null"] },
+        "pose_shift": { "$ref": "#/$defs/nnum", "description": "Face-centre movement since calibration, fraction of camera image. Null without calibration." },
+        "scale_ratio": { "$ref": "#/$defs/nnum", "description": "Face size vs. calibration (>1 = closer). Null without calibration." }
       }
     },
     "gaze": {
@@ -44,7 +46,7 @@
       "additionalProperties": false,
       "required": ["screen_x_px", "screen_y_px", "video_u", "video_v", "region", "margin_px"],
       "properties": {
-        "screen_x_px": { "$ref": "#/$defs/nnum" },
+        "screen_x_px": { "$ref": "#/$defs/nnum", "description": "Smoothed (rolling median, default 700 ms) estimate; region is decided from it." },
         "screen_y_px": { "$ref": "#/$defs/nnum" },
         "video_u": { "$ref": "#/$defs/nnum", "description": "Fraction of the video rect width; outside 0..1 = off the video." },
         "video_v": { "$ref": "#/$defs/nnum" },

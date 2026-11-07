@@ -28,6 +28,10 @@ export function headPoseFromMatrix(data: ArrayLike<number>): {
   yaw: number;
   pitch: number;
   roll: number;
+  /** Translation of the face origin; |tz| is the model's depth estimate (camera-relative units). */
+  tx: number;
+  ty: number;
+  tz: number;
 } {
   if (data.length !== 16) throw new Error(`expected 16 matrix values, got ${data.length}`);
   const columnMajor = Math.abs(data[14]) >= Math.abs(data[11]);
@@ -36,8 +40,18 @@ export function headPoseFromMatrix(data: ArrayLike<number>): {
   const pitch = Math.asin(clamp(-r(1, 2), -1, 1));
   const yaw = Math.atan2(r(0, 2), r(2, 2));
   const roll = Math.atan2(r(1, 0), r(1, 1));
-  return { yaw: yaw * RAD2DEG, pitch: pitch * RAD2DEG, roll: roll * RAD2DEG };
+  return {
+    yaw: yaw * RAD2DEG,
+    pitch: pitch * RAD2DEG,
+    roll: roll * RAD2DEG,
+    tx: r(0, 3),
+    ty: r(1, 3),
+    tz: r(2, 3),
+  };
 }
+
+/** Scale so depth-based faceScale has a similar magnitude to the eye-gap version (~0.2-0.3). */
+const DEPTH_SCALE_K = 10;
 
 /**
  * Iris position inside one eye opening.
@@ -104,7 +118,12 @@ export function extractFeatures(
   let yaw = 0;
   let pitch = 0;
   let roll = 0;
-  if (transform) ({ yaw, pitch, roll } = headPoseFromMatrix(transform));
+  let depth: number | null = null;
+  if (transform) {
+    const pose = headPoseFromMatrix(transform);
+    ({ yaw, pitch, roll } = pose);
+    if (Math.abs(pose.tz) > 1e-6) depth = Math.abs(pose.tz);
+  }
 
   let openness: number;
   const blinkL = blendshapes?.find((b) => b.categoryName === "eyeBlinkLeft")?.score;
@@ -128,9 +147,12 @@ export function extractFeatures(
   cx /= landmarks.length;
   cy /= landmarks.length;
 
+  // Distance proxy. The eye gap in the image shrinks when the head turns (≈ cos(yaw)), which made
+  // head turns look like leaning back. Prefer the model's 3D depth, which doesn't change with rotation.
   const outerA = landmarks[EYE_A.cornerA];
   const outerB = landmarks[EYE_B.cornerA];
-  const faceScale = Math.hypot((outerA.x - outerB.x) * aspect, outerA.y - outerB.y) / aspect;
+  const eyeGap = Math.hypot((outerA.x - outerB.x) * aspect, outerA.y - outerB.y) / aspect;
+  const faceScale = depth !== null ? DEPTH_SCALE_K / depth : eyeGap;
 
   return {
     headYawDeg: yaw,
