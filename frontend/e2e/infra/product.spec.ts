@@ -105,3 +105,17 @@ test('live adapter: one telemetry path and one session reach the real backend', 
   expect(s.segments.length).toBeGreaterThanOrEqual(1);
   expect(s.videoId).toMatch(/^local-[0-9a-f]{16}$/);
 });
+
+test('a replay the browser refuses to play shows an error instead of failing silently', async ({ page }) => {
+  test.setTimeout(90_000);
+  await openLecture(page, `${FRONTEND_URL}/?adapter=synthetic`);
+  await page.locator('video').evaluate((v: HTMLVideoElement) => { v.currentTime = 6; v.play(); });
+  const card = page.locator('article.bookmark-card').first();
+  await expect(card).toBeVisible({ timeout: 45_000 });
+  await page.locator('video').evaluate((v: HTMLVideoElement) => {
+    v.pause();
+    v.play = () => Promise.reject(new DOMException('play() blocked for the test', 'NotAllowedError'));
+  });
+  await card.getByRole('button', { name: 'Replay', exact: true }).click();
+  await expect(page.getByTestId('replay-error')).toContainText('Replay could not start');
+});

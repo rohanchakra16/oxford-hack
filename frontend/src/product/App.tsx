@@ -10,6 +10,7 @@ import {
 import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle } from '../player';
 import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
 import './product.css';
+import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { FocusSetup } from '../focus/FocusSetup';
 
@@ -194,6 +195,7 @@ export default function App() {
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [earlierCounts, setEarlierCounts] = useState<Record<string, number>>({});
   const [reminders, setReminders] = useState<WireReviewBookmark[]>([]);
+  const [replayError, setReplayError] = useState<string | null>(null);
 
   useEffect(() => client.onEvent((event) => {
     if (event.type === 'session_started' || event.type === 'session_ended') setReminders([]);
@@ -235,24 +237,27 @@ export default function App() {
     setDismissed(new Set());
     setEarlierCounts({});
     setReminders([]);
+    setReplayError(null);
     setTranscript(null);
   };
 
   const replay = (bookmark: ReviewBookmark) => {
-    if (!player) return;
-    const count = earlierCounts[bookmark.bookmarkId] ?? 0;
-    const passage = passageFor(sentences, bookmark.suggestedMediaS, count);
-    const target = passage?.startS ?? bookmark.suggestedMediaS;
-    // With a transcript, replay is bounded to the end of the sentence containing the suggested moment;
-    // without one it seeks and keeps playing (nothing here pauses or seeks on its own).
-    if (passage) void player.replayRange(target, Math.max(passage.endS, target + 3)).catch(() => undefined);
-    else if (bookmark.endMediaS !== undefined) {
-      void player.replayRange(target, bookmark.endMediaS).catch(() => undefined);
-    } else {
-      player.seek(target);
-      void player.play().catch(() => undefined);
+    if (!player) {
+      setReplayError('Load the lecture video before replaying a moment.');
+      return;
     }
-    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'replay', target);
+    const count = earlierCounts[bookmark.bookmarkId] ?? 0;
+    // Passage start follows the shared sentence rule; a range the player cannot replay (unfinished,
+    // zero-length, past the end) falls back to seeking and playing from the start.
+    const plan = planReplay(sentences, bookmark, count, duration);
+    const started = plan.endS === null
+      ? (player.seek(plan.startS), player.play())
+      : player.replayRange(plan.startS, plan.endS);
+    setReplayError(null);
+    started.catch((error: unknown) => {
+      setReplayError(`Replay could not start: ${error instanceof Error ? error.message : 'the browser blocked playback'}. Press play on the video, then try again.`);
+    });
+    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'replay', plan.startS);
     focus.closeNotice();
   };
 
@@ -337,6 +342,13 @@ export default function App() {
                     connection.state === 'closed' ? 'Session disconnected' : 'Connecting to session'}
             </strong>
             <span>{connection.detail}</span>
+          </div>
+        )}
+
+        {replayError && (
+          <div className="error-banner" role="alert" data-testid="replay-error">
+            <strong>Replay</strong>
+            <span>{replayError}</span>
           </div>
         )}
 
