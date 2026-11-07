@@ -329,5 +329,5 @@ class BaselineInference:
 
 
 def inference_factory(context: SessionContext) -> BaselineInference | None:
-    """Injection point for the hub owner. This initial bundle is simulation-only."""
+    """Constructor helper for a simulation factory; not the hub's live inference hook."""
     return BaselineInference(context) if context.run_kind == "simulated" else None

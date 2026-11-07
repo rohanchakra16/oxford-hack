@@ -58,7 +58,11 @@ Initial implementation: `adapter.BaselineInference` implements the platform
 `InferenceAdapter` without editing platform code. `model.load_bundle()` loads
 the strict, versioned `bundles/baseline-0.1.0.json`. It is synthetic-only and
 declares no evaluated modes. `adapter.inference_factory` returns no detector
-for live/replay sessions; the platform owner must wire the factory for demos.
+for live/replay sessions. The hub routes simulated runs through its separate
+`simulation_factory`, so the platform owner must return this adapter from that
+hook alongside a synthetic producer. Its current mode policy also requires an
+explicit simulation-only decision before it can publish automatic bookmarks;
+the empty evaluated-mode set must not be presented as live evaluation evidence.
 
 From the repository root, using Python 3.11–3.13:
 
