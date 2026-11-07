@@ -56,3 +56,26 @@ INSTANCES: list[FakeSource] = []
 def make_source() -> FakeSource:
     INSTANCES.append(FakeSource())
     return INSTANCES[-1]
+
+
+class DeclaredSource(FakeSource):
+    """A source that says it is not a headset (as the rehearsal source does)."""
+
+    session_starts = 0
+
+    def on_live_session_started(self) -> None:
+        DeclaredSource.session_starts += 1
+
+    declared_device = EegDeviceInfo(
+        model="declared test source (not a headset)",
+        confirmed=False,
+        sample_rate_hz=None,
+        channel_names=None,
+        units=None,
+    )
+
+
+def make_declared_source() -> DeclaredSource:
+    source = DeclaredSource()
+    INSTANCES.append(source)
+    return source

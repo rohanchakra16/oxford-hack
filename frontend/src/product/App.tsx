@@ -333,6 +333,19 @@ export default function App() {
           </div>
         )}
 
+        {snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG') && (
+          <div className="mode-banner" role="status" data-testid="test-eeg-banner">
+            <span className="mode-banner__icon" aria-hidden="true">✦</span>
+            <div>
+              <strong>Test EEG + real webcam</strong>
+              <span>
+                The EEG scores are scripted for rehearsal. No headset is connected, so nothing here reflects your
+                brain activity. Gaze, if you enable it, comes from your own camera.
+              </span>
+            </div>
+          </div>
+        )}
+
         {connection.state !== 'connected' && connection.state !== 'idle' && (
           <div className={`connection-banner connection-banner--${connectionTone}`} role="status">
             <strong>

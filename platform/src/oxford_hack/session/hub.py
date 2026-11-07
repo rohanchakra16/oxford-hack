@@ -516,6 +516,11 @@ class Hub:
             simulation=simulation,
         )
         self.sessions[session_id] = session
+        if req.run_kind == "live" and req.requested_sensors.eeg and self._live_eeg is not None:
+            # Optional: a rehearsal source restarts its script for each session; a headset ignores this.
+            notify = getattr(self._live_eeg, "session_started", None)
+            if callable(notify):
+                notify()
         self._bind(st, session)
         self._send(session, "session_config", config)
         self._update_status(session, now, force=True)

@@ -35,7 +35,7 @@ jobs:
       - name: Tests
         run: uv run pytest -p no:warnings
       - name: Inference and evaluation tests (P3 code, run in the platform environment)
-        run: PYTHONPATH="..:src" uv run pytest -p no:warnings ../inference/tests ../evaluation/tests
+        run: PYTHONPATH="..:src" uv run pytest -p no:warnings ../inference/tests ../evaluation/tests ../integration/tests
       - name: Generated contracts, fixtures and sample recording are up to date
         run: |
           uv run python scripts/generate_contracts.py --check
@@ -98,6 +98,50 @@ jobs:
             frontend/playwright-report/
             frontend/test-results/**/*.zip
             frontend/test-results/**/*.png
+          retention-days: 3
+          if-no-files-found: ignore
+
+  e2e-main:
+    name: Main-page browser tests (EEG-only, combined, evaluation, rehearsal)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      EVALUATION_PYTHON: ${{ github.workspace }}/platform/.venv/bin/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: platform/uv.lock
+      - run: uv sync --locked
+        working-directory: platform
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      # All four run from the repo root: the specs read frontend/test-results/*-token relative to it.
+      - name: Main page, live EEG-only (controlled model windows) and live combined EEG + gaze transport
+        run: node frontend/node_modules/@playwright/test/cli.js test --config evaluation/player/live-product.config.ts
+      - name: Main page, evaluation flow with calibration and replay
+        run: node frontend/node_modules/@playwright/test/cli.js test --config evaluation/player/main-product.config.ts
+      - name: Player evaluation smoke tests
+        run: node frontend/node_modules/@playwright/test/cli.js test --config evaluation/player/playwright.config.ts
+      - name: Headset-free rehearsal (scripted test EEG)
+        run: node frontend/node_modules/@playwright/test/cli.js test --config frontend/e2e/rehearsal.config.ts
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-main-diagnostics
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
           retention-days: 3
           if-no-files-found: ignore
 

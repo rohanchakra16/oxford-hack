@@ -92,8 +92,12 @@ def build_hub_factory(args: argparse.Namespace, settings: HubSettings) -> Callab
 
     def hub_factory(clock: Clock) -> Hub:
         bridge = None
+        declared_device = None
         if source_factory is not None:
-            bridge = LiveEegBridge(source_factory(), clock)
+            source = source_factory()
+            # A rehearsal/test source declares it is not a headset; the page shows that.
+            declared_device = getattr(source, "declared_device", None)
+            bridge = LiveEegBridge(source, clock)
             bridge.start()
         return Hub(
             clock,
@@ -102,6 +106,7 @@ def build_hub_factory(args: argparse.Namespace, settings: HubSettings) -> Callab
                 simulation_factory(detector_factory=detector_factory) if args.allow_simulated else None
             ),
             live_eeg=bridge,
+            eeg_device=declared_device,
             inference_factory=live_detector_factory,
         )
 
