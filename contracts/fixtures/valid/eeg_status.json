@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-eeg_status",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "eeg_status",
+  "payload": {
+    "streamId": "synthetic-eeg",
+    "state": "ok",
+    "flags": [
+      "units_unverified"
+    ],
+    "device": {
+      "model": null,
+      "confirmed": false,
+      "sampleRateHz": null,
+      "channelNames": null,
+      "units": null
+    },
+    "droppedPackets": 0,
+    "tBackendMs": 56000.0,
+    "provenance": {
+      "runKind": "simulated",
+      "producer": "fixture-generator",
+      "producerVersion": "0.1.0"
+    }
+  }
+}

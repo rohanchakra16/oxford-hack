@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-gaze_calibration",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "gaze_calibration",
+  "payload": {
+    "calibrationId": "cal-1",
+    "status": "valid",
+    "measurementKind": "screen_gaze",
+    "method": "9-point fit, 4 held-out",
+    "fitPoints": 9,
+    "heldOutPoints": 4,
+    "heldOutErrorNorm": 0.08,
+    "viewportCssPx": {
+      "x": 0.0,
+      "y": 0.0,
+      "width": 1280.0,
+      "height": 800.0
+    },
+    "videoRectCssPx": {
+      "x": 100.0,
+      "y": 80.0,
+      "width": 960.0,
+      "height": 540.0
+    },
+    "invalidatedReason": null,
+    "tBrowserMs": 2000.0,
+    "provenance": {
+      "runKind": "simulated",
+      "producer": "fixture-generator",
+      "producerVersion": "0.1.0"
+    }
+  }
+}

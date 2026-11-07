@@ -1,0 +1,6 @@
+{
+  "description": "Truncated JSON",
+  "expectedCode": "invalid_json",
+  "layer": "structural",
+  "raw": "{\"schemaVersion\": \"0.1.0\", \"messageId\": "
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-session_end",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "session_end",
+  "payload": {
+    "reason": "video_changed"
+  }
+}

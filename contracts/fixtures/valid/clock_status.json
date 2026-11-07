@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-clock_status",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "clock_status",
+  "payload": {
+    "state": "synchronised",
+    "offsetBrowserMinusBackendMs": -48480.0,
+    "uncertaintyMs": 1.8,
+    "bestRttMs": 3.2,
+    "sampleCount": 8,
+    "tBackendMs": 50100.0
+  }
+}

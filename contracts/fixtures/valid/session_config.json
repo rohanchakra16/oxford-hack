@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-session_config",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "session_config",
+  "payload": {
+    "sessionId": "ses-fixture",
+    "videoId": "video-fixture",
+    "runKind": "simulated",
+    "enabledSensors": {
+      "eeg": true,
+      "gaze": true
+    },
+    "modePolicy": {
+      "both": "automatic",
+      "eegOnly": "automatic",
+      "gazeOnly": "automatic"
+    },
+    "detector": {
+      "detectorId": "placeholder-scripted",
+      "detectorVersion": "0.1.0",
+      "configVersion": "sim-1"
+    },
+    "eegDevice": {
+      "model": null,
+      "confirmed": false,
+      "sampleRateHz": null,
+      "channelNames": null,
+      "units": null
+    },
+    "featureSetVersion": "synthetic-features-0",
+    "mapping": {
+      "leadInS": 2.0,
+      "boundaryMarginMs": 250.0,
+      "maxClockUncertaintyMs": 50.0,
+      "maxTelemetryStalenessMs": 2500.0,
+      "pendingTimeoutMs": 3000.0,
+      "maxCandidateAgeMs": 30000.0
+    },
+    "createdBackendMs": 1000.0
+  }
+}

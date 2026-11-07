@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-clock_ping",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "clock_ping",
+  "payload": {
+    "pingId": "ping-1",
+    "tBackendSendMs": 50010.0
+  }
+}

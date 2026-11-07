@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-user_feedback",
+  "sessionId": "ses-fixture",
+  "seq": 3,
+  "type": "user_feedback",
+  "payload": {
+    "feedbackId": "fb-1",
+    "bookmarkId": "bm-evt-1",
+    "action": "rated_useful",
+    "tBrowserMs": 9500.0,
+    "mediaTimeS": 40.0
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1.0",
+  "messageId": "msg-client_hello",
+  "sessionId": null,
+  "seq": 3,
+  "type": "client_hello",
+  "payload": {
+    "clientInstanceId": "client-abc",
+    "sessionToken": "tok_0123456789abcdef",
+    "resume": {
+      "sessionId": "ses-fixture",
+      "backendInstanceId": "be-1",
+      "lastReceivedSeq": 7
+    },
+    "capabilities": {
+      "playbackTelemetry": true,
+      "gaze": true,
+      "diagnostics": true
+    },
+    "tBrowserMs": 1520.5
+  }
+}
