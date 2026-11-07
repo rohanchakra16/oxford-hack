@@ -70,7 +70,7 @@ describe('PlaybackReporter', () => {
     r.handle('pause', media({ currentTime: 1 }), 1010);
     sent.forEach((payload, i) => {
       expect(() =>
-        validateMessage({ schemaVersion: '0.1.0', messageId: `m${i}`, sessionId: 's', seq: i, type: 'playback_state', payload }),
+        validateMessage({ schemaVersion: '0.2.0', messageId: `m${i}`, sessionId: 's', seq: i, type: 'playback_state', payload }),
       ).not.toThrow();
     });
     expect(sent.map((s) => s.telemetrySeq)).toEqual([1, 2, 3]);

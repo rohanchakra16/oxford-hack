@@ -21,10 +21,10 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
-SCHEMA_VERSION = "0.1.0"
+SCHEMA_VERSION = "0.2.0"
 """Exact-match version. Receivers reject any other value (see contracts/README.md#compatibility)."""
 
-SchemaVersion = Literal["0.1.0"]
+SchemaVersion = Literal["0.2.0"]
 
 
 class Contract(BaseModel):

@@ -17,14 +17,14 @@ player (P4) --attachMediaElement--> ReviewClient --WebSocket--> hub --bookmarks-
   while no live session exists are dropped, so sources should publish periodically, not once.
   Annie's pipeline (`eeg/realtime/streaming_controller.py`) emits frames, not `EegFeatureWindow`s: a mapper to the
   contract (feature names/units, quality flags, clock correction) is still to be agreed and written.
-- **Gaze (P2)** emits `gaze_calibration` and `gaze_observations` (0.1.0) through the frontend `ReviewClient`. The adapter
+- **Gaze (P2)** emits `gaze_calibration` and `gaze_observations` (0.2.0) through the frontend `ReviewClient`. The adapter
   must be given the `<video>` element (or a getter returning it).
 - **Inference (P3)** implements `oxford_hack.inference.interface.InferenceAdapter`: it receives windows, gaze, eligibility
   and sensor status in backend ms and returns `ReviewCandidate`s. It never touches media time. For simulated sessions run
   `oxford-backend serve --simulated-detector baseline`.
 - **Player (P4)** mounts `LecturePlayer`, which forwards telemetry with `attachMediaElement`. Mount exactly one telemetry
   path per video. Review UI uses `ReviewClient` only: no `WebSocket` in product code (ESLint enforces it).
-- **Everything** speaks `schemaVersion` `0.1.0` exactly; a change bumps it and regenerates schema, fixtures and TS types
+- **Everything** speaks `schemaVersion` `0.2.0` exactly; a change bumps it and regenerates schema, fixtures and TS types
   (`npm run contracts:generate`; CI fails on drift).
 
 Run it all: `npm run setup` once, then `npm run dev` (backend on 8765, frontend on 5173). Open the pairing link printed by

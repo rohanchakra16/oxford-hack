@@ -2,7 +2,7 @@
 
 A recording is JSONL. Line 1 is a header; every other line is one accepted message:
 
-    {"format": "oxford-hack-recording", "formatVersion": 1, "schemaVersion": "0.1.0",
+    {"format": "oxford-hack-recording", "formatVersion": 1, "schemaVersion": "0.2.0",
      "synthetic": true, "description": "...", "backendStartMs": 10000.0,
      "detector": {"detectorId": ..., "detectorVersion": ..., "configVersion": ...,
                   "evaluatedModes": ["eeg_only"]} | null}

@@ -23,3 +23,13 @@ describe('shared fixtures', () => {
     expect(semantic.length).toBeGreaterThan(0);
   });
 });
+
+describe('schema version', () => {
+  it('rejects a message from the previous schema version', () => {
+    const msg = JSON.parse(readFileSync(new URL('../../../contracts/fixtures/valid/heartbeat.json', import.meta.url), 'utf8'));
+    expect(() => parseMessage(JSON.stringify(msg))).not.toThrow();
+    expect(() => parseMessage(JSON.stringify({ ...msg, schemaVersion: '0.1.0' }))).toThrowError(
+      expect.objectContaining({ code: 'schema_version_mismatch' }),
+    );
+  });
+});

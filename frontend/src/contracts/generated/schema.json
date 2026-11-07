@@ -89,7 +89,7 @@
           "$ref": "#/$defs/CandidateRejected"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -215,7 +215,7 @@
           "$ref": "#/$defs/ClientHello"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -352,7 +352,7 @@
           "$ref": "#/$defs/ClockPing"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -445,7 +445,7 @@
           "$ref": "#/$defs/ClockPong"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -570,7 +570,7 @@
           "$ref": "#/$defs/ClockStatus"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -1012,7 +1012,7 @@
           "$ref": "#/$defs/EegFeatureWindow"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -1146,7 +1146,7 @@
           "$ref": "#/$defs/EegStatus"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -1243,7 +1243,7 @@
           "$ref": "#/$defs/ErrorReport"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -1486,7 +1486,7 @@
           "$ref": "#/$defs/GazeCalibration"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -1682,7 +1682,7 @@
           "$ref": "#/$defs/GazeObservationBatch"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -1761,7 +1761,7 @@
           "$ref": "#/$defs/Heartbeat"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -1855,7 +1855,7 @@
           "$ref": "#/$defs/ManualBookmark"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -2129,7 +2129,7 @@
           "$ref": "#/$defs/PlaybackEligibility"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -2295,7 +2295,7 @@
           "$ref": "#/$defs/PlaybackState"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -2606,7 +2606,7 @@
           "$ref": "#/$defs/ReviewBookmark"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -2729,7 +2729,7 @@
           "$ref": "#/$defs/ReviewCandidate"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -2890,7 +2890,7 @@
           "$ref": "#/$defs/SensorStatus"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3018,7 +3018,7 @@
           "$ref": "#/$defs/ServerHello"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3163,7 +3163,7 @@
           "$ref": "#/$defs/SessionConfig"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3237,7 +3237,7 @@
           "$ref": "#/$defs/SessionEnd"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3312,7 +3312,7 @@
           "$ref": "#/$defs/SessionEnded"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3398,7 +3398,7 @@
           "$ref": "#/$defs/SessionSnapshot"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3497,7 +3497,7 @@
           "$ref": "#/$defs/SessionStart"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3690,7 +3690,7 @@
           "$ref": "#/$defs/UserFeedback"
         },
         "schemaVersion": {
-          "const": "0.1.0",
+          "const": "0.2.0",
           "title": "Schemaversion",
           "type": "string"
         },
@@ -3731,7 +3731,7 @@
       "type": "object"
     }
   },
-  "$id": "https://oxford-hack.local/schema/0.1.0",
+  "$id": "https://oxford-hack.local/schema/0.2.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
@@ -3979,5 +3979,5 @@
       "sender": "browser (P4)"
     }
   },
-  "x-schemaVersion": "0.1.0"
+  "x-schemaVersion": "0.2.0"
 }

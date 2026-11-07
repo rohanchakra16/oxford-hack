@@ -181,7 +181,7 @@ def test_session_flow_and_non_fatal_invalid_message(client: TestClient) -> None:
         )
         config = receive_until(ws, "session_config")
         assert config["payload"]["runKind"] == "simulated"
-        ws.send_text('{"schemaVersion":"0.1.0","type":"playback_state","payload":{"mediaTimeS":NaN}}')
+        ws.send_text('{"schemaVersion":"0.2.0","type":"playback_state","payload":{"mediaTimeS":NaN}}')
         err = receive_until(ws, "error")
         assert err["payload"]["code"] == "invalid_json" and err["payload"]["fatal"] is False
         ws.send_text(msg("session_end", {"reason": "user_ended"}, 2, config["sessionId"]))

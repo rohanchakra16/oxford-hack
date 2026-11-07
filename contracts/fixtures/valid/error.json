@@ -1,16 +1,16 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "messageId": "msg-error",
   "sessionId": "ses-fixture",
   "seq": 3,
   "type": "error",
   "payload": {
     "code": "schema_version_mismatch",
-    "message": "received schemaVersion '0.2.0'; this component supports exactly '0.1.0'",
+    "message": "received schemaVersion '0.3.0'; this component supports exactly '0.2.0'",
     "refMessageId": "m-99",
     "fatal": true,
     "details": {
-      "received": "0.2.0"
+      "received": "0.3.0"
     }
   }
 }

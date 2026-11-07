@@ -52,7 +52,7 @@ export const uid = (prefix: string): string => `${prefix}-${Date.now().toString(
 /** A review_candidate envelope as P3's detector would emit it (EEG only, simulated provenance). */
 export function candidateEnvelope(sessionId: string, eventId: string, evidence: { start: number; end: number }, decisionMs: number, runKind = 'simulated') {
   return {
-    schemaVersion: '0.1.0',
+    schemaVersion: '0.2.0',
     messageId: uid('msg'),
     sessionId,
     seq: 0,

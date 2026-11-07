@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "messageId": "msg-gaze_observations",
   "sessionId": "ses-fixture",
   "seq": 3,

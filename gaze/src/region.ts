@@ -65,10 +65,12 @@ export interface DecisionThresholds {
 
 /**
  * Defaults. offThreshold 0.07 matches the earlier fixed band (≈1.5σ outside an edge ⇒ P ≈ Φ(-1.5) ≈ 0.067),
- * so false-alarm behaviour is unchanged; onThreshold 0.6 lets central estimates count as on-video
- * even when the vertical error is large relative to the video.
+ * so false-alarm behaviour is unchanged. onThreshold 0.4 (was 0.6): webcam vertical error is large, and
+ * estimates while watching cluster near the top edge, so at 0.6 about 31% of on-video frames came out
+ * "uncertain" in the main app and consumers treat those as missing data. 0.4 kept 91% decided with no
+ * extra off_video frames; "off" still needs strong evidence.
  */
-export const DEFAULT_THRESHOLDS: DecisionThresholds = { onThreshold: 0.6, offThreshold: 0.07 };
+export const DEFAULT_THRESHOLDS: DecisionThresholds = { onThreshold: 0.4, offThreshold: 0.07 };
 
 /** Probability-based three-way decision with asymmetric thresholds. */
 export function classifyByProbability(

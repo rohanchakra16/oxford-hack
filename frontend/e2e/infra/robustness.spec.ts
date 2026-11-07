@@ -14,7 +14,7 @@ test('malformed and contract-invalid messages are rejected without crashing the 
   await page.getByRole('button', { name: 'Send raw message' }).click();
   await expect(page.getByTestId('error').first()).toBeVisible({ timeout: 10_000 });
 
-  await raw.fill(JSON.stringify({ schemaVersion: '0.1.0', messageId: 'm-bad', sessionId, seq: 99, type: 'no_such_type', payload: {} }));
+  await raw.fill(JSON.stringify({ schemaVersion: '0.2.0', messageId: 'm-bad', sessionId, seq: 99, type: 'no_such_type', payload: {} }));
   await page.getByRole('button', { name: 'Send raw message' }).click();
   await expect(page.getByTestId('error').nth(1)).toBeVisible({ timeout: 10_000 });
 
