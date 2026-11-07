@@ -126,6 +126,7 @@ def _metadata_dict(recording: Recording) -> dict[str, object]:
         "device_serial": metadata.device_serial,
         "sample_count": metadata.sample_count,
         "created_at": metadata.created_at,
+        "feature_file_path": metadata.feature_file_path,
         "signal_units": recording.sample_batch.signal_units,
         "annotations": [
             {

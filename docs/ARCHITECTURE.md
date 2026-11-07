@@ -23,9 +23,13 @@ flowchart LR
     Batch --> Pre[EEGPreprocessor]
     Window --> Pre
     Pre --> Processed[PreprocessedBatch]
+    Processed --> Registry[FeatureRegistry]
+    Registry --> Extractor[EEGFeatureExtractor]
+    Extractor --> FeatureFrame[Feature frame]
 
     Batch --> DB[RecordingDatabase]
     DB --> Raw[Compressed raw NPZ]
+    DB --> FeatureFile[Separate feature-frame JSON]
     DB --> SQLite[(SQLite recordings database)]
     SQLite --> Meta[RecordingMetadata]
     SQLite --> Annotation[RecordingAnnotation]
@@ -72,9 +76,16 @@ flowchart LR
 9. `DatasetWindow` sends user actions to `DatasetController`; connection and
    persistence operations run in Qt worker threads so the GUI event loop stays
    responsive.
+10. Dataset construction may provide the registered feature extractor to
+    `RecordingManager`. On save, feature frames are written separately for
+    model training; the raw acquired NPZ is never overwritten.
 10. `DatasetExporter` serializes raw recordings without feature extraction;
     `DatasetLoader` validates exports before reconstructing samples, timestamps,
     indices, channels, labels, and annotations.
+11. A caller registers only the enabled feature functions in `FeatureRegistry`.
+    `EEGFeatureExtractor` invokes those functions independently and reports
+    values, validity, errors, and execution times without calculating any
+    biomarker itself.
 
 ## Important boundaries
 

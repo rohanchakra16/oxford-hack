@@ -10,6 +10,8 @@ from typing import Any
 import numpy as np
 
 from eeg.acquisition.base_device import EEGDevice, SampleBatch
+from eeg.processing.signal_preprocessor import EEGPreprocessor
+from eeg.realtime.feature_extractor import EEGFeatureExtractor
 
 from .recording_database import RecordingDatabase
 from .recording_metadata import RecordingMetadata
@@ -52,6 +54,8 @@ class RecordingManager:
         database: RecordingDatabase,
         *,
         batch_size: int = 25,
+        feature_extractor: EEGFeatureExtractor | None = None,
+        preprocessor: EEGPreprocessor | None = None,
     ) -> None:
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
@@ -66,6 +70,8 @@ class RecordingManager:
         self._error: Exception | None = None
         self._saved_metadata: RecordingMetadata | None = None
         self._lock = Lock()
+        self._feature_extractor = feature_extractor
+        self._preprocessor = preprocessor
 
     def start_recording(self, label: str) -> None:
         """Validate ``label``, start device streaming, and return promptly."""
@@ -117,11 +123,30 @@ class RecordingManager:
             batch = self._combine_batches()
             label = self._label
         try:
+            feature_frames = None
+            if self._feature_extractor is not None:
+                feature_batch = batch
+                if self._preprocessor is not None:
+                    feature_batch = self._preprocessor.process(batch)
+                    feature_window = feature_batch.samples
+                else:
+                    feature_window = feature_batch.samples
+                feature_frames = [
+                    _json_safe(
+                        self._feature_extractor.extract(
+                            feature_window,
+                            feature_batch.sampling_frequency_hz,
+                            {"channel_names": feature_batch.channel_names},
+                            timestamp=float(feature_batch.timestamps[-1]),
+                        )
+                    )
+                ]
             metadata = self._database.create_recording(
                 label or "",
                 batch,
                 device_name=str(self._device.get_device_info().get("device_type", "")),
                 device_serial=str(self._device.get_device_info().get("serial", "")),
+                feature_frames=feature_frames,
             )
         except Exception as error:
             raise RecordingManagerError(
@@ -197,3 +222,16 @@ class RecordingManager:
             raise RecordingManagerError(
                 "Recording must be stopped before it can be saved or discarded"
             )
+
+
+def _json_safe(value: Any) -> Any:
+    """Convert NumPy scalars and arrays in feature output to JSON values."""
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, np.ndarray):
+        return [_json_safe(item) for item in value.tolist()]
+    if isinstance(value, np.generic):
+        return value.item()
+    return value

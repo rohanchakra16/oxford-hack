@@ -37,6 +37,9 @@ from eeg.dataset.recording_manager import (
     RecordingManagerError,
     RecordingState,
 )
+from eeg.realtime.feature_extractor import EEGFeatureExtractor
+from eeg.realtime.feature_registry import FeatureRegistry
+from eeg.realtime.stub_features import STUB_FEATURES
 from eeg.utils.configuration import load_config
 
 
@@ -70,11 +73,13 @@ class DatasetController(QObject):
         database: RecordingDatabase,
         *,
         device_types: tuple[str, ...] = ("mock", "unicorn"),
+        feature_extractor: EEGFeatureExtractor | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self.database = database
         self.device_types = device_types
+        self.feature_extractor = feature_extractor
         self.device: EEGDevice | None = None
         self.manager: RecordingManager | None = None
         self._thread: QThread | None = None
@@ -99,7 +104,11 @@ class DatasetController(QObject):
 
     def _connected(self, device: EEGDevice) -> None:
         self.device = device
-        self.manager = RecordingManager(device, self.database)
+        self.manager = RecordingManager(
+            device,
+            self.database,
+            feature_extractor=self.feature_extractor,
+        )
         self.connection_changed.emit(True)
 
     def disconnect_device(self) -> None:
@@ -263,6 +272,8 @@ class DatasetWindow(QMainWindow):
         self.label_combo = QComboBox()
         self.label_combo.addItems(labels)
         form.addRow("Label", self.label_combo)
+        self.feature_status = QLabel()
+        form.addRow("Training features", self.feature_status)
         layout.addLayout(form)
 
         recording_row = QHBoxLayout()
@@ -366,11 +377,28 @@ def labels_from_config(config_path: str | Path) -> tuple[str, ...]:
     return tuple(labels)
 
 
+def feature_extractor_from_config(config: dict[str, Any]) -> EEGFeatureExtractor:
+    """Build an extractor from configured placeholder or user-registered features."""
+    features = config.get("features", {})
+    enabled = features.get("enabled", [])
+    settings = features.get("settings", {})
+    registry = FeatureRegistry()
+    for name in enabled:
+        if name not in STUB_FEATURES:
+            raise ValueError(f"Feature '{name}' is not registered")
+        registry.register(name, STUB_FEATURES[name], config=settings.get(name))
+    return EEGFeatureExtractor(registry)
+
+
 def run(config_path: str | Path = "config.yaml", database_path: str | Path = "recordings.sqlite") -> int:
     """Run the dataset construction application."""
     application = QApplication.instance() or QApplication(sys.argv)
     database = RecordingDatabase(database_path)
     controller = DatasetController(database)
+    config = load_config(config_path)
+    extractor = feature_extractor_from_config(config)
+    controller.feature_extractor = extractor
     window = DatasetWindow(controller, labels_from_config(config_path))
+    window.feature_status.setText(", ".join(extractor.registry.list_features()) or "None")
     window.show()
     return application.exec()

@@ -24,6 +24,23 @@ def validate_config(config: Any) -> dict[str, Any]:
         if not isinstance(config.get(section), dict):
             raise ConfigurationError(f"Configuration section '{section}' is required.")
 
+    features = config.get("features")
+    if features is not None:
+        enabled = features.get("enabled")
+        settings = features.get("settings")
+        if not isinstance(enabled, list) or not all(
+            isinstance(name, str) and name.strip() for name in enabled
+        ):
+            raise ConfigurationError("features.enabled must be a list of feature names.")
+        if len(set(enabled)) != len(enabled):
+            raise ConfigurationError("features.enabled must not contain duplicates.")
+        if settings is not None and (
+            not isinstance(settings, dict)
+            or not all(isinstance(name, str) and isinstance(value, dict)
+                       for name, value in settings.items())
+        ):
+            raise ConfigurationError("features.settings must map names to dictionaries.")
+
     project = config["project"]
     if not isinstance(project.get("name"), str) or not project["name"].strip():
         raise ConfigurationError("project.name must be a non-empty string.")

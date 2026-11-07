@@ -55,3 +55,13 @@ All SQL values use parameterized queries. Reads validate the NPZ against the
 `SampleBatch` contract. Deletion removes annotations and the recording row,
 then removes its NPZ file. Database and filesystem failures are raised rather
 than converted to success-shaped results.
+
+## Training feature artifacts
+
+When a `RecordingManager` is configured with an `EEGFeatureExtractor`, saving
+a recording writes feature extraction frames to a separate
+`<recording-id>.features.json` file. The raw NPZ remains unchanged and is
+always the source of truth for acquired EEG. `RecordingDatabase.load_feature_frames`
+loads this optional artifact for model-training workflows. Feature extraction
+failures leave the temporary recording available rather than silently saving
+an incomplete training artifact.

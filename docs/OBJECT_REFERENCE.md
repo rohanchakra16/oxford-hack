@@ -151,6 +151,8 @@ insertion.
 
 Raw arrays are never replaced with preprocessed arrays. NPZ creation is
 atomic, and database insertion failures remove the temporary data file.
+Optional feature frames are stored separately as JSON and can be loaded with
+`load_feature_frames`.
 
 ### `RecordingManager`
 
@@ -161,6 +163,9 @@ GUI-independent lifecycle service that starts device streaming, collects raw
 discard decision after stopping. `save_recording` delegates persistence to
 `RecordingDatabase`; a save failure leaves the temporary review session
 available for retry or discard.
+When supplied with an `EEGFeatureExtractor`, it extracts one training frame
+from the saved window and persists it separately from the raw NPZ. A supplied
+`EEGPreprocessor` is used for the feature input only.
 
 ### `RecordingState` and `RecordingStatus`
 
@@ -194,6 +199,42 @@ Reconstructs `Recording` objects from NPZ exports or CSV/JSON pairs. It
 validates required fields, sample dimensions, channel order, sample counts,
 metadata, and annotations, raising `DatasetLoadError` for missing or
 corrupted data.
+
+## Real-time features
+
+### `FeatureRegistry`
+
+Defined in `eeg/realtime/feature_registry.py`.
+
+Maintains uniquely named feature functions in registration order. Features can
+be registered, registered in batches with per-feature settings, retrieved,
+listed, and removed. Signatures are validated before registration.
+
+### `EEGFeatureExtractor`
+
+Defined in `eeg/realtime/feature_extractor.py`.
+
+Executes the currently registered functions for a preprocessed EEG window and
+returns a structured frame containing values, validity, errors, timestamps,
+and per-feature execution times. A failing feature is isolated from the
+others. It performs no biomarker calculations.
+
+### `FeatureResult` and `RegisteredFeature`
+
+Defined in `eeg/realtime/feature_types.py`.
+
+Typed models for explicit feature validity and registered function metadata.
+Feature values may be scalar, vector, mapping, or another structured value.
+
+### Stub feature functions
+
+Defined in `eeg/realtime/stub_features.py`.
+
+`STUB_FEATURES` contains the six requested placeholder names. Each returns an
+explicit `Not implemented` invalid result and can be replaced by registering a
+user implementation.
+
+## Dataset GUI
 
 ### `DatasetController`
 

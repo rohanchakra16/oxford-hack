@@ -58,6 +58,7 @@ class RecordingDatabase:
         start_timestamp: str | None = None,
         end_timestamp: str | None = None,
         recording_id: UUID | None = None,
+        feature_frames: list[dict[str, object]] | None = None,
     ) -> RecordingMetadata:
         """Atomically store a raw batch and its metadata."""
         with self._lock:
@@ -84,7 +85,14 @@ class RecordingDatabase:
                 data_file_path=str(path),
                 sample_count=sample_batch.samples.shape[0],
             )
+            feature_path = self.data_directory / f"{recording_id}.features.json"
+            if feature_frames is not None:
+                metadata = RecordingMetadata(
+                    **{**metadata.__dict__, "feature_file_path": str(feature_path)}
+                )
             self._write_npz_atomically(path, sample_batch)
+            if feature_frames is not None:
+                self._write_features_atomically(feature_path, feature_frames)
             try:
                 with self._connection:
                     self._connection.execute(
@@ -92,12 +100,13 @@ class RecordingDatabase:
                         (recording_id, label, start_timestamp, end_timestamp,
                          duration_seconds, sampling_rate, channel_count,
                          channel_names, device_name, device_serial, data_file_path,
-                         sample_count, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                         sample_count, created_at, feature_file_path)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         self._metadata_values(metadata),
                     )
             except Exception:
                 path.unlink(missing_ok=True)
+                feature_path.unlink(missing_ok=True)
                 raise
             return metadata
 
@@ -132,6 +141,26 @@ class RecordingDatabase:
         ).fetchall()
         return [self._row_to_metadata(row) for row in rows]
 
+    def load_feature_frames(self, recording_id: UUID | str) -> list[dict[str, object]]:
+        """Load separately stored feature frames for model-training workflows."""
+        recording = self.get_recording(recording_id)
+        if recording is None:
+            raise KeyError(f"Recording not found: {recording_id}")
+        if not recording.metadata.feature_file_path:
+            return []
+        try:
+            with Path(recording.metadata.feature_file_path).open(
+                encoding="utf-8"
+            ) as feature_file:
+                frames = json.load(feature_file)
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError(
+                f"Unable to read feature data: {recording.metadata.feature_file_path}"
+            ) from error
+        if not isinstance(frames, list) or not all(isinstance(frame, dict) for frame in frames):
+            raise RuntimeError("Feature data must contain a list of frames")
+        return frames
+
     def update_recording(self, metadata: RecordingMetadata) -> RecordingMetadata:
         """Update database metadata without changing the raw NPZ file."""
         values = self._metadata_values(metadata)[1:] + (str(metadata.recording_id),)
@@ -140,7 +169,7 @@ class RecordingDatabase:
                 """UPDATE recordings SET label=?, start_timestamp=?, end_timestamp=?,
                 duration_seconds=?, sampling_rate=?, channel_count=?, channel_names=?,
                 device_name=?, device_serial=?, data_file_path=?, sample_count=?,
-                created_at=? WHERE recording_id=?""",
+                created_at=?, feature_file_path=? WHERE recording_id=?""",
                 values,
             )
         if cursor.rowcount != 1:
@@ -164,10 +193,12 @@ class RecordingDatabase:
                     (str(recording.metadata.recording_id),),
                 )
                 Path(recording.metadata.data_file_path).unlink(missing_ok=True)
+                if recording.metadata.feature_file_path:
+                    Path(recording.metadata.feature_file_path).unlink(missing_ok=True)
         except Exception:
             with self._connection:
                 self._connection.execute(
-                    "INSERT OR REPLACE INTO recordings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT OR REPLACE INTO recordings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     self._metadata_values(recording.metadata),
                 )
                 for annotation in annotation_rows:
@@ -212,7 +243,8 @@ class RecordingDatabase:
                 device_serial TEXT NOT NULL,
                 data_file_path TEXT NOT NULL UNIQUE,
                 sample_count INTEGER NOT NULL,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                feature_file_path TEXT NOT NULL DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS recording_annotations (
                 annotation_id TEXT PRIMARY KEY,
@@ -224,6 +256,14 @@ class RecordingDatabase:
                 notes TEXT NOT NULL
             );"""
         )
+        columns = {
+            row["name"]
+            for row in self._connection.execute("PRAGMA table_info(recordings)")
+        }
+        if "feature_file_path" not in columns:
+            self._connection.execute(
+                "ALTER TABLE recordings ADD COLUMN feature_file_path TEXT NOT NULL DEFAULT ''"
+            )
         self._connection.commit()
 
     @staticmethod
@@ -233,7 +273,7 @@ class RecordingDatabase:
             metadata.end_timestamp, metadata.duration_seconds, metadata.sampling_rate,
             metadata.channel_count, json.dumps(metadata.channel_names),
             metadata.device_name, metadata.device_serial, metadata.data_file_path,
-            metadata.sample_count, metadata.created_at,
+            metadata.sample_count, metadata.created_at, metadata.feature_file_path,
         )
 
     @staticmethod
@@ -267,6 +307,18 @@ class RecordingDatabase:
                 signal_units=str(data["signal_units"].item()),
             )
 
+    @staticmethod
+    def _write_features_atomically(path: Path, frames: list[dict[str, object]]) -> None:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=f".{path.stem}.", suffix=".tmp", mode="w",
+            encoding="utf-8", delete=False
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            json.dump(frames, temporary, indent=2)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+
     def _row_to_metadata(self, row: sqlite3.Row) -> RecordingMetadata:
         return RecordingMetadata(
             recording_id=UUID(row["recording_id"]),
@@ -282,6 +334,7 @@ class RecordingDatabase:
             data_file_path=row["data_file_path"],
             sample_count=row["sample_count"],
             created_at=row["created_at"],
+            feature_file_path=row["feature_file_path"],
         )
 
     def _annotations_for(self, recording_id: UUID) -> Iterable[RecordingAnnotation]:

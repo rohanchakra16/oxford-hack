@@ -121,6 +121,7 @@ def _build_recording(metadata: dict[str, object], batch: SampleBatch) -> Recordi
             data_file_path="",
             sample_count=int(metadata["sample_count"]),
             created_at=str(metadata["created_at"]),
+            feature_file_path=str(metadata.get("feature_file_path", "")),
         )
         return Recording(result, batch, annotations)
     except DatasetLoadError:

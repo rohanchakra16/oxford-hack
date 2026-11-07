@@ -31,6 +31,7 @@ class RecordingMetadata:
     sample_count: int
     created_at: str = field(default_factory=utc_now_iso)
     recording_id: UUID = field(default_factory=uuid4)
+    feature_file_path: str = ""
 
     def __post_init__(self) -> None:
         """Validate metadata before it reaches the database."""

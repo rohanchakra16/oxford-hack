@@ -16,3 +16,13 @@ dataset:
     - Relaxed
     - Drowsy
     - Other
+
+features:
+  enabled:
+    - posterior_alpha_suppression
+    - frontal_theta_power
+    - beta_power
+  settings:
+    posterior_alpha_suppression: {}
+    frontal_theta_power: {}
+    beta_power: {}
