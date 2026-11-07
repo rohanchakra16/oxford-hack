@@ -63,3 +63,40 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npx vite build
+
+  e2e-infra:
+    name: Infrastructure e2e (Playwright, Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: platform/uv.lock
+      - run: uv sync --locked
+        working-directory: platform
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright infrastructure tests
+        run: npx playwright test
+      - name: Upload failure diagnostics (traces, screenshots, report)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-diagnostics
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/**/*.zip
+            frontend/test-results/**/*.png
+          retention-days: 3
+          if-no-files-found: ignore
