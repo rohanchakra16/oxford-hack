@@ -3,6 +3,11 @@
 Owner: @Seikaro
 Related component: inference/
 
+Player smoke and direct evaluation integration:
+[player/README.md](player/README.md). Run `node evaluation/player/dev.mjs` from
+the root after installing dependencies. Conservative settings, real-video smoke
+checks, and review artifacts are documented there.
+
 Lecture prototype: [inference/LECTURE_PROTOTYPE.md](../inference/LECTURE_PROTOTYPE.md).
 Run `python -m evaluation.lecture_replay --suite` for reproducible event/prompt
 counts across normal, educational immediate, and educational end-of-lecture

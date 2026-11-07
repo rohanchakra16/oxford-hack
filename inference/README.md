@@ -3,6 +3,12 @@
 Owner: @Seikaro
 Owned folders: inference/, evaluation/
 
+Player-connected evaluation: [evaluation/player/README.md](../evaluation/player/README.md).
+Run `node evaluation/player/dev.mjs` to watch a local video through the existing
+lecture player with Python evaluation, quiet heads-ups and replayable bookmarks.
+It defaults to conservative thresholds and explicitly scripted signals; an
+offline workload JSON can be supplied as an optional hypothetical demo.
+
 Lecture-mode prototype: [LECTURE_PROTOTYPE.md](LECTURE_PROTOTYPE.md) documents
 four estimated attention levels plus unknown, normal review reminders,
 educational questions, a hard 30 s cooldown, playback/replay safety, and the

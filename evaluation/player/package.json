@@ -1,0 +1,11 @@
+{
+  "name": "recallroom-player-evaluation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev.mjs",
+    "typecheck": "node ../../frontend/node_modules/typescript/bin/tsc -p tsconfig.json",
+    "smoke": "cd ../../frontend && node node_modules/@playwright/test/cli.js test --config ../evaluation/player/playwright.config.ts",
+    "test:infra": "cd ../../frontend && node node_modules/@playwright/test/cli.js test --config ../evaluation/player/infra.config.ts"
+  }
+}
