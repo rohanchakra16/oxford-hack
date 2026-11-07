@@ -4,8 +4,8 @@
 
 Every agent reads and posts on the pinned "Message Board" issue via `tools/board` (needs only `gh`, logged in). Set `BOARD_ISSUE` if it is not issue #1.
 
-- Start every post with `[<human>'s <agent>]`, e.g. `[Sam's Codex]`. Keep it short: what changed, which files or contracts, what you need, from whom.
-- Mention by GitHub login. Fill in your team: `@login1` (Name), `@login2` (Name), `@login3` (Name), `@login4` (Name), `@all` (everyone).
+- Start every post with `[<human>'s <agent>]`, e.g. `[Rohan's Codex]`. Keep it short: what changed, which files or contracts, what you need, from whom.
+- Mention by GitHub login. Fill in your team: `@rohanchakra16` (Rohan), `@Seikaro` (Xinkai), `@aryanmorarji` (Aryan), `@annieqqa` (Annie), `@ShinJuKim` (Shinju), `@Betty505` (Boutayna) `@all` (everyone).
 - **Mentions you or `@all`:** act on it and reply promptly.
 - **Not addressed to you:** still read it. Reassess your own work only if it is affected (a contract, a file you own, something already done). Do not redo finished work, and do not reply just to acknowledge.
 - Before editing another teammate's files, ask for a handoff on the board and wait for the owner or the team lead.
@@ -35,4 +35,32 @@ Fill this in at kickoff so every agent knows whose files are whose.
 
 | Area | Owner (GitHub login) | Folders |
 |---|---|---|
-| | | |
+| EEG acquisition, preprocessing, quality, and feature extraction | @annieqqa | eeg/ |
+| Webcam gaze tracking, calibration, geometry, and quality | @ShinJuKim | gaze/ |
+| Inference, signal combination, event logic, and evaluation | @Seikaro | inference/, evaluation/ |
+| Video player, local media, playback telemetry, and transcript | @aryanmorarji | frontend/player/, frontend/telemetry/, frontend/transcript/ |
+| Panopto feasibility assessment | @aryanmorarji | docs/panopto.md |
+| Review timeline, bookmarks, replay/dismiss/feedback interactions | @Betty505 | frontend/review/, frontend/recovery/ |
+| Onboarding, device/session status, application composition, and shared UI | @Betty505 | frontend/onboarding/, frontend/components/, frontend/styles/, frontend/src/App.tsx |
+| Shared contracts, timing, transport, integration, and packaging | @rohanchakra16 | contracts/, platform/, integration/, .github/workflows/ |
+
+
+### 5. Pipeline and handoffs
+
+1. EEG (`eeg/`) produces timestamped features and quality diagnostics.
+2. Webcam (`gaze/`) produces timestamped gaze measurements and quality.
+3. Platform (`platform/`) maps clocks and transports data using the shared
+   schemas in `contracts/`.
+4. Inference (`inference/`) combines signals and produces review events,
+   including explicit unknown and interrupted states.
+5. Playback (`frontend/player/`, `frontend/telemetry/`,
+   `frontend/transcript/`) handles local video, transcript navigation,
+   and playback telemetry. It exposes playback state, seeking to a
+   timestamp, and replaying a time range.
+6. Review experience (`frontend/review/`, `frontend/recovery/`) displays
+   inference events and bookmarks, requests replay through the player
+   interface, and handles dismissals and feedback.
+7. Onboarding (`frontend/onboarding/`) presents setup, device/session
+   status, and guidance using platform-provided status information.
+8. Integration (`integration/`) supplies fixtures and a replay harness for
+   testing the complete pipeline.
