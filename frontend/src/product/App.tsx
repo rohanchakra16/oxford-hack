@@ -341,7 +341,7 @@ export default function App() {
           <div className="main-column">
             <section className="player-card" aria-label="Lecture video">
               <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange} />
-              {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="player-tools">
+              {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="focus-bookmark-flags">
                 {activeBookmarks.map((bookmark) => <button className="button button--quiet button--small" key={bookmark.bookmarkId} onClick={() => replay(bookmark)} aria-label={`Replay bookmark at ${formatTime(bookmark.suggestedMediaS)}`}>
                   <span aria-hidden="true">⚑ </span>{formatTime(bookmark.suggestedMediaS)}
                 </button>)}

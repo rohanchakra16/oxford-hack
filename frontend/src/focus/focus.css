@@ -1,4 +1,5 @@
 .focus-tools { padding: 22px; border: 1px solid #d5ddd5; border-radius: 16px; background: #fff; margin-bottom: 20px; }
+.focus-bookmark-flags { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
 .focus-tools p { font-size: 13px; line-height: 1.5; }
 .focus-tools button { font: inherit; border: 1px solid #a2b7ad; background: #f1f6f3; color: #173d32; border-radius: 6px; padding: 9px 14px; cursor: pointer; margin: 4px 8px 4px 0; }
 .focus-tools button:disabled { opacity: .5; cursor: default; }
