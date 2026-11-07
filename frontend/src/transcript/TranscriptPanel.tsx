@@ -43,8 +43,9 @@ export function TranscriptPanel({ player, onTranscriptChange }: TranscriptPanelP
 
   useEffect(() => {
     if (!follow || current < 0) return;
-    const el = listRef.current?.querySelector<HTMLElement>(`[data-sentence="${current}"]`);
-    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const list = listRef.current;
+    const el = list?.querySelector<HTMLElement>(`[data-sentence="${current}"]`);
+    if (list && el) scrollListTo(list, el);
   }, [current, follow]);
 
   async function open(file: File) {
@@ -176,3 +177,16 @@ const SentenceRow = memo(function SentenceRow({
   );
 },
 (a, b) => a.sentence === b.sentence && a.current === b.current && a.disabled === b.disabled);
+
+/**
+ * Scroll only the transcript list so `el` is visible ("nearest"). Unlike `scrollIntoView`, this never
+ * scrolls the page or any other ancestor, so following along can't pull the viewer away from the video.
+ */
+function scrollListTo(list: HTMLElement, el: HTMLElement) {
+  const listBox = list.getBoundingClientRect();
+  const box = el.getBoundingClientRect();
+  let delta = 0;
+  if (box.top < listBox.top) delta = box.top - listBox.top;
+  else if (box.bottom > listBox.bottom) delta = Math.min(box.bottom - listBox.bottom, box.top - listBox.top);
+  if (delta !== 0) list.scrollTo({ top: list.scrollTop + delta, behavior: 'smooth' });
+}
