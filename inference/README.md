@@ -3,6 +3,14 @@
 Owner: @Seikaro
 Owned folders: inference/, evaluation/
 
+Lecture-mode prototype: [LECTURE_PROTOTYPE.md](LECTURE_PROTOTYPE.md) documents
+four estimated attention levels plus unknown, normal review reminders,
+educational questions, a hard 30 s cooldown, playback/replay safety, and the
+Aryan/Betty/platform integration handoff. Run
+`python -m evaluation.lecture_replay --mode educational-end --interactive`.
+The standalone demo uses synthetic or explicitly hypothetical EEGMAT values;
+it does not change the live player, shared wire schema or sensor decisions.
+
 Public EEG model: [evaluation/EEGMAT.md](../evaluation/EEGMAT.md) documents a
 trained arithmetic-versus-rest workload proxy and participant-held-out results.
 It reuses Annie's existing preprocessing through a read-only bridge, supports

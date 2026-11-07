@@ -3,6 +3,12 @@
 Owner: @Seikaro
 Related component: inference/
 
+Lecture prototype: [inference/LECTURE_PROTOTYPE.md](../inference/LECTURE_PROTOTYPE.md).
+Run `python -m evaluation.lecture_replay --suite` for reproducible event/prompt
+counts across normal, educational immediate, and educational end-of-lecture
+behaviours. Fixtures/report: `fixtures/lecture-*.json`. Attention accuracy and
+false-positive rates are explicitly unreported until suitable labels exist.
+
 Public-data experiment: [EEGMAT.md](EEGMAT.md), with machine-readable results in
 `fixtures/eegmat-report.json`. A real arithmetic-versus-rest EEG model is trained
 and evaluated on held-out participants; it is a workload proxy, not attention

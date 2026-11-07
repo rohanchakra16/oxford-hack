@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "lecture-prototype-0.1.0",
+  "type": "question_request",
+  "sessionId": "demo-session",
+  "videoId": "demo-lecture",
+  "payload": {
+    "questionId": "3b08969a91115904b8dc610fadd0fafe",
+    "segmentId": "331f3e5d381258c0bd318304433634f9",
+    "sessionId": "demo-session",
+    "videoId": "demo-lecture",
+    "lectureRevision": "demo-v1",
+    "configVersion": "0.1.0",
+    "configFingerprint": "9664c081da458e39f58c1b791f6f1d3f7e5fbc88b4f551aa3a8b559b555eb6ac",
+    "affectedRange": {
+      "startMediaS": 10.0,
+      "endMediaS": 15.0
+    },
+    "attentionLevel": "no attention",
+    "triggerReason": "sustained_low_estimate",
+    "transcriptContext": [
+      {
+        "startMediaS": 0.0,
+        "endMediaS": 28.0,
+        "text": "Synthetic lecture: a neuron maintains a voltage difference across its membrane."
+      }
+    ],
+    "requestedBackendMs": 15000.0,
+    "timing": "immediate",
+    "source": "synthetic",
+    "prototype": true,
+    "placeholder": true,
+    "questionText": "[Placeholder question] In your own words, what was the main idea explained between 10s and 15s? You can replay the segment before answering.",
+    "pausePlayback": false
+  }
+}
