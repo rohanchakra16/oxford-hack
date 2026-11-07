@@ -1,4 +1,11 @@
-"""Stateful EEG signal preprocessing and basic quality assessment."""
+"""Stateful EEG signal preprocessing and basic quality assessment.
+
+This module operates on acquisition batches rather than analysis windows.
+Filter states are carried from one call to the next, which makes separate
+calls equivalent to processing one continuous stream. It intentionally does
+not perform feature extraction, attention estimation, artifact correction, or
+channel selection.
+"""
 
 from __future__ import annotations
 
@@ -13,7 +20,13 @@ from eeg.acquisition.base_device import SampleBatch
 
 @dataclass(frozen=True)
 class PreprocessedBatch:
-    """Processed samples with original timing and quality metadata."""
+    """Processed samples with original timing and quality metadata.
+
+    ``samples`` has the same row and channel ordering as the input batch.
+    ``timestamps`` and ``sample_indices`` are copied unchanged so downstream
+    code can align processed values with acquisition events. ``quality`` is a
+    dictionary of basic checks for this batch, not a clinical interpretation.
+    """
 
     samples: np.ndarray
     timestamps: np.ndarray
@@ -22,7 +35,15 @@ class PreprocessedBatch:
 
 
 class EEGPreprocessor:
-    """Configurable stateful preprocessing for a continuous EEG stream."""
+    """Configurable stateful preprocessing for a continuous EEG stream.
+
+    Processing order is: replace non-finite values for safe numerical
+    filtering, remove the slowly tracked DC component, apply the optional
+    Butterworth bandpass, apply the optional notch filter, then calculate
+    quality indicators. Configure an operation as ``None`` or ``False`` to
+    disable it. A preprocessor should be reset before starting a new unrelated
+    stream.
+    """
 
     def __init__(
         self,
@@ -33,6 +54,20 @@ class EEGPreprocessor:
         quality_max_amplitude: float | None = 500.0,
         quality_flatline_tolerance: float = 1e-12,
     ) -> None:
+        """Create a preprocessor with independent filtering and quality options.
+
+        Args:
+            remove_dc_offset: Track and subtract a slowly changing channel
+                baseline.
+            bandpass: Inclusive frequency limits in Hz, or ``None`` to skip
+                bandpass filtering. The default is 1-40 Hz.
+            notch_frequency_hz: Mains frequency, normally 50 or 60 Hz, or
+                ``None`` to skip notch filtering.
+            quality_max_amplitude: Absolute amplitude threshold in the input
+                signal units, or ``None`` to disable that check.
+            quality_flatline_tolerance: Peak-to-peak threshold used to flag a
+                channel as flatline.
+        """
         self.remove_dc_offset = remove_dc_offset
         self.bandpass = bandpass
         self.notch_frequency_hz = notch_frequency_hz
@@ -48,7 +83,13 @@ class EEGPreprocessor:
         self._last_index: int | None = None
 
     def process(self, sample_batch: SampleBatch) -> PreprocessedBatch:
-        """Process one batch while retaining state across consecutive batches."""
+        """Process one batch while retaining state across consecutive batches.
+
+        Missing samples are inferred from the global sample indices. Non-finite
+        values are counted and replaced with zero before filtering so a single
+        invalid value cannot contaminate the filter state with NaNs. The
+        original timestamps and indices are always returned unchanged.
+        """
         self._configure(sample_batch)
         samples = np.asarray(sample_batch.samples, dtype=np.float64).copy()
         non_finite = ~np.isfinite(samples)
@@ -85,7 +126,7 @@ class EEGPreprocessor:
         )
 
     def reset(self) -> None:
-        """Clear filter and continuity state."""
+        """Clear filter and continuity state before a new acquisition stream."""
         self._sampling_frequency_hz = None
         self._bandpass_sos = self._bandpass_state = None
         self._notch_b = self._notch_a = self._notch_state = None
@@ -93,6 +134,7 @@ class EEGPreprocessor:
         self._last_index = None
 
     def _configure(self, batch: SampleBatch) -> None:
+        """Build filters for the batch rate while preserving compatible state."""
         fs = batch.sampling_frequency_hz
         channels = batch.samples.shape[1]
         if self._sampling_frequency_hz == fs and self._dc_state is not None:
@@ -118,6 +160,7 @@ class EEGPreprocessor:
     def _quality(
         self, samples: np.ndarray, non_finite: np.ndarray, missing_count: int
     ) -> dict[str, Any]:
+        """Calculate configurable basic indicators for each channel."""
         flatline = np.ptp(samples, axis=0) <= self.quality_flatline_tolerance
         excessive = (
             np.max(np.abs(samples), axis=0) > self.quality_max_amplitude

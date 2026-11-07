@@ -69,6 +69,10 @@ channels, excessive amplitude, and per-channel flags. These checks are basic
 signal-quality indicators and are not complete physiological artefact
 removal.
 
+See [docs/EEG_PREPROCESSING.md](docs/EEG_PREPROCESSING.md) for the detailed
+data contract, buffering semantics, filter-state behavior, and quality
+metadata definitions.
+
 ## EEG acquisition
 
 `MockEEGDevice` implements the same lifecycle as a future physical device:
