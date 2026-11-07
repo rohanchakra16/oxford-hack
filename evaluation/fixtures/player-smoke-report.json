@@ -1,0 +1,228 @@
+{
+  "prototype": true,
+  "player_smoke": {
+    "metrics": {
+      "review_segments": 1,
+      "qualifying_episodes": 1,
+      "merged_episodes": 0,
+      "question_requests": 0,
+      "minimum_prompt_interval_ms": null,
+      "prompts_per_elapsed_minute": 0.0,
+      "prompt_window_elapsed_minutes": 0.98335,
+      "attention_estimate_counts": {
+        "high attention": 25,
+        "medium attention": 13,
+        "low attention": 6,
+        "no attention": 16,
+        "unknown": 2
+      },
+      "detection_accuracy": null,
+      "false_positive_rate": null,
+      "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+    },
+    "review_ranges": [
+      {
+        "startMediaS": 14.0,
+        "endMediaS": 36.0
+      }
+    ],
+    "config": {
+      "version": "0.1.0",
+      "mode": "normal",
+      "questionTiming": "immediate",
+      "noAttentionMax": 0.15,
+      "lowAttentionMax": 0.3,
+      "mediumAttentionMax": 0.7,
+      "recoveryMin": 0.45,
+      "smoothingTauMs": 5000.0,
+      "minimumLossMs": 10000.0,
+      "recoveryMs": 4000.0,
+      "mergeGapS": 10.0,
+      "maxEvidenceStepMs": 5000.0,
+      "staleAfterMs": 2000.0,
+      "questionCooldownMs": 60000.0
+    }
+  },
+  "scripted_comparison": {
+    "original": {
+      "metrics": {
+        "review_segments": 3,
+        "qualifying_episodes": 3,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 63,
+          "medium attention": 11,
+          "low attention": 15,
+          "no attention": 31,
+          "unknown": 2
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      },
+      "review_ranges": [
+        {
+          "startMediaS": 10.0,
+          "endMediaS": 17.0
+        },
+        {
+          "startMediaS": 38.0,
+          "endMediaS": 47.0
+        },
+        {
+          "startMediaS": 65.0,
+          "endMediaS": 95.0
+        }
+      ],
+      "config": {
+        "version": "0.1.0",
+        "mode": "normal",
+        "questionTiming": "immediate",
+        "noAttentionMax": 0.2,
+        "lowAttentionMax": 0.4,
+        "mediumAttentionMax": 0.7,
+        "recoveryMin": 0.5,
+        "smoothingTauMs": 2000.0,
+        "minimumLossMs": 4000.0,
+        "recoveryMs": 2000.0,
+        "mergeGapS": 5.0,
+        "maxEvidenceStepMs": 5000.0,
+        "staleAfterMs": 2000.0,
+        "questionCooldownMs": 30000.0
+      }
+    },
+    "conservative": {
+      "metrics": {
+        "review_segments": 1,
+        "qualifying_episodes": 1,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 1.98335,
+        "attention_estimate_counts": {
+          "high attention": 57,
+          "medium attention": 36,
+          "low attention": 7,
+          "no attention": 20,
+          "unknown": 2
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      },
+      "review_ranges": [
+        {
+          "startMediaS": 70.0,
+          "endMediaS": 95.0
+        }
+      ],
+      "config": {
+        "version": "0.1.0",
+        "mode": "normal",
+        "questionTiming": "immediate",
+        "noAttentionMax": 0.15,
+        "lowAttentionMax": 0.3,
+        "mediumAttentionMax": 0.7,
+        "recoveryMin": 0.45,
+        "smoothingTauMs": 5000.0,
+        "minimumLossMs": 10000.0,
+        "recoveryMs": 4000.0,
+        "mergeGapS": 10.0,
+        "maxEvidenceStepMs": 5000.0,
+        "staleAfterMs": 2000.0,
+        "questionCooldownMs": 60000.0
+      }
+    }
+  },
+  "limitation": "Scripted trigger counts only; EEGMAT has no lecture-attention ground truth. Accuracy and false-positive rate are unavailable.",
+  "eegmat_workload_demo": {
+    "windows": 12,
+    "hypothetical_timeline": true,
+    "original": {
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 0.73335,
+        "attention_estimate_counts": {
+          "high attention": 0,
+          "medium attention": 12,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 2
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      },
+      "review_ranges": [],
+      "config": {
+        "version": "0.1.0",
+        "mode": "normal",
+        "questionTiming": "immediate",
+        "noAttentionMax": 0.2,
+        "lowAttentionMax": 0.4,
+        "mediumAttentionMax": 0.7,
+        "recoveryMin": 0.5,
+        "smoothingTauMs": 2000.0,
+        "minimumLossMs": 4000.0,
+        "recoveryMs": 2000.0,
+        "mergeGapS": 5.0,
+        "maxEvidenceStepMs": 5000.0,
+        "staleAfterMs": 2000.0,
+        "questionCooldownMs": 30000.0
+      }
+    },
+    "conservative": {
+      "metrics": {
+        "review_segments": 0,
+        "qualifying_episodes": 0,
+        "merged_episodes": 0,
+        "question_requests": 0,
+        "minimum_prompt_interval_ms": null,
+        "prompts_per_elapsed_minute": 0.0,
+        "prompt_window_elapsed_minutes": 0.73335,
+        "attention_estimate_counts": {
+          "high attention": 0,
+          "medium attention": 12,
+          "low attention": 0,
+          "no attention": 0,
+          "unknown": 2
+        },
+        "detection_accuracy": null,
+        "false_positive_rate": null,
+        "reference_label_limit": "No independent attention labels; counts and scheduling checks only."
+      },
+      "review_ranges": [],
+      "config": {
+        "version": "0.1.0",
+        "mode": "normal",
+        "questionTiming": "immediate",
+        "noAttentionMax": 0.15,
+        "lowAttentionMax": 0.3,
+        "mediumAttentionMax": 0.7,
+        "recoveryMin": 0.45,
+        "smoothingTauMs": 5000.0,
+        "minimumLossMs": 10000.0,
+        "recoveryMs": 4000.0,
+        "mergeGapS": 10.0,
+        "maxEvidenceStepMs": 5000.0,
+        "staleAfterMs": 2000.0,
+        "questionCooldownMs": 60000.0
+      }
+    },
+    "provenance": {
+      "recording_name": "Subject00_2.edf",
+      "recording_sha256": "635bbf035777008ff6c23d9c7bfc497d584fc71c56217022946d1fd056527e43",
+      "bundle_sha256": "9ee4faefc64d66d3cc9c6df3bf79847b6b754f5ab29de4c17d1750a26e2d88ed"
+    }
+  }
+}

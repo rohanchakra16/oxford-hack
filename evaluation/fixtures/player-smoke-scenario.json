@@ -1,0 +1,13 @@
+{
+  "name": "Player smoke: brief dip, sustained low, and recovery",
+  "prototype": true,
+  "source": "synthetic",
+  "duration_s": 60,
+  "baseline_score": 0.9,
+  "score_blocks": [
+    {"start_s": 3, "end_s": 5, "score": 0.05},
+    {"start_s": 10, "end_s": 36, "score": 0.05}
+  ],
+  "unknown_blocks": [],
+  "transcript": []
+}
