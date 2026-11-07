@@ -32,6 +32,10 @@ flowchart LR
     Meta --> Recording[Recording]
     Raw --> Recording
     Annotation --> Recording
+    DB --> Exporter[DatasetExporter]
+    Exporter --> ExportFiles[NPZ / CSV + JSON / JSON]
+    Exporter --> Loader[DatasetLoader]
+    Loader --> Loaded[Validated Recording]
 
     Device[EEGDevice] --> Manager[RecordingManager]
     Manager --> Temp[Temporary raw batch collection]
@@ -68,6 +72,9 @@ flowchart LR
 9. `DatasetWindow` sends user actions to `DatasetController`; connection and
    persistence operations run in Qt worker threads so the GUI event loop stays
    responsive.
+10. `DatasetExporter` serializes raw recordings without feature extraction;
+    `DatasetLoader` validates exports before reconstructing samples, timestamps,
+    indices, channels, labels, and annotations.
 
 ## Important boundaries
 

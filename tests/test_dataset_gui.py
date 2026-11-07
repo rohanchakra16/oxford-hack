@@ -9,6 +9,7 @@ from PySide6.QtTest import QSignalSpy, QTest
 
 from eeg.dataset.dataset_gui import DatasetController, DatasetWindow, labels_from_config
 from eeg.dataset.recording_database import RecordingDatabase
+from eeg.dataset.recording_manager import RecordingState
 
 
 @pytest.fixture
@@ -53,4 +54,23 @@ def test_controller_connects_mock_device_off_gui_thread(application, tmp_path) -
     QTest.qWait(100)
     assert connected.count() == 2
     assert connected.at(1)[0] is False
+    database.close()
+
+
+def test_window_reenables_recording_after_idle_status(application, tmp_path) -> None:
+    database = RecordingDatabase(tmp_path / "recordings.sqlite", tmp_path / "data")
+    controller = DatasetController(database, device_types=("mock",))
+    window = DatasetWindow(controller, ("Focused",))
+
+    controller.connect_device("mock")
+    QTest.qWait(100)
+    assert window.start_button.isEnabled() is True
+
+    window.start_button.setEnabled(False)
+    controller.operation_finished.emit()
+    assert controller.manager.get_recording_status().state is RecordingState.IDLE
+    assert window.start_button.isEnabled() is True
+
+    window.close()
+    controller.shutdown()
     database.close()

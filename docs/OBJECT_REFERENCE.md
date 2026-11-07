@@ -177,6 +177,24 @@ Defined in `eeg/dataset/recording_manager.py`.
 Raised for invalid lifecycle transitions, empty recordings, inconsistent
 batch metadata, acquisition failures, and interrupted persistence.
 
+### `DatasetExporter`
+
+Defined in `eeg/dataset/dataset_exporter.py`.
+
+Exports raw recordings as lossless NPZ files, sample-oriented CSV files with
+JSON sidecars, or metadata/annotation JSON files. It supports individual,
+all-recording, label-filtered, and selected-ID exports without calculating
+features.
+
+### `DatasetLoader`
+
+Defined in `eeg/dataset/dataset_loader.py`.
+
+Reconstructs `Recording` objects from NPZ exports or CSV/JSON pairs. It
+validates required fields, sample dimensions, channel order, sample counts,
+metadata, and annotations, raising `DatasetLoadError` for missing or
+corrupted data.
+
 ### `DatasetController`
 
 Defined in `eeg/dataset/dataset_gui.py`.

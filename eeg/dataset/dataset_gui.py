@@ -295,6 +295,7 @@ class DatasetWindow(QMainWindow):
         self.controller.connection_changed.connect(self._connection_changed)
         self.controller.status_changed.connect(self._status_changed)
         self.controller.recordings_changed.connect(self._recordings_changed)
+        self.controller.operation_finished.connect(self._operation_finished)
         self.controller.operation_failed.connect(self._show_error)
 
     def _start_recording(self, label: str) -> None:
@@ -329,6 +330,10 @@ class DatasetWindow(QMainWindow):
                 f"{recording.sample_count} samples"
             )
             self.recordings_list.addItem(item)
+
+    def _operation_finished(self) -> None:
+        """Resynchronize controls after an asynchronous controller action."""
+        self._update_controls()
 
     def _update_duration(self) -> None:
         elapsed = time.monotonic() - self._recording_started_at if self._recording_started_at else 0

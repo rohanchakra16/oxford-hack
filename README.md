@@ -76,6 +76,9 @@ metadata definitions.
 See [docs/EEG_RECORDING_DATABASE.md](docs/EEG_RECORDING_DATABASE.md) for the
 recording schema, NPZ contents, and consistency guarantees.
 
+See [docs/EEG_DATASET_EXPORT.md](docs/EEG_DATASET_EXPORT.md) for raw dataset
+export formats, CSV sidecars, and validated loading behavior.
+
 `RecordingManager` provides a GUI-independent recording lifecycle. It collects
 raw device batches in a background thread, transitions to a review-pending
 state when acquisition stops, and requires an explicit save or discard.
