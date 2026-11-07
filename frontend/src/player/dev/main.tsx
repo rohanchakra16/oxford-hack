@@ -7,6 +7,7 @@ import { StrictMode, useEffect, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createReviewClient, useReviewConnection, useReviewSnapshot } from '../../integration';
 import { LecturePlayer, formatMediaTime, type PlaybackStatus, type PlayerHandle } from '..';
+import { TranscriptPanel, replayStartFor, type Transcript } from '../../transcript';
 
 const NOOP = () => () => {};
 
@@ -18,6 +19,9 @@ function Harness() {
   const [log, setLog] = useState<string[]>([]);
   const [start, setStart] = useState('10');
   const [end, setEnd] = useState('20');
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
+  const [earlier, setEarlier] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!player) return;
@@ -43,7 +47,18 @@ function Harness() {
         </p>
       </header>
 
-      <LecturePlayer client={client} ref={setPlayer} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(280px, 2fr)', gap: 16, alignItems: 'start' }}>
+        <LecturePlayer
+          client={client}
+          ref={setPlayer}
+          onLectureChange={(l) => {
+            setVideoId(l?.videoId ?? null);
+            setTranscript(null);
+          }}
+        />
+        {/* key: a new lecture clears the previous lecture's transcript */}
+        <TranscriptPanel key={videoId ?? 'none'} player={player} onTranscriptChange={setTranscript} />
+      </div>
 
       <section aria-label="Review UI stand-in" style={{ display: 'grid', gap: 8 }}>
         <h2 style={{ margin: 0, fontSize: 16 }}>Review UI stand-in</h2>
@@ -67,14 +82,26 @@ function Harness() {
         </div>
         <ul style={{ margin: 0 }}>
           {snap.bookmarks.length === 0 && <li>No suggested review points yet.</li>}
-          {snap.bookmarks.map((b) => (
-            <li key={b.bookmarkId}>
-              {b.source} suggested at {formatMediaTime(b.suggestedMediaS)}{' '}
-              <button type="button" onClick={() => void player?.replayRange(b.suggestedMediaS, b.suggestedMediaS + 15)}>
-                Replay 15 s
-              </button>
-            </li>
-          ))}
+          {snap.bookmarks.map((b) => {
+            const n = earlier[b.bookmarkId] ?? 0;
+            const from = transcript ? replayStartFor(transcript.sentences, b.suggestedMediaS, n) : b.suggestedMediaS;
+            return (
+              <li key={b.bookmarkId}>
+                {b.source} suggested at {formatMediaTime(b.suggestedMediaS)} · replay from {formatMediaTime(from)}
+                {transcript ? ` (sentence start${n ? `, ${n} earlier` : ''})` : ' (no transcript)'}{' '}
+                <button type="button" onClick={() => void player?.replayRange(from, b.suggestedMediaS + 15)}>
+                  Replay
+                </button>{' '}
+                <button
+                  type="button"
+                  disabled={!transcript}
+                  onClick={() => setEarlier((e) => ({ ...e, [b.bookmarkId]: n + 1 }))}
+                >
+                  Move earlier
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

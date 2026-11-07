@@ -1,0 +1,78 @@
+/* Transcript-only styles (Person 4). Prefixed `tp-`; shared styles are @Betty505's. */
+.tp {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: system-ui, sans-serif;
+  min-width: 0;
+}
+.tp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.tp-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.tp-meta,
+.tp-empty {
+  margin: 0;
+  color: #444;
+}
+.tp-error {
+  margin: 0;
+  color: #9b1c1c;
+}
+.tp-warning {
+  margin: 0;
+  color: #7a4a00;
+  font-size: 0.9em;
+}
+.tp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+.tp-list li + li {
+  border-top: 1px solid #eee;
+}
+.tp-sentence {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.tp-sentence:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+.tp-sentence:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+.tp-sentence:disabled {
+  cursor: default;
+}
+.tp-current .tp-sentence {
+  background: #fff3c4;
+  font-weight: 600;
+}
+.tp-time {
+  flex: none;
+  min-width: 7ch;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}

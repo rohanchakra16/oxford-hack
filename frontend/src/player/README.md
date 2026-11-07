@@ -26,7 +26,7 @@ This code lives in `frontend/src/player/`, following `docs/frontend-integration.
   source is set, so `loadedmetadata` reaches the new session. `endSession('page_closing')` on unmount.
 - Exposes a `PlayerHandle` for the review UI and transcript: state, `seek`, `replayRange`.
 
-Not done yet (see #3): transcript, video geometry for gaze, Panopto (`docs/panopto.md`).
+Transcript: see `src/transcript/README.md`. Not done yet (see #3): video geometry for gaze, Panopto (`docs/panopto.md`).
 
 ## Interface (PROPOSED)
 
@@ -101,9 +101,9 @@ Open the dev harness (synthetic data, no backend or sensors):
 
 <http://127.0.0.1:5173/src/player/dev/index.html?adapter=synthetic>
 
-It shows the player, the live `PlaybackStatus`, a media event log, a stand-in for the review UI
-(`seek(30)`, `replayRange(start, end)`, and a Replay button for each suggested review point), and a
-**SYNTHETIC DATA** label. With the synthetic adapter a suggested review point appears after about
+It shows the player and transcript side by side, the live `PlaybackStatus`, a media event log, a
+stand-in for the review UI (`seek(30)`, `replayRange(start, end)`, and Replay / Move earlier for each
+suggested review point, starting at a sentence when a transcript is open), and a **SYNTHETIC DATA** label. With the synthetic adapter a suggested review point appears after about
 25 s of continuous playback.
 
 Use only videos you are allowed to use. **Never commit lecture media or transcripts.**
