@@ -49,8 +49,10 @@ test('a candidate whose runKind disagrees with the session is rejected as invali
 
 test('a stale candidate (decision older than the limit) is rejected as too_old', async ({ page }) => {
   const sessionId = await startPlayingSession(page, 'e2e-old');
+  // the backend clock is monotonic since boot, so on a fresh machine wait until "31 s ago" is non-negative
+  await expect.poll(async () => (await backendState()).nowBackendMs, { timeout: 60_000 }).toBeGreaterThan(36_000);
   const { nowBackendMs: now } = await backendState();
-  await inject(sessionId, candidateEnvelope(sessionId, uid('evt'), { start: now - 600_000, end: now - 596_000 }, now - 595_000));
+  await inject(sessionId, candidateEnvelope(sessionId, uid('evt'), { start: now - 35_000, end: now - 32_000 }, now - 31_000));
   await expect(page.locator('[data-testid="rejection"][data-reason="too_old"]')).toHaveCount(1, { timeout: 10_000 });
 });
 
