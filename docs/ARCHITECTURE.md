@@ -26,6 +26,8 @@ flowchart LR
     Processed --> Registry[FeatureRegistry]
     Registry --> Extractor[EEGFeatureExtractor]
     Extractor --> FeatureFrame[Feature frame]
+    FeatureFrame --> Classifier[AttentionClassifier]
+    Classifier --> Prediction[Attention prediction]
 
     Batch --> DB[RecordingDatabase]
     DB --> Raw[Compressed raw NPZ]

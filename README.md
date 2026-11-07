@@ -82,6 +82,9 @@ export formats, CSV sidecars, and validated loading behavior.
 See [docs/EEG_FEATURE_EXTRACTION.md](docs/EEG_FEATURE_EXTRACTION.md) for the
 pluggable feature registry, stub features, configuration, and output schema.
 
+See [docs/EEG_ATTENTION_CLASSIFIER.md](docs/EEG_ATTENTION_CLASSIFIER.md) for
+the classifier interface, deterministic stub, and replacement guidance.
+
 `RecordingManager` provides a GUI-independent recording lifecycle. It collects
 raw device batches in a background thread, transitions to a review-pending
 state when acquisition stops, and requires an explicit save or discard.

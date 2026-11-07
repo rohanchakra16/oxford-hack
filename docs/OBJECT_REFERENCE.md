@@ -234,6 +234,16 @@ Defined in `eeg/realtime/stub_features.py`.
 explicit `Not implemented` invalid result and can be replaced by registering a
 user implementation.
 
+### `AttentionClassifier` and `StubAttentionClassifier`
+
+Defined in `eeg/realtime/attention_classifier.py`.
+
+The classifier interface consumes feature-extraction frames and returns a
+structured prediction. The stub applies configurable weighting, directions,
+baseline normalization, missing-feature policy, and score mapping to produce a
+deterministic development score. It is not trained, validated, or calibrated,
+and does not calculate EEG features.
+
 ## Dataset GUI
 
 ### `DatasetController`
