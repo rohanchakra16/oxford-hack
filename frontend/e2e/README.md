@@ -31,8 +31,14 @@ Covered: play/pause/seek against the real backend's telemetry segments, `replayR
 non-video file, and replay of a suggestion. The suggestion comes from the explicitly **synthetic** adapter, because the
 player starts `live` sessions and no sensors are attached here.
 
-## Pending (needs Betty's composed review UI, not written as skipped tests)
+## Product tests (`product.spec.ts`)
 
-Product-level flows once #11 uses `LecturePlayer`/`TranscriptPanel`: Replay / Move earlier / dismiss / feedback from
-the real review timeline, and a backend-mapped bookmark replayed through the product UI.
-Obsolete session/video/segment events are covered at the hub level (`platform/tests/test_hub.py`).
+Drive the composed product UI (Betty's design on the shared `LecturePlayer`/`TranscriptPanel`/`ReviewClient`) with a real
+`<video>` and a generated WebVTT. Synthetic adapter (clearly labelled) for suggestions: transcript follows playback and
+seeks, Replay starts at the containing sentence and stops at its end, Move earlier steps back one sentence, Dismiss, and the
+no-transcript fallback. Live adapter: exactly one session and one telemetry path reach the real backend.
+
+## Not covered
+
+Obsolete session/video/segment events are covered at the hub level (`platform/tests/test_hub.py`). Real sensors and
+backend-mapped bookmarks in the product UI (no EEG/gaze source is attached in these tests).
