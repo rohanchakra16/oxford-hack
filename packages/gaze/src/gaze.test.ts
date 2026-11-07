@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { fitCalibration, predictScreen, StalenessTracker, type CalibrationPoint } from "./calibration";
+import {
+  DEFAULT_PURSUIT,
+  fitCalibration,
+  fitPursuitCalibration,
+  predictScreen,
+  pursuitPath,
+  pursuitSamples,
+  StalenessTracker,
+  type CalibrationPoint,
+  type TimedFeatures,
+} from "./calibration";
+import { scoreValidation, type PhaseWindow } from "./validation";
 import { extractFeatures, headPoseFromMatrix, medianFeatures, type Landmark } from "./features";
 import { classifyRegion, signedDistanceToRect } from "./region";
 import { summarise } from "./summary";
@@ -113,7 +124,7 @@ describe("fitCalibration", () => {
     return grid.map(([yaw, pitch, ix, iy], i) => {
       const features = { ...baseFeatures, headYawDeg: yaw, headPitchDeg: pitch, irisX: ix, irisY: iy };
       const t = truth(features);
-      return { features, target: { x: t.x + noise * rnd(), y: t.y + noise * rnd() }, holdout: i >= 9 };
+      return { features, target: { x: t.x + noise * rnd(), y: t.y + noise * rnd() }, group: `dot-${i}`, holdout: i >= 9 };
     });
   };
 
@@ -233,5 +244,113 @@ describe("summarise", () => {
     const s = summarise("s", [obs(10, null, false)], 0, 1000);
     expect(s.on_video_fraction).toBeNull();
     expect(s.valid_coverage).toBe(0);
+  });
+});
+
+describe("moving-dot calibration", () => {
+  const rect: ScreenRect = { left: 100, top: 100, width: 900, height: 506 };
+
+  /**
+   * Simulated viewer whose eyes trail the dot by `lagMs`. The gaze point depends on head angle,
+   * iris and head translation, so face position matters (the reason pursuit adds those features).
+   */
+  function simulate(lagMs: number, noisePx = 0): TimedFeatures[] {
+    const frames: TimedFeatures[] = [];
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5) * 2;
+    for (let t = 0; t <= DEFAULT_PURSUIT.durationMs; t += 66) {
+      const { u, v } = pursuitPath(t - lagMs);
+      const gx = rect.left + u * rect.width + noisePx * rnd();
+      const gy = rect.top + v * rect.height + noisePx * rnd();
+      // Head does part of the work, drifts sideways a little; iris covers the rest.
+      const headYaw = (gx - 550) / 40 + 2 * Math.sin(t / 3000);
+      const headPitch = -(gy - 353) / 50 + 1.5 * Math.cos(t / 4100);
+      const faceCenterX = 0.5 + 0.02 * Math.sin(t / 2300);
+      const faceCenterY = 0.5 + 0.015 * Math.cos(t / 2900);
+      // Inverse of: gx = 550 + 40*yaw + 1500*irisX + 2000*(faceCenterX-0.5)
+      const irisX = (gx - 550 - 40 * headYaw - 2000 * (faceCenterX - 0.5)) / 1500;
+      const irisY = (gy - 353 + 50 * headPitch - 1800 * (faceCenterY - 0.5)) / 1200;
+      frames.push({
+        tMs: t,
+        features: { ...baseFeatures, headYawDeg: headYaw, headPitchDeg: headPitch, irisX, irisY, faceCenterX, faceCenterY },
+      });
+    }
+    return frames;
+  }
+
+  it("keeps the dot inside the video", () => {
+    for (let t = 0; t < 30000; t += 37) {
+      const { u, v } = pursuitPath(t);
+      expect(u).toBeGreaterThanOrEqual(0.05);
+      expect(u).toBeLessThanOrEqual(0.95);
+      expect(v).toBeGreaterThanOrEqual(0.05);
+      expect(v).toBeLessThanOrEqual(0.95);
+    }
+  });
+
+  it("holds out whole time blocks, not scattered frames", () => {
+    const samples = pursuitSamples(simulate(0), rect, 0);
+    const groups = new Map<string, boolean>();
+    for (const s of samples) {
+      if (groups.has(s.group)) expect(groups.get(s.group)).toBe(s.holdout);
+      groups.set(s.group, s.holdout);
+    }
+    const held = [...groups.values()].filter(Boolean).length;
+    expect(held).toBeGreaterThanOrEqual(2);
+    expect(samples.every((s) => s.features && s.target)).toBe(true);
+    expect(samples.some((s) => s.holdout)).toBe(true);
+  });
+
+  it("recovers the eye lag and the mapping from training blocks", () => {
+    const m = fitPursuitCalibration(simulate(150), rect, DEFAULT_PURSUIT, { lambda: 1e-6 });
+    expect(m.method).toBe("pursuit");
+    expect(m.lagMs).toBe(150);
+    expect(m.heldoutRmsPx).toBeLessThan(5);
+    expect(m.quality).toBe("fine");
+    expect(m.heldoutErrorsPx.length).toBeGreaterThanOrEqual(2); // one per held-out block
+  });
+
+  it("reports realistic error when gaze is noisy", () => {
+    const m = fitPursuitCalibration(simulate(150, 200), rect);
+    expect(m.heldoutRmsPx).toBeGreaterThan(40);
+    expect(Number.isFinite(m.marginPx)).toBe(true);
+  });
+});
+
+describe("scoreValidation", () => {
+  const phase = (id: string, expected: "on_video" | "off_video") => ({ id, instruction: id, expected, durationMs: 10_000 });
+  const windows: PhaseWindow[] = [
+    { phase: phase("video", "on_video"), startMs: 0, endMs: 10_000 },
+    { phase: phase("phone", "off_video"), startMs: 10_000, endMs: 20_000 },
+  ];
+  const at = (t: number, region: GazeObservation["gaze"]["region"]) => obs(t, region, region !== null);
+
+  it("skips transitions and computes detection, false alarms and balanced accuracy", () => {
+    const o: GazeObservation[] = [
+      at(1_000, "off_video"), // inside transition: ignored
+      ...[3_000, 4_000, 5_000, 6_000].map((t) => at(t, "on_video")),
+      at(7_000, "uncertain"),
+      at(8_000, "off_video"), // false alarm
+      at(11_000, "on_video"), // inside transition: ignored
+      ...[13_000, 14_000, 15_000].map((t) => at(t, "off_video")),
+      at(16_000, null), // unavailable counts against correctness
+    ];
+    const r = scoreValidation(windows, o, 2_500);
+    const [video, phone] = r.phases;
+    expect(video.frames).toBe(6);
+    expect(video.correctFraction).toBeCloseTo(4 / 6);
+    expect(phone.frames).toBe(4);
+    expect(phone.unavailable).toBe(1);
+    expect(r.lookAwayDetectionRate).toBeCloseTo(3 / 4);
+    expect(r.falseAlarmRate).toBeCloseTo(1 / 6);
+    expect(r.onVideoConfirmRate).toBeCloseTo(4 / 6);
+    expect(r.balancedAccuracy).toBeCloseTo((3 / 4 + 5 / 6) / 2);
+    expect(r.coverage).toBeCloseTo(9 / 10);
+  });
+
+  it("returns nulls when a phase has no data", () => {
+    const r = scoreValidation(windows, []);
+    expect(r.lookAwayDetectionRate).toBeNull();
+    expect(r.balancedAccuracy).toBeNull();
   });
 });

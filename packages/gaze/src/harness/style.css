@@ -93,6 +93,20 @@ dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
   background: var(--off); box-shadow: 0 0 0 6px color-mix(in srgb, var(--off) 30%, transparent);
   transition: left .35s ease, top .35s ease;
 }
+#cal-target.moving { transition: none; }
+#val-banner {
+  position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 25;
+  width: min(560px, calc(100% - 32px)); background: var(--surface); border: 2px solid var(--accent);
+  border-radius: 10px; padding: 12px 16px; box-shadow: 0 6px 24px rgb(0 0 0 / .15);
+}
+#val-step { font-size: 12px; color: var(--muted); }
+#val-instruction { font-size: 18px; font-weight: 600; margin: 4px 0 8px; }
+.val-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+#val-progress { height: 100%; width: 0; background: var(--accent); }
+table.val { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 12px; margin-top: 8px; }
+table.val th, table.val td { text-align: right; padding: 2px 4px; border-bottom: 1px solid var(--border); }
+table.val th:first-child, table.val td:first-child { text-align: left; }
+.metric { display: flex; justify-content: space-between; }
 #cal-target::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: #fff; }
 #cal-text {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--surface);

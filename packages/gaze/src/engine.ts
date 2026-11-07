@@ -1,11 +1,16 @@
 import { FaceLandmarker, FilesetResolver, type FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 import {
+  DEFAULT_PURSUIT,
   DEFAULT_TARGETS,
   fitCalibration,
+  fitPursuitCalibration,
   predictScreen,
+  pursuitPath,
   StalenessTracker,
   type CalibrationModel,
-  type CalibrationPoint,
+  type CalibrationSample,
+  type PursuitConfig,
+  type TimedFeatures,
 } from "./calibration";
 import { Camera, type CameraState } from "./camera";
 import { extractFeatures, medianFeatures, type Landmark } from "./features";
@@ -47,8 +52,12 @@ export interface FrameDebug {
 }
 
 export interface CalibrationUI {
-  /** Show a target at a viewport position (CSS px). */
-  show(target: ScreenPoint, index: number, total: number): void;
+  /**
+   * Show a target at a viewport position (CSS px).
+   * For dots, `progress` is the dot index out of `total`; for the moving dot it is elapsed ms out of total ms.
+   * `moving` is true during moving-dot calibration (render without CSS transitions).
+   */
+  show(target: ScreenPoint, progress: number, total: number, moving?: boolean): void;
   hide(): void;
 }
 
@@ -75,7 +84,8 @@ export class GazeEngine {
   private calibration: CalibrationModel | null = null;
   private staleness: StalenessTracker | null = null;
   private calibrationExpired = false;
-  private collector: FrameFeatures[] | null = null;
+  /** Frames collected during calibration, stamped with capture time. */
+  private collector: { captureMs: number; features: FrameFeatures }[] | null = null;
   private listeners: { [K in keyof Events]?: Set<(e: Events[K]) => void> } = {};
 
   constructor(options: GazeEngineOptions) {
@@ -191,7 +201,7 @@ export class GazeEngine {
       : null;
 
     const eyesClosed = features ? features.eyeOpenness < this.opts.eyesClosedThreshold : null;
-    if (this.collector && features && faces === 1 && !eyesClosed) this.collector.push(features);
+    if (this.collector && features && faces === 1 && !eyesClosed) this.collector.push({ captureMs, features });
 
     const obs = this.buildObservation(captureMs, faces, features, eyesClosed);
     this.emit("frame", {
@@ -341,37 +351,102 @@ export class GazeEngine {
     opts: { settleMs?: number; collectMs?: number; minFrames?: number; signal?: AbortSignal } = {},
   ): Promise<CalibrationModel> {
     const { settleMs = 800, collectMs = 1000, minFrames = 5, signal } = opts;
-    const rect = elementScreenRect(this.opts.getVideoElement());
-    if (!rect) throw new Error("Lecture video is not visible; cannot calibrate.");
-    if (this.camera.state.status !== "live" || !this.landmarker) throw new Error("Camera/model not ready.");
+    const rect = this.calibrationPreflight();
+    const sleep = abortableSleep(signal);
 
-    const sleep = (ms: number) =>
-      new Promise<void>((resolve, reject) => {
-        const t = setTimeout(resolve, ms);
-        signal?.addEventListener("abort", () => {
-          clearTimeout(t);
-          reject(new DOMException("Calibration cancelled", "AbortError"));
-        });
-      });
-
-    const points: CalibrationPoint[] = [];
+    const points: CalibrationSample[] = [];
     try {
       for (const [i, t] of DEFAULT_TARGETS.entries()) {
         const target = pointInRect(rect, t.u, t.v);
-        ui.show(screenToViewport(target), i, DEFAULT_TARGETS.length);
+        ui.show(screenToViewport(target), i, DEFAULT_TARGETS.length, false);
         await sleep(settleMs);
         this.collector = [];
         await sleep(collectMs);
         const samples = this.collector;
         this.collector = null;
-        if (samples.length >= minFrames) points.push({ target, features: medianFeatures(samples), holdout: t.holdout });
+        if (samples.length >= minFrames)
+          points.push({
+            target,
+            features: medianFeatures(samples.map((s) => s.features)),
+            group: `dot-${i}`,
+            holdout: t.holdout,
+          });
       }
     } finally {
       this.collector = null;
       ui.hide();
     }
-    const model = fitCalibration(points, { videoRect: rect });
+    const model = fitCalibration(points, { videoRect: rect, method: "dots" });
     this.setCalibration(model);
     return model;
   }
+
+  /**
+   * Moving-dot calibration: the user follows a slowly moving dot for ~24 s, giving hundreds of
+   * samples. Every 4th 2-second block is held out (blocked, not random, because neighbouring frames
+   * are near-duplicates), and the eye lag behind the dot is chosen using training blocks only.
+   */
+  async calibratePursuit(
+    ui: CalibrationUI,
+    opts: { config?: Partial<PursuitConfig>; signal?: AbortSignal } = {},
+  ): Promise<CalibrationModel> {
+    const cfg: PursuitConfig = { ...DEFAULT_PURSUIT, ...opts.config };
+    const rect = this.calibrationPreflight();
+    const signal = opts.signal;
+
+    // Show the start position briefly so the first saccade happens before the clock starts.
+    ui.show(screenToViewport(pointInRect(rect, 0.5, 0.5)), 0, cfg.durationMs, true);
+    await abortableSleep(signal)(800);
+
+    const frames: TimedFeatures[] = [];
+    let startMs = 0;
+    try {
+      this.collector = [];
+      startMs = performance.now();
+      await new Promise<void>((resolve, reject) => {
+        const tick = () => {
+          if (signal?.aborted) return reject(new DOMException("Calibration cancelled", "AbortError"));
+          const t = performance.now() - startMs;
+          if (t >= cfg.durationMs) return resolve();
+          const { u, v } = pursuitPath(t, cfg);
+          ui.show(screenToViewport(pointInRect(rect, u, v)), t, cfg.durationMs, true);
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      for (const s of this.collector) frames.push({ tMs: s.captureMs - startMs, features: s.features });
+    } finally {
+      this.collector = null;
+      ui.hide();
+    }
+    if (frames.length < 60) {
+      throw new Error(`Only ${frames.length} usable frames (face lost or eyes closed too often). Check lighting and try again.`);
+    }
+    const model = fitPursuitCalibration(frames, rect, cfg);
+    this.setCalibration(model);
+    return model;
+  }
+
+  private calibrationPreflight() {
+    const rect = elementScreenRect(this.opts.getVideoElement());
+    if (!rect) throw new Error("Lecture video is not visible; cannot calibrate.");
+    if (this.camera.state.status !== "live" || !this.landmarker) throw new Error("Camera/model not ready.");
+    return rect;
+  }
+}
+
+function abortableSleep(signal?: AbortSignal) {
+  return (ms: number) =>
+    new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) return reject(new DOMException("Calibration cancelled", "AbortError"));
+      const t = setTimeout(resolve, ms);
+      signal?.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(t);
+          reject(new DOMException("Calibration cancelled", "AbortError"));
+        },
+        { once: true },
+      );
+    });
 }

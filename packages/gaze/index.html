@@ -44,13 +44,22 @@
 
         <div class="row">
           <button id="btn-start">Start camera</button>
-          <button id="btn-cal" disabled>Calibrate</button>
+          <button id="btn-pursuit" disabled title="Follow a slowly moving dot for about 24 seconds">Calibrate: moving dot</button>
+          <button id="btn-cal" class="secondary" disabled title="Look at 11 still dots">Calibrate: dots</button>
           <button id="btn-clear" class="secondary" disabled>Clear calibration</button>
         </div>
+        <p class="hint">Before calibrating, sit how you'll sit while watching. During calibration, look at the dot the way you'd normally watch: mostly with your eyes, letting your head turn a little. Keep your seat position still.</p>
         <p class="hint" id="message">Frames are processed locally in this browser; nothing is uploaded or recorded unless you press Record.</p>
 
         <h2>Calibration</h2>
         <dl id="cal-info"><dt>status</dt><dd>none</dd></dl>
+
+        <h2>Look-away accuracy test</h2>
+        <div class="row">
+          <button id="btn-validate" class="secondary" disabled>Run accuracy test (~75 s)</button>
+        </div>
+        <p class="hint">Follow the instructions in the banner. A beep marks each change. Have your phone or something on the desk to look at.</p>
+        <div id="val-info"></div>
 
         <h2>Live frame</h2>
         <dl id="live-info"></dl>
@@ -68,6 +77,12 @@
     </main>
 
     <div id="gaze-dot" hidden></div>
+    <div id="val-banner" hidden>
+      <div id="val-step"></div>
+      <div id="val-instruction"></div>
+      <div class="val-bar"><div id="val-progress"></div></div>
+      <button id="btn-val-cancel" class="secondary">Cancel</button>
+    </div>
     <div id="cal-overlay" hidden>
       <div id="cal-target"></div>
       <div id="cal-text"></div>

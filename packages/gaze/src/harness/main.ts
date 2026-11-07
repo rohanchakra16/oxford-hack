@@ -1,4 +1,15 @@
-import { GazeEngine, screenToViewport, type CalibrationModel, type GazeObservation, type GazeSummary } from "../index";
+import {
+  DEFAULT_PHASES,
+  GazeEngine,
+  scoreValidation,
+  screenToViewport,
+  type CalibrationModel,
+  type CalibrationUI,
+  type GazeObservation,
+  type GazeSummary,
+  type PhaseWindow,
+  type ValidationResult,
+} from "../index";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -37,7 +48,7 @@ engine.on("camera", (s) => {
   else if (s.status === "error") chip("chip-camera", `camera: ${s.reason}`, "bad");
   else chip("chip-camera", `camera: ${s.status}`);
   $("cam-empty").hidden = s.status === "live";
-  ($("btn-cal") as HTMLButtonElement).disabled = s.status !== "live";
+  for (const id of ["btn-cal", "btn-pursuit", "btn-validate"]) ($(id) as HTMLButtonElement).disabled = s.status !== "live";
   if (s.status === "error") message.textContent = `Camera problem: ${s.message}`;
 });
 
@@ -50,11 +61,16 @@ function showCalibration(m: CalibrationModel | null) {
   }
   const tone = m.quality === "fine" ? "ok" : m.quality === "coarse" ? "warn" : "bad";
   chip("chip-cal", `calibration: ${m.quality} (±${Math.round(m.heldoutRmsPx)} px)`, tone);
+  const method = m.method ?? "dots";
   dl("cal-info", [
+    ["method", method === "pursuit" ? `moving dot (eye lag ${m.lagMs} ms)` : "dots"],
     ["quality", m.quality],
     ["held-out RMS", `${Math.round(m.heldoutRmsPx)} px`],
-    ["held-out errors", m.heldoutErrorsPx.map((e) => Math.round(e)).join(", ") + " px"],
-    ["fit RMS", `${Math.round(m.fitRmsPx)} px`],
+    [
+      method === "pursuit" ? "held-out blocks" : "held-out errors",
+      m.heldoutErrorsPx.map((e) => Math.round(e)).join(", ") + " px",
+    ],
+    ["fit RMS", `${Math.round(m.fitRmsPx)} px${m.fitSamples ? ` (${m.fitSamples} samples)` : ""}`],
     ["edge margin", `${Math.round(m.marginPx)} px`],
     ["id", m.id],
   ]);
@@ -166,37 +182,141 @@ $("btn-start").addEventListener("click", async () => {
 });
 
 let calAbort: AbortController | null = null;
-$("btn-cal").addEventListener("click", async () => {
+const calibrationUI: CalibrationUI = {
+  show(p, progress, total, moving) {
+    calOverlay.hidden = false;
+    calTarget.classList.toggle("moving", !!moving);
+    calTarget.style.left = `${p.x}px`;
+    calTarget.style.top = `${p.y}px`;
+    calText.textContent = moving
+      ? `Follow the dot with your eyes as you'd normally watch. Keep your seat still (${Math.ceil((total - progress) / 1000)} s) · Esc to cancel`
+      : `Look at the dot as you'd normally watch. Keep your seat still (${progress + 1}/${total}) · Esc to cancel`;
+  },
+  hide() {
+    calOverlay.hidden = true;
+  },
+};
+
+async function runCalibration(kind: "dots" | "pursuit") {
   calAbort = new AbortController();
   message.textContent = "";
   try {
-    const m = await engine.calibrate(
-      {
-        show(p, i, n) {
-          calOverlay.hidden = false;
-          calTarget.style.left = `${p.x}px`;
-          calTarget.style.top = `${p.y}px`;
-          calText.textContent = `Look at the dot. Move your eyes naturally (${i + 1}/${n}) · Esc to cancel`;
-        },
-        hide() {
-          calOverlay.hidden = true;
-        },
-      },
-      { signal: calAbort.signal },
-    );
+    const m =
+      kind === "pursuit"
+        ? await engine.calibratePursuit(calibrationUI, { signal: calAbort.signal })
+        : await engine.calibrate(calibrationUI, { signal: calAbort.signal });
     message.textContent =
       m.quality === "unusable"
         ? "Calibration too inaccurate to locate gaze; head pose is still reported. Try better lighting or sit closer."
-        : `Calibrated: held-out error about ${Math.round(m.heldoutRmsPx)} px.`;
+        : `Calibrated: held-out error about ${Math.round(m.heldoutRmsPx)} px. Run the accuracy test to see if it separates looking at vs. away from the video.`;
   } catch (err) {
     message.textContent = `Calibration did not complete: ${(err as Error).message}`;
   } finally {
     calAbort = null;
   }
-});
+}
+$("btn-cal").addEventListener("click", () => runCalibration("dots"));
+$("btn-pursuit").addEventListener("click", () => runCalibration("pursuit"));
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") calAbort?.abort();
+  if (e.key === "Escape") {
+    calAbort?.abort();
+    valAbort?.abort();
+  }
 });
+
+// ---------- look-away accuracy test ----------
+let valAbort: AbortController | null = null;
+let valObservations: GazeObservation[] | null = null;
+engine.on("observation", (o) => valObservations?.push(o));
+
+let audio: AudioContext | null = null;
+function beep(freq = 880) {
+  try {
+    audio ??= new AudioContext();
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.15, audio.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.25);
+    osc.connect(gain).connect(audio.destination);
+    osc.start();
+    osc.stop(audio.currentTime + 0.25);
+  } catch {
+    /* audio unavailable; the banner still updates */
+  }
+}
+
+function showValidation(r: ValidationResult) {
+  const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)}%`);
+  const rows = r.phases
+    .map(
+      (p) =>
+        `<tr><td>${p.id}</td><td>${p.expected === "on_video" ? "on" : "off"}</td><td>${pct(p.correctFraction)}</td>` +
+        `<td>${p.on}/${p.off}/${p.uncertain}/${p.unavailable}</td></tr>`,
+    )
+    .join("");
+  $("val-info").innerHTML = `
+    <dl>
+      <dt>look-away detected</dt><dd>${pct(r.lookAwayDetectionRate)}</dd>
+      <dt>false alarms (on video → off)</dt><dd>${pct(r.falseAlarmRate)}</dd>
+      <dt>on-video confirmed</dt><dd>${pct(r.onVideoConfirmRate)}</dd>
+      <dt>balanced accuracy</dt><dd>${pct(r.balancedAccuracy)}</dd>
+      <dt>coverage</dt><dd>${pct(r.coverage)}</dd>
+    </dl>
+    <table class="val">
+      <thead><tr><th>phase</th><th>expect</th><th>correct</th><th>on/off/unc/na</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+$("btn-validate").addEventListener("click", async () => {
+  if (!engine.getCalibration()) {
+    message.textContent = "Calibrate first; without calibration every frame is 'unavailable'.";
+    return;
+  }
+  valAbort = new AbortController();
+  const signal = valAbort.signal;
+  const banner = $("val-banner");
+  const btn = $<HTMLButtonElement>("btn-validate");
+  btn.disabled = true;
+  banner.hidden = false;
+  valObservations = [];
+  const windows: PhaseWindow[] = [];
+  const total = DEFAULT_PHASES.reduce((s, p) => s + p.durationMs, 0);
+  const t0 = performance.now();
+  try {
+    for (const [i, phase] of DEFAULT_PHASES.entries()) {
+      const startMs = performance.now();
+      $("val-step").textContent = `Step ${i + 1} of ${DEFAULT_PHASES.length} · Esc to cancel`;
+      $("val-instruction").textContent = phase.instruction;
+      beep(phase.expected === "on_video" ? 880 : 660);
+      await new Promise<void>((resolve, reject) => {
+        const tick = () => {
+          if (signal.aborted) return reject(new DOMException("cancelled", "AbortError"));
+          const now = performance.now();
+          $("val-progress").style.width = `${Math.min(100, ((now - t0) / total) * 100)}%`;
+          if (now - startMs >= phase.durationMs) return resolve();
+          requestAnimationFrame(tick);
+        };
+        tick();
+      });
+      windows.push({ phase, startMs, endMs: performance.now() });
+    }
+    beep(1200);
+    const result = scoreValidation(windows, valObservations);
+    showValidation(result);
+    record({ type: "validation_result", calibration: engine.getCalibration(), result, windows });
+    message.textContent = "Accuracy test complete.";
+  } catch {
+    message.textContent = "Accuracy test cancelled.";
+  } finally {
+    valObservations = null;
+    valAbort = null;
+    banner.hidden = true;
+    btn.disabled = false;
+  }
+});
+$("btn-val-cancel").addEventListener("click", () => valAbort?.abort());
 
 $("btn-clear").addEventListener("click", () => engine.setCalibration(null));
 $("small-video").addEventListener("change", (e) =>

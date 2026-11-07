@@ -1,8 +1,17 @@
 export * from "./types";
 export { GazeEngine, MODEL_NAME, MODULE_VERSION } from "./engine";
 export type { GazeEngineOptions, CalibrationUI, FrameDebug } from "./engine";
-export { fitCalibration, predictScreen, DEFAULT_TARGETS } from "./calibration";
-export type { CalibrationModel, CalibrationPoint } from "./calibration";
+export {
+  fitCalibration,
+  fitPursuitCalibration,
+  predictScreen,
+  pursuitPath,
+  DEFAULT_TARGETS,
+  DEFAULT_PURSUIT,
+} from "./calibration";
+export type { CalibrationModel, CalibrationPoint, CalibrationSample, PursuitConfig } from "./calibration";
+export { scoreValidation, DEFAULT_PHASES, DEFAULT_TRANSITION_MS } from "./validation";
+export type { ValidationPhase, PhaseWindow, PhaseResult, ValidationResult } from "./validation";
 export { classifyRegion, signedDistanceToRect } from "./region";
 export { summarise } from "./summary";
 export { elementScreenRect, viewportToScreen, screenToViewport } from "./geometry";
