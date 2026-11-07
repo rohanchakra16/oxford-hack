@@ -3,6 +3,12 @@
 Owner: @Seikaro
 Owned folders: inference/, evaluation/
 
+Public EEG model: [evaluation/EEGMAT.md](../evaluation/EEGMAT.md) documents a
+trained arithmetic-versus-rest workload proxy and participant-held-out results.
+It reuses Annie's existing preprocessing through a read-only bridge, supports
+her NPZ/CSV recording exports, and produces scores/unknown diagnostics only.
+It does not produce live attention percentages or automatic review events.
+
 ## Before starting
 - Read the root AGENTS.md and evaluation/README.md.
 - Check Message Board issue #1:
@@ -78,8 +84,8 @@ inference/.venv/Scripts/ruff.exe check --config platform/pyproject.toml inferenc
 ```
 
 On POSIX, use `.venv/bin/python` and
-`export PYTHONPATH="$PWD:$PWD/platform/src"` instead. No OpenAI API or learned
-model dependency is used. Calibration and label collection are documented in
+`export PYTHONPATH="$PWD:$PWD/platform/src"` instead. The synthetic baseline has
+no learned-model dependency. Calibration and label collection are documented in
 `evaluation/PROTOCOL.md`; `python -m evaluation.labels --help` describes entry.
 
 The rule uses 4 s complete EEG/gaze evidence, 2 s sustained advancing evidence,
@@ -98,9 +104,12 @@ candidates. These diagnostics are not yet a shared wire message; transport/UI
 requires agreement with @rohanchakra16 and @Betty505. Representative candidates
 and status traces for all three modes are in `fixtures/review-events.json`.
 
-This is the first issue #5 milestone. Real sensor configurations, live wiring,
-training and participant-held-out evaluation remain pending; do not enable
-automatic suggestions from these synthetic results.
+Issue #5 supplies the synthetic baseline. Issue #12 adds the independent public
+EEG workload model, loaded with `eeg_workload.load_workload_bundle()`; its optional
+scientific dependencies are pinned in `requirements-public-eeg.txt`. See
+`evaluation/EEGMAT.md` for verified download/training/scoring commands and limits.
+Local attention validation and real sensor configurations remain pending.
+The original adapter's simulation wiring and review-event behaviour are unchanged.
 
 ## Completion post
 Post the branch/PR, changes, tests, model version, limitations,
