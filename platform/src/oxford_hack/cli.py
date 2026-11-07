@@ -9,6 +9,13 @@ import secrets
 import stat
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from .session.hub import Hub, HubSettings
+    from .timing.clock import Clock
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_TOKEN_FILE = REPO_ROOT / ".local" / "launch-token"
@@ -41,12 +48,53 @@ def load_launch_token(path: Path, *, rotate: bool = False) -> str:
     return token
 
 
+def _repo_root_on_path() -> None:
+    """P1/P3 code lives next to platform/ (``eeg/``, ``inference/``); make it importable by name."""
+    root = str(REPO_ROOT)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+
+
+def build_hub_factory(args: argparse.Namespace, settings: HubSettings) -> Callable[[Clock], Hub]:
+    """Hub construction for ``serve`` (separate so it can be tested without binding a port)."""
+    from .eeg.bridge import LiveEegBridge, load_source_factory
+    from .harness.synthetic import simulation_factory
+    from .session.hub import Hub
+
+    detector_factory = None
+    if args.allow_simulated and getattr(args, "simulated_detector", "placeholder") == "baseline":
+        _repo_root_on_path()
+        from inference.adapter import inference_factory  # type: ignore[import-not-found,unused-ignore]  # P3
+
+        detector_factory = inference_factory
+    source_factory = None
+    if getattr(args, "eeg_source", None):
+        _repo_root_on_path()
+        source_factory = load_source_factory(args.eeg_source)
+
+    def hub_factory(clock: Clock) -> Hub:
+        bridge = None
+        if source_factory is not None:
+            bridge = LiveEegBridge(source_factory(), clock)
+            bridge.start()
+        return Hub(
+            clock,
+            settings=settings,
+            simulation_factory=(
+                simulation_factory(detector_factory=detector_factory) if args.allow_simulated else None
+            ),
+            live_eeg=bridge,
+        )
+
+    return hub_factory
+
+
 def serve(args: argparse.Namespace) -> int:
     import uvicorn
 
     from .contracts.messages import MAX_MESSAGE_BYTES
-    from .harness.synthetic import simulation_factory
-    from .session.hub import Hub, HubSettings
+    from .eeg.bridge import EegSourceLoadError
+    from .session.hub import HubSettings
     from .transport.app import ServerConfig, create_app
 
     if not _is_loopback(args.host):
@@ -61,12 +109,11 @@ def serve(args: argparse.Namespace) -> int:
     run_kinds = frozenset({"live", "simulated"} if args.allow_simulated else {"live"})
     settings = HubSettings(allowed_run_kinds=run_kinds)
 
-    def hub_factory(clock):  # type: ignore[no-untyped-def]
-        return Hub(
-            clock,
-            settings=settings,
-            simulation_factory=simulation_factory() if args.allow_simulated else None,
-        )
+    try:
+        hub_factory = build_hub_factory(args, settings)
+    except (EegSourceLoadError, ImportError) as err:
+        print(f"cannot start: {err}", file=sys.stderr)
+        return 2
 
     app = create_app(config, hub_factory)
     frontend = args.frontend_url or origins[0]
@@ -118,6 +165,12 @@ def main(argv: list[str] | None = None) -> int:
         choices=["placeholder", "baseline"],
         default="placeholder",
         help="simulated-session detector: scripted placeholder, or P3's inference.adapter baseline",
+    )
+    s.add_argument(
+        "--eeg-source",
+        metavar="MODULE:FACTORY",
+        help="Person 1's EegSource factory for live sessions, e.g. mypackage.adapter:make_source "
+        "(the repository root is on the import path)",
     )
     s.add_argument("--enable-test-hooks", action="store_true", help="expose /api/v0/test/* (tests only)")
     s.add_argument("--log-level", default="info")
