@@ -7,7 +7,7 @@
   "medium_attention_max": 0.7,
   "recovery_min": 0.45,
   "smoothing_tau_ms": 5000.0,
-  "minimum_loss_ms": 10000.0,
+  "minimum_loss_ms": 8000.0,
   "recovery_ms": 4000.0,
   "merge_gap_s": 10.0,
   "max_evidence_step_ms": 5000.0,

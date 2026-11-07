@@ -35,7 +35,7 @@ is equivalent. Both ports must be free.
 The built-in scripted smoke sequence ignores a dip at 3–5 seconds and marks a
 sustained low interval at 10–36 seconds. Because smoothing and persistence apply,
 the saved range begins at the first qualifying **smoothed** low window, not at
-the raw scripted change. The heads-up appears about ten seconds after that
+the raw scripted change. The heads-up appears about eight seconds after that
 window; the bookmark retains its earlier media start. Playback pauses, seeks,
 buffering, gaps, replay and missing scores reset pending detection. The view
 shows an unavailable state and a reconnect button if evaluation fails.
@@ -48,7 +48,7 @@ Default for this integration: `inference/bundles/lecture-conservative-0.1.0.json
 | --- | ---: | ---: |
 | Low-score trigger maximum | 0.40 | 0.30 |
 | Smoothing time constant | 2 s | 5 s |
-| Sustained-low dwell | 4 s | 10 s |
+| Sustained-low dwell | 4 s | 8 s |
 | Recovery threshold / dwell | 0.50 / 2 s | 0.45 / 4 s |
 | Merge gap | 5 s | 10 s |
 | Question cooldown, if used outside this normal-mode view | 30 s | 60 s |
@@ -57,6 +57,11 @@ Scores are prototype inputs, not attention percentages. These settings trade
 slower detection and missed short losses for fewer nuisance triggers. The
 normal-mode heads-up is emitted once per segment; range extensions do not
 repeat it. Closing it or dismissing a card does not alter model decisions.
+Saved review moments accumulate across separate episodes. One heads-up is visible
+at a time; a new segment replaces the current heads-up rather than stacking banners.
+Nearby episodes can merge under the ten-second merge rule. The eight-second
+requirement applies after smoothing crosses the low threshold, using advancing
+evidence timestamps; smoothing and the sampling cadence can add detection delay.
 
 ## Optional offline EEGMAT-derived scores
 
