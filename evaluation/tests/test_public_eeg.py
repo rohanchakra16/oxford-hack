@@ -3,6 +3,7 @@
 import importlib
 import json
 import os
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -71,7 +72,20 @@ def annie_source():
     source = Path(os.environ.get("EEG_SOURCE", str(default)))
     if not (source / "eeg/acquisition/base_device.py").is_file():
         pytest.skip("Annie's pinned read-only EEG source is not present")
-    return source
+    # The bridge deliberately loads the pinned eeg package in this process.
+    # Isolate it from current-owner realtime tests, in either execution order.
+    saved = {name: module for name, module in sys.modules.items() if name == "eeg" or name.startswith("eeg.")}
+    for name in saved:
+        sys.modules.pop(name, None)
+    importlib.invalidate_caches()
+    try:
+        yield source
+    finally:
+        for name in list(sys.modules):
+            if name == "eeg" or name.startswith("eeg."):
+                sys.modules.pop(name, None)
+        sys.modules.update(saved)
+        importlib.invalidate_caches()
 
 
 def test_annie_export_load_and_scoring_compatibility(annie_source, tmp_path):

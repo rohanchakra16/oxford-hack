@@ -6,7 +6,7 @@ Playwright 1.65.0 / Chromium 158. Commands and launch instructions are in
 
 | Check | Result |
 | --- | --- |
-| Inference + evaluation + platform Python suite | 214 passed |
+| Inference + evaluation + platform Python suite | 236 passed (including newly merged realtime checks) |
 | Existing frontend unit suite | 104 passed across 9 files |
 | Existing full browser integration suite | 22 passed |
 | New real-video evaluation smoke suite | 2 passed |
@@ -29,6 +29,13 @@ suppression, unknown outside workload coverage, crossing four-second workload
 window boundaries, duplicate sequence rejection, session cleanup and invalid
 payload rejection. The existing inference tests cover buffering, seeking,
 staleness, eligibility and scheduling boundaries.
+
+Final verification included the realtime tests merged during this work. Their
+combined run exposed test-package leakage: the optional public-EEG tests left
+the pinned `eeg` snapshot in Python's module cache, preventing later realtime
+tests from finding the current classifier. The snapshot fixture now restores
+the prior `eeg.*` modules after each compatibility test; production EEG code
+and model preprocessing are unchanged.
 
 The conservative profile reduced **three scripted triggers to one**, retaining
 the long low bout while suppressing shorter/moderate dips. This is a behavior
