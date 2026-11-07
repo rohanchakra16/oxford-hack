@@ -3,18 +3,27 @@ from fastapi.testclient import TestClient
 from evaluation.player_api import create_app
 
 
-def setup(scenario=None, workload=None):
+def setup(
+    scenario=None, workload=None, *, config=None, combine_gaze=False, duration=100
+):
     now = [100.0]
     client = TestClient(
-        create_app(clock=lambda: now[0], scenario=scenario, workload=workload)
+        create_app(
+            clock=lambda: now[0], scenario=scenario, workload=workload, config=config
+        )
     )
     snapshot = client.post(
-        "/sessions", json={"videoId": "local-test", "durationS": 100}
+        "/sessions",
+        json={
+            "videoId": "local-test",
+            "durationS": duration,
+            "combineGaze": combine_gaze,
+        },
     ).json()
     sid = snapshot["sessionId"]
     seq = [0]
 
-    def tick(media, state="playing", replaying=False, step=1.0):
+    def tick(media, state="playing", replaying=False, step=1.0, gaze=None, rate=1):
         now[0] += step
         seq[0] += 1
         response = client.post(
@@ -24,6 +33,8 @@ def setup(scenario=None, workload=None):
                 "mediaS": media,
                 "state": state,
                 "replaying": replaying,
+                "gaze": gaze,
+                "playbackRate": rate,
             },
         )
         assert response.status_code == 200, response.text
@@ -163,3 +174,137 @@ def test_eight_second_dwell_keeps_separate_episodes_as_distinct_review_moments()
     assert len(result["segments"]) == 2
     assert result["segments"][0]["segmentId"] == first_id
     assert result["segments"][1]["segmentId"] != first_id
+
+
+def fast_config():
+    from inference.lecture_types import LectureConfig
+
+    return LectureConfig(
+        smoothing_tau_ms=0,
+        minimum_loss_ms=1000,
+        recovery_ms=0,
+        merge_gap_s=0,
+        low_attention_max=0.3,
+    )
+
+
+def gaze_window(outside=0, **overrides):
+    return {
+        "calibrationId": "cal-test",
+        "calibrationValid": True,
+        "validFraction": 1,
+        "outsideFraction": outside,
+        "windowMs": 1000,
+        "newestAgeMs": 20,
+        "maxGapMs": 70,
+        **overrides,
+    }
+
+
+def test_bookmark_cooldown_suppresses_new_flags_but_keeps_detection_records():
+    scenario = {
+        "baseline_score": 0.9,
+        "unknown_blocks": [],
+        "score_blocks": [
+            {"start_s": 1, "end_s": 4, "score": 0.05},
+            {"start_s": 10, "end_s": 35, "score": 0.05},
+            {"start_s": 40, "end_s": 44, "score": 0.05},
+        ],
+    }
+    _, _, tick = setup(scenario, config=fast_config())
+    for second in range(39):
+        result = tick(second)
+        if second >= 12:
+            assert len(result["segments"]) == 2
+            # A suppressed, continuing flag never becomes a delayed bookmark.
+            assert len(result["bookmarks"]) == 1
+    for second in range(39, 47):
+        result = tick(second)
+    assert len(result["segments"]) == 3
+    assert len(result["bookmarks"]) == 2
+    times = [b["firstDetectedBackendMs"] for b in result["bookmarks"]]
+    assert times[1] - times[0] >= 30_000
+    assert result["bookmarkCooldownS"] == 30
+
+
+def test_bookmark_cooldown_boundary_is_backend_time_not_media_position():
+    low = {"baseline_score": 0.05, "score_blocks": [], "unknown_blocks": []}
+    _, _, tick = setup(low, config=fast_config(), duration=200)
+    tick(0)
+    tick(1)
+    first = tick(2)
+    assert len(first["bookmarks"]) == 1
+    # Seeking far forward cannot bypass the wall-clock cooldown.
+    tick(100, "seeking")
+    tick(100)
+    tick(101)
+    assert len(tick(102)["bookmarks"]) == 1
+    # A new flag exactly 30 seconds after the first bookmark is allowed.
+    tick(130, "seeking", step=23)
+    tick(130)
+    tick(131)
+    result = tick(132)
+    assert len(result["segments"]) == 3
+    assert len(result["bookmarks"]) == 2
+    assert (
+        result["bookmarks"][1]["firstDetectedBackendMs"]
+        - first["bookmarks"][0]["firstDetectedBackendMs"]
+        == 30_000
+    )
+
+
+def test_bookmarks_survive_lecture_end_replay_and_are_session_local():
+    low = {"baseline_score": 0.05, "score_blocks": [], "unknown_blocks": []}
+    client, _, tick = setup(low, config=fast_config())
+    for second in range(5):
+        result = tick(second)
+    saved = result["bookmarks"][0]["segmentId"]
+    ended = tick(100, "ended")
+    assert ended["ended"]
+    assert ended["bookmarks"][0]["segmentId"] == saved
+    replay = tick(1, replaying=True)
+    assert replay["ended"] and len(replay["bookmarks"]) == 1
+    fresh = client.post("/sessions", json={"videoId": "other", "durationS": 100}).json()
+    assert fresh["bookmarks"] == [] and not fresh["ended"]
+
+
+def test_combined_eeg_gaze_calibrates_then_requires_both_signals():
+    scenario = {
+        "baseline_score": 0.9,
+        "unknown_blocks": [],
+        "score_blocks": [{"start_s": 10, "end_s": 40, "score": 0.05}],
+    }
+    _, _, tick = setup(scenario, config=fast_config(), combine_gaze=True)
+    for second in range(10):
+        result = tick(second, gaze=gaze_window())
+        assert not result["bookmarks"]
+    assert result["fusion"]["calibrated"]
+    for second in range(10, 20):
+        result = tick(second, gaze=gaze_window())
+        assert not result["bookmarks"]  # EEG loss alone is below combined threshold.
+    for second in range(20, 25):
+        result = tick(second, gaze=gaze_window(1))
+    assert len(result["bookmarks"]) == 1
+    assert result["fusion"]["combinedLoss"] >= 0.7
+    assert result["bookmarks"][0]["mediaRange"]["startMediaS"] == 19
+
+
+def test_combined_missing_poor_or_expired_gaze_is_unknown_not_a_flag():
+    scenario = {"baseline_score": 0.9, "score_blocks": [], "unknown_blocks": []}
+    _, _, tick = setup(scenario, combine_gaze=True)
+    for second in range(10):
+        result = tick(second, gaze=gaze_window())
+    assert result["fusion"]["calibrated"]
+    bad_windows = [
+        None,
+        gaze_window(1, calibrationValid=False),
+        gaze_window(1, validFraction=0.79),
+        gaze_window(1, newestAgeMs=251),
+        gaze_window(1, maxGapMs=251),
+        gaze_window(1, windowMs=100),
+    ]
+    for second, gaze in enumerate(bad_windows, 10):
+        result = tick(second, gaze=gaze)
+        assert result["status"]["level"] == "unknown"
+        assert result["fusion"]["combinedLoss"] is None
+        assert not result["bookmarks"]

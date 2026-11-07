@@ -17,4 +17,10 @@ button:focus-visible { outline: 3px solid #347360; outline-offset: 2px; }
 article { border-top: 1px solid #ddd; padding: 18px 0; }
 time { display: block; font-variant-numeric: tabular-nums; padding: 8px 0; }
 video { max-width: 100%; }
+.bookmark-flags { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.bookmark-flags strong { margin-right: 8px; }
+.calibration-overlay { position: fixed; inset: 0; z-index: 1000; background: #ffffff66; }
+.calibration-instructions { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); text-align: center; background: #fff; padding: 8px 16px; border-radius: 12px; }
+.calibration-instructions p { margin: 0; }
+.calibration-dot { position: fixed; width: 20px; height: 20px; border-radius: 50%; background: #174f42; border: 4px solid white; box-shadow: 0 0 0 4px #174f42; transform: translate(-50%, -50%); }
 @media (max-width: 800px) { main { padding: 20px; } .layout { grid-template-columns: 1fr; } }

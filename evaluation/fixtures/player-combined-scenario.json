@@ -1,0 +1,6 @@
+{
+  "duration_s": 40,
+  "baseline_score": 0.9,
+  "score_blocks": [{ "start_s": 14, "end_s": 36, "score": 0.05 }],
+  "unknown_blocks": []
+}

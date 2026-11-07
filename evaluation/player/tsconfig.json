@@ -12,5 +12,5 @@
       "ajv": ["../../frontend/node_modules/ajv/dist/ajv.d.ts"]
     }
   },
-  "include": ["main.tsx", "client.ts", "env.d.ts"]
+  "include": ["main.tsx", "client.ts", "gaze.ts", "GazeCalibration.tsx", "env.d.ts"]
 }
