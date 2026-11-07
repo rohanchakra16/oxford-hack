@@ -51,6 +51,24 @@ pytest
 - `eeg/utils`: shared configuration and logging utilities
 - `tests`: automated tests
 
+## EEG buffering and preprocessing
+
+`EEGBuffer` is a thread-safe bounded circular buffer for `SampleBatch`
+objects. It preserves samples, timestamps, and sample indices together,
+reports acquisition gaps, records samples evicted by capacity overflow, and
+can be reset between streams.
+
+`EEGPreprocessor` provides optional DC-offset removal, configurable
+Butterworth bandpass filtering (default `1-40 Hz`), optional 50/60 Hz notch
+filtering, and basic configurable quality checks. Filter state is retained
+between calls, so consecutive batches form one continuous stream rather than
+reinitialising a causal filter for each analysis window.
+
+Quality metadata reports missing indices, non-finite values, flatline
+channels, excessive amplitude, and per-channel flags. These checks are basic
+signal-quality indicators and are not complete physiological artefact
+removal.
+
 ## EEG acquisition
 
 `MockEEGDevice` implements the same lifecycle as a future physical device:
