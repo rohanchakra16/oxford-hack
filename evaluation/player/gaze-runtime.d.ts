@@ -1,4 +1,4 @@
-import type { GazeObservation } from '../../frontend/src/contracts/generated/types';
+import type { GazeObservation, GazeCalibration } from '../../frontend/src/contracts/generated/types';
 
 export interface GazeCamera {
   start(): Promise<void>;
@@ -12,6 +12,7 @@ export interface GazeCamera {
 export function createGazeCamera(options: {
   getVideoElement(): HTMLVideoElement;
   onObservation(observation: GazeObservation): void;
-  onCalibration(event: { id: string; status: 'in_progress' | 'valid' | 'invalid' | 'expired' }): void;
+  onObservationBatch?(observations: GazeObservation[]): void;
+  onCalibration(event: { id: string; status: 'in_progress' | 'valid' | 'invalid' | 'expired'; contract?: Omit<GazeCalibration, 'provenance'> }): void;
   onUnavailable(message: string): void;
 }): GazeCamera;

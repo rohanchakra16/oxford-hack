@@ -62,6 +62,24 @@ def build_hub_factory(args: argparse.Namespace, settings: HubSettings) -> Callab
     from .session.hub import Hub
 
     detector_factory = None
+    live_detector_factory = None
+    if getattr(args, "live_eeg_reminders", False):
+        _repo_root_on_path()
+        if not getattr(args, "eeg_source", None):
+            args.eeg_source = "inference.unicorn_source:make_source"
+        if args.eeg_source == "inference.unicorn_source:make_source":
+            from inference.unicorn_baseline import (  # type: ignore[import-not-found]
+                inference_factory as unicorn_factory,
+            )
+
+            live_detector_factory = unicorn_factory
+        else:
+            from inference.live_attention import (  # type: ignore[import-not-found]
+                inference_factory as live_attention_factory,
+            )
+
+            live_detector_factory = live_attention_factory
+        settings.experimental_live_modes = frozenset({"eeg_only", "both"})
     if args.allow_simulated and getattr(args, "simulated_detector", "placeholder") == "baseline":
         _repo_root_on_path()
         from inference.adapter import inference_factory  # type: ignore[import-not-found,unused-ignore]  # P3
@@ -84,6 +102,7 @@ def build_hub_factory(args: argparse.Namespace, settings: HubSettings) -> Callab
                 simulation_factory(detector_factory=detector_factory) if args.allow_simulated else None
             ),
             live_eeg=bridge,
+            inference_factory=live_detector_factory,
         )
 
     return hub_factory
@@ -173,6 +192,11 @@ def main(argv: list[str] | None = None) -> int:
         "(the repository root is on the import path)",
     )
     s.add_argument("--enable-test-hooks", action="store_true", help="expose /api/v0/test/* (tests only)")
+    s.add_argument(
+        "--live-eeg-reminders",
+        action="store_true",
+        help="use physical Unicorn EEG with session baseline and 8 s review reminders (no mock fallback)",
+    )
     s.add_argument("--log-level", default="info")
     s.set_defaults(func=serve)
 

@@ -175,8 +175,9 @@ ModePolicyValue = Literal["automatic", "manual_only"]
 class ModePolicy(Contract):
     """Which operating modes may produce automatic suggestions.
 
-    A mode is ``automatic`` only if the detector bundle declares it evaluated (or the run is
-    simulated). Otherwise automatic suggestions are disabled in that mode.
+    A mode is ``automatic`` if evaluated, simulated, or explicitly enabled by the local operator
+    for an experimental live detector. Experimental opt-in is not evaluation evidence and is
+    reported in sensor-status reasons and detector identity. Otherwise the mode is manual-only.
     """
 
     both: ModePolicyValue
@@ -292,6 +293,9 @@ class PlaybackState(Contract):
     playback_rate: Annotated[float, Field(gt=0, le=16)]
     media_duration_s: Annotated[float, Field(gt=0)] | None
     telemetry_seq: Count = Field(description="Monotonic per video within a page load.")
+    replaying: bool = Field(
+        default=False, description="Explicit review replay; never eligible for new reminders."
+    )
 
     @model_validator(mode="after")
     def _segment(self) -> PlaybackState:
@@ -312,6 +316,7 @@ EligibilityReason = Literal[
     "stale_telemetry",
     "clock_unsynchronised",
     "session_ended",
+    "review_replay",
 ]
 
 

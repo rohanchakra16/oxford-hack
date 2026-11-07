@@ -123,6 +123,7 @@ class PlaybackTimeline:
         self.segments: list[Segment] = []
         self.media_duration_s: float | None = None
         self.last_state: str = "loading"
+        self.replaying = False
         self._last_seq: int | None = None
         self._last_browser_ms: float | None = None
         self._closed_ids: set[str] = set()
@@ -157,12 +158,21 @@ class PlaybackTimeline:
         if state.media_duration_s is not None:
             self.media_duration_s = state.media_duration_s
         self.last_state = state.state
+        self.replaying = state.replaying
         t = state.t_browser_ms
         current = self.open_segment
 
-        if state.state != "playing":
+        if state.state != "playing" or state.replaying:
             if current is not None:
-                self._close(current, t, state.event if state.event != "heartbeat" else state.state)
+                self._close(
+                    current,
+                    t,
+                    "review_replay"
+                    if state.replaying
+                    else state.event
+                    if state.event != "heartbeat"
+                    else state.state,
+                )
             return
 
         seg_id = state.segment_id
@@ -213,6 +223,8 @@ class PlaybackTimeline:
     def eligibility(
         self, now_backend_ms: float, clock: ClockEstimate | None, cfg: MappingConfig
     ) -> Eligibility:
+        if self.replaying:
+            return Eligibility(False, "review_replay", None, None)
         seg = self.open_segment
         if seg is None:
             reason = _STATE_TO_REASON.get(self.last_state, "not_started")

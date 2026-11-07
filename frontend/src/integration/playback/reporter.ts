@@ -125,6 +125,7 @@ export class PlaybackReporter {
       playbackRate: media.playbackRate > 0 ? media.playbackRate : 1,
       mediaDurationS: Number.isFinite(media.duration) && media.duration > 0 ? media.duration : null,
       telemetrySeq: this.seq,
+      replaying: media.replaying ?? false,
     });
   }
 }

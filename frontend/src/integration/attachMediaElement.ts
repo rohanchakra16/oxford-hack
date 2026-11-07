@@ -5,9 +5,9 @@
 import { MEDIA_EVENTS, mediaSnapshot } from './playback/reporter';
 import type { ReviewClient } from './types';
 
-export function attachMediaElement(client: ReviewClient, el: HTMLMediaElement): () => void {
+export function attachMediaElement(client: ReviewClient, el: HTMLMediaElement, isReplaying: () => boolean = () => false): () => void {
   const handlers = MEDIA_EVENTS.map((name) => {
-    const fn = () => client.reportMediaEvent(name, mediaSnapshot(el));
+    const fn = () => client.reportMediaEvent(name, { ...mediaSnapshot(el), replaying: isReplaying() });
     el.addEventListener(name, fn);
     return [name, fn] as const;
   });

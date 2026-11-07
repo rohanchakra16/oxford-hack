@@ -45,6 +45,7 @@ class SensorMonitor:
     has_detector: bool
     run_kind: str
     timeouts: SensorTimeouts = field(default_factory=SensorTimeouts)
+    experimental_modes: frozenset[str] = frozenset()
     _eeg_status: EegStatus | None = None
     _eeg_status_recv_ms: float | None = None
     _eeg_window: EegFeatureWindow | None = None
@@ -129,6 +130,13 @@ class SensorMonitor:
             if gaze_ok
             else "manual_only"
         )
+        if (
+            mode == "both"
+            and self.policy.both != "automatic"
+            and "eeg_only" in self.experimental_modes
+            and self.policy.eeg_only == "automatic"
+        ):
+            mode = "eeg_only"  # EEG detector remains usable when an extra gaze sensor is available.
         if mode == "manual_only":
             automatic, reason = False, "no sensor is delivering usable data"
         elif not self.has_detector:
@@ -140,6 +148,8 @@ class SensorMonitor:
             reason = f"mode {mode} is automatic" + (
                 " (simulated run)" if self.run_kind == "simulated" else ""
             )
+            if mode in self.experimental_modes:
+                reason += " (experimental live reminders; not validated)"
         return SensorStatus(
             eeg=SensorState(
                 state=self._eeg.state, reasons=self._eeg.reasons, since_backend_ms=self._eeg.since_ms

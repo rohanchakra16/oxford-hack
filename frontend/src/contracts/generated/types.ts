@@ -293,8 +293,9 @@ export interface MappingConfig {
 /**
  * Which operating modes may produce automatic suggestions.
  *
- * A mode is ``automatic`` only if the detector bundle declares it evaluated (or the run is
- * simulated). Otherwise automatic suggestions are disabled in that mode.
+ * A mode is ``automatic`` if evaluated, simulated, or explicitly enabled by the local operator
+ * for an experimental live detector. Experimental opt-in is not evaluation evidence and is
+ * reported in sensor-status reasons and detector identity. Otherwise the mode is manual-only.
  */
 export interface ModePolicy {
   both: 'automatic' | 'manual_only';
@@ -511,6 +512,10 @@ export interface PlaybackState {
    */
   mediaTimeS: number;
   playbackRate: number;
+  /**
+   * Explicit review replay; never eligible for new reminders.
+   */
+  replaying?: boolean;
   segmentId: string | null;
   state: 'loading' | 'playing' | 'paused' | 'seeking' | 'buffering' | 'ended' | 'error';
   /**
@@ -554,7 +559,8 @@ export interface PlaybackEligibility {
     | 'error'
     | 'stale_telemetry'
     | 'clock_unsynchronised'
-    | 'session_ended';
+    | 'session_ended'
+    | 'review_replay';
   segmentId: string | null;
   /**
    * Backend monotonic milliseconds.
