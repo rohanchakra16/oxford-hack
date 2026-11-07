@@ -1,8 +1,10 @@
 # Calibration and evaluation protocol 0.1.0 (proposed)
 
-Owner: @Seikaro. Sensor semantics are pending confirmation from @annieqqa and
-@ShinJuKim; shared timing and integration stay with @rohanchakra16. No real
-participant data has been collected or evaluated in this allocation yet.
+Owner: @Seikaro. EEG semantics await @annieqqa's confirmation; gaze semantics
+were confirmed by @ShinJuKim on the board. Shared timing and integration stay
+with @rohanchakra16. Local
+attention-labelled participant data has not been collected or evaluated here.
+The separate public EEG workload experiment and its limits are in `EEGMAT.md`.
 
 ## Collection and independent labels
 
@@ -91,9 +93,10 @@ it is not an independent attention label.
 
 ## Current limitations and next handoffs
 
-The initial bundle is a deterministic synthetic rule baseline, not a trained
-attention model. Its arbitrary synthetic EEG threshold and gaze-outside rule
-are unvalidated. There is no defensible held-out performance result or live
-automatic mode yet. Sensor owners must confirm real input definitions, the
-platform owner must wire the adapter and agree diagnostic transport, and the
-team must collect independent labels before training/evaluation can proceed.
+The initial event bundle is a deterministic synthetic rule baseline. Its
+arbitrary synthetic EEG threshold and gaze-outside rule are unvalidated. The
+separate `eegmat-workload-0.1.0` model has source-domain participant-held-out
+workload results, not attention or lapse-event validation. There is no evaluated
+live automatic mode yet. Sensor owners must confirm real input definitions,
+the platform owner must agree diagnostic transport, and the team must collect
+independent local labels before attention training/evaluation can proceed.

@@ -3,6 +3,11 @@
 Owner: @Seikaro
 Related component: inference/
 
+Public-data experiment: [EEGMAT.md](EEGMAT.md), with machine-readable results in
+`fixtures/eegmat-report.json`. A real arithmetic-versus-rest EEG model is trained
+and evaluated on held-out participants; it is a workload proxy, not attention
+ground truth. Local lecture-attention evaluation remains pending.
+
 ## Before starting
 - Read the root AGENTS.md and inference/README.md.
 - Check Message Board issue #1:
@@ -61,9 +66,10 @@ inference/.venv/Scripts/python.exe -m pytest inference/tests evaluation/tests -q
 Library entry points: `splits.participant_splits` / `validate_splits`,
 `metrics.Event` / `event_metrics`, and `labels.Label` / `append_label`.
 The label collector appends validated local JSONL only under ignored `data/`.
-No participant data or real held-out result exists yet, so no verified training
-or held-out evaluation command is claimed. `evaluation.synthetic` checks
-scripted event plumbing only; its perfect fixture scores are not accuracy.
+Public EEG download, training and recording-scoring commands are in `EEGMAT.md`.
+No local attention-labelled recordings have been evaluated.
+`evaluation.synthetic` checks scripted event plumbing only; its perfect fixture
+scores are not accuracy.
 
 ## Data handling
 Keep credentials and participant recordings out of Git.

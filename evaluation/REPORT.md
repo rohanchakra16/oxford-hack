@@ -1,5 +1,9 @@
 # Initial validation report — 2026-11-07
 
+This file records the initial synthetic milestone. The subsequent real public
+EEG workload experiment, held-out metrics and transfer limitations are documented
+in [EEGMAT.md](EEGMAT.md) and `fixtures/eegmat-report.json`.
+
 Model `experimental-rule-baseline` 0.1.0, config `synthetic-0.1.0`.
 Scope: synthetic software behaviour only. Evaluated live modes: none.
 
