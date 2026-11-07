@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
-  attachMediaElement,
   createReviewClient,
   useReviewConnection,
   useReviewSnapshot,
@@ -8,20 +7,14 @@ import {
   type ReviewClient,
   type SensorState,
 } from '../integration';
-import { formatTime, parseTranscript, replayPassage, type TranscriptCue } from './transcript';
+import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle } from '../player';
+import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
 import './product.css';
 
-interface LocalVideo {
-  file: File;
-  id: string;
-  url: string;
-}
+const NOOP_SUBSCRIBE = () => () => {};
+const NO_SENTENCES: readonly Sentence[] = [];
 
 const sensorLabels = { eeg: 'EEG headset', gaze: 'Webcam gaze' } as const;
-
-function getVideoId(file: File): string {
-  return `local-${encodeURIComponent(file.name)}-${file.size}-${file.lastModified}`;
-}
 
 function statusLabel(status: SensorState['state'] | undefined): string {
   if (!status) return 'Waiting for status';
@@ -41,9 +34,19 @@ function sourceLabel(source: ReviewBookmark['source']): string {
   }
 }
 
+/** The sentence a replay starts in (shared rule: containing sentence, `earlier` whole sentences back). */
+function passageFor(sentences: readonly Sentence[], timeS: number, earlier: number) {
+  const containing = sentenceIndexAt(sentences, timeS);
+  if (containing < 0) return null;
+  const start = replayStartFor(sentences, timeS, earlier);
+  const index = sentenceIndexAt(sentences, start);
+  const sentence = sentences[index]!;
+  return { index, startS: start, endS: sentences[containing]!.endS, text: sentence.text };
+}
+
 function BookmarkCard({
   bookmark,
-  cues,
+  sentences,
   dismissed,
   earlierCount,
   onReplay,
@@ -52,7 +55,7 @@ function BookmarkCard({
   onRate,
 }: {
   bookmark: ReviewBookmark;
-  cues: TranscriptCue[];
+  sentences: readonly Sentence[];
   dismissed: boolean;
   earlierCount: number;
   onReplay: (bookmark: ReviewBookmark) => void;
@@ -60,7 +63,7 @@ function BookmarkCard({
   onEarlier: (bookmark: ReviewBookmark) => void;
   onRate: (bookmark: ReviewBookmark, useful: boolean) => void;
 }) {
-  const passage = replayPassage(cues, bookmark.suggestedMediaS, earlierCount);
+  const passage = passageFor(sentences, bookmark.suggestedMediaS, earlierCount);
 
   return (
     <article className={`bookmark-card${dismissed ? ' bookmark-card--dismissed' : ''}`}>
@@ -181,102 +184,54 @@ export default function App() {
   const [client] = useState(() => createReviewClient());
   useReviewConnection(client);
   const snapshot = useReviewSnapshot(client);
-  const [video, setVideo] = useState<LocalVideo | null>(null);
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
-  const [transcriptName, setTranscriptName] = useState('');
-  const [cues, setCues] = useState<TranscriptCue[]>([]);
-  const [transcriptError, setTranscriptError] = useState('');
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [player, setPlayer] = useState<PlayerHandle | null>(null);
+  const [lecture, setLecture] = useState<LoadedLecture | null>(null);
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [earlierCounts, setEarlierCounts] = useState<Record<string, number>>({});
-  const [playbackError, setPlaybackError] = useState('');
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const transcriptInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => client.dispose(), [client]);
 
-  useEffect(() => {
-    if (!video) return;
-    return () => URL.revokeObjectURL(video.url);
-  }, [video]);
-
-  useEffect(() => {
-    if (!videoElement) return;
-    const detach = attachMediaElement(client, videoElement);
-    return detach;
-  }, [client, videoElement]);
-
-  useEffect(() => {
-    if (!video || !videoElement) return;
-    client.startSession({
-      videoId: video.id,
-      runKind: client.kind === 'synthetic' ? 'simulated' : 'live',
-      sensors: { eeg: true, gaze: true },
-      mediaDurationS: Number.isFinite(videoElement.duration) ? videoElement.duration : null,
-    });
-    return () => client.endSession('video_changed');
-  }, [client, video, videoElement]);
-
-  const videoRef = useCallback((element: HTMLVideoElement | null) => {
-    setVideoElement(element);
-  }, []);
+  // The player owns the media element, telemetry and the session lifecycle (startSession/endSession).
+  const sessionSettings = useMemo(
+    () => ({ runKind: client.kind === 'synthetic' ? ('simulated' as const) : ('live' as const), sensors: { eeg: true, gaze: true } }),
+    [client],
+  );
+  const currentTime = useSyncExternalStore(
+    player?.subscribe ?? NOOP_SUBSCRIBE,
+    () => player?.getState().mediaTimeS ?? 0,
+    () => 0,
+  );
+  const duration = useSyncExternalStore(
+    player?.subscribe ?? NOOP_SUBSCRIBE,
+    () => player?.getState().durationS ?? null,
+    () => null,
+  );
+  const sentences = transcript?.sentences ?? NO_SENTENCES;
 
   const activeBookmarks = useMemo(
-    () => snapshot.bookmarks.filter((bookmark) => !video || bookmark.videoId === video.id),
-    [snapshot.bookmarks, video],
+    () => snapshot.bookmarks.filter((bookmark) => !lecture || bookmark.videoId === lecture.videoId),
+    [snapshot.bookmarks, lecture],
   );
 
-  const chooseVideo = (file?: File) => {
-    if (!file) return;
-    if (video && videoElement) {
-      client.reportMediaEvent('emptied', {
-        currentTime: videoElement.currentTime,
-        playbackRate: videoElement.playbackRate,
-        duration: videoElement.duration,
-        paused: videoElement.paused,
-        seeking: videoElement.seeking,
-        ended: videoElement.ended,
-        readyState: videoElement.readyState,
-      });
-    }
-    setPlaybackError('');
-    setCurrentTime(0);
-    setDuration(0);
+  const onLectureChange = (next: LoadedLecture | null) => {
+    setLecture(next);
     setDismissed(new Set());
     setEarlierCounts({});
-    setCues([]);
-    setTranscriptName('');
-    setTranscriptError('');
-    setVideo({ file, id: getVideoId(file), url: URL.createObjectURL(file) });
-  };
-
-  const chooseTranscript = async (file?: File) => {
-    if (!file) return;
-    setTranscriptError('');
-    try {
-      const parsed = parseTranscript(await file.text());
-      if (parsed.length === 0) {
-        setTranscriptError('No timestamped captions found. Try a WebVTT or SRT file.');
-        return;
-      }
-      setCues(parsed);
-      setTranscriptName(file.name);
-    } catch (error) {
-      setTranscriptError(error instanceof Error ? error.message : 'Could not read this transcript.');
-    }
+    setTranscript(null);
   };
 
   const replay = (bookmark: ReviewBookmark) => {
+    if (!player) return;
     const count = earlierCounts[bookmark.bookmarkId] ?? 0;
-    const passage = replayPassage(cues, bookmark.suggestedMediaS, count);
+    const passage = passageFor(sentences, bookmark.suggestedMediaS, count);
     const target = passage?.startS ?? bookmark.suggestedMediaS;
-    if (videoElement) {
-      videoElement.currentTime = target;
-      setPlaybackError('');
-      void videoElement.play().catch(() => {
-        setPlaybackError('Playback could not start. Press play on the video to continue.');
-      });
+    // With a transcript, replay is bounded to the end of the sentence containing the suggested moment;
+    // without one it seeks and keeps playing (nothing here pauses or seeks on its own).
+    if (passage) void player.replayRange(target, Math.max(passage.endS, target + 3)).catch(() => undefined);
+    else {
+      player.seek(target);
+      void player.play().catch(() => undefined);
     }
     client.sendFeedback(bookmark.bookmarkId, 'replay', target);
   };
@@ -289,7 +244,7 @@ export default function App() {
   const moveEarlier = (bookmark: ReviewBookmark) => {
     const count = (earlierCounts[bookmark.bookmarkId] ?? 0) + 1;
     setEarlierCounts((previous) => ({ ...previous, [bookmark.bookmarkId]: count }));
-    const target = replayPassage(cues, bookmark.suggestedMediaS, count)?.startS ?? bookmark.suggestedMediaS;
+    const target = passageFor(sentences, bookmark.suggestedMediaS, count)?.startS ?? bookmark.suggestedMediaS;
     client.sendFeedback(bookmark.bookmarkId, 'move_earlier', target);
   };
 
@@ -375,81 +330,28 @@ export default function App() {
         <div className="content-grid">
           <div className="main-column">
             <section className="player-card" aria-label="Lecture video">
-              {video ? (
-                <>
-                  <div className="video-wrap">
-                    <video
-                      ref={videoRef}
-                      src={video.url}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      aria-label={`Lecture video: ${video.file.name}`}
-                      onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-                      onLoadedMetadata={(event) => {
-                        const mediaDuration = event.currentTarget.duration;
-                        setDuration(Number.isFinite(mediaDuration) ? mediaDuration : 0);
-                      }}
-                      onDurationChange={(event) => {
-                        const mediaDuration = event.currentTarget.duration;
-                        setDuration(Number.isFinite(mediaDuration) ? mediaDuration : 0);
-                      }}
-                      onError={() => setPlaybackError('This video could not be opened. Try a different local video file.')}
-                    />
+              <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange} />
+              <div className="player-card__footer">
+                <div className="lecture-file">
+                  <span className="file-icon" aria-hidden="true">▶</span>
+                  <div>
+                    <strong title={lecture?.fileName}>{lecture?.fileName ?? 'No lecture open'}</strong>
+                    <span>{duration ? `${formatTime(duration)} lecture` : 'Local video, never uploaded'}</span>
                   </div>
-                  <div className="player-card__footer">
-                    <div className="lecture-file">
-                      <span className="file-icon" aria-hidden="true">▶</span>
-                      <div>
-                        <strong title={video.file.name}>{video.file.name}</strong>
-                        <span>{duration ? `${formatTime(duration)} lecture` : 'Local video'}</span>
-                      </div>
-                    </div>
-                    <div className="player-tools">
-                      <button
-                        className="button button--outline button--small"
-                        type="button"
-                        disabled={!snapshot.session}
-                        title={snapshot.session ? 'Add a review marker at the current time' : 'Waiting for an active session'}
-                        onClick={() => client.markBookmark(currentTime)}
-                        aria-label={`Mark this moment at ${formatTime(currentTime)}`}
-                      >
-                        <span aria-hidden="true">◆</span> Mark moment
-                      </button>
-                      <button className="text-button" type="button" onClick={() => videoInputRef.current?.click()}>
-                        Change video
-                      </button>
-                    </div>
-                  </div>
-                  {playbackError && <p className="inline-error" role="alert">{playbackError}</p>}
-                </>
-              ) : (
-                <div className="video-empty">
-                  <div className="empty-art" aria-hidden="true">
-                    <span className="empty-art__sun" />
-                    <span className="empty-art__play">▶</span>
-                    <span className="empty-art__line" />
-                  </div>
-                  <p className="eyebrow">Start with a lecture</p>
-                  <h2>Bring your video in.</h2>
-                  <p>Choose a video from your device. It stays in this browser session.</p>
-                  <button className="button button--primary" type="button" onClick={() => videoInputRef.current?.click()}>
-                    Choose a video <span aria-hidden="true">↗</span>
-                  </button>
-                  <span className="supported-format">MP4, WebM, or another browser-supported format</span>
                 </div>
-              )}
-              <input
-                ref={videoInputRef}
-                className="sr-only"
-                type="file"
-                accept="video/*"
-                aria-label="Choose a local lecture video"
-                onChange={(event) => {
-                  chooseVideo(event.currentTarget.files?.[0]);
-                  event.currentTarget.value = '';
-                }}
-              />
+                <div className="player-tools">
+                  <button
+                    className="button button--outline button--small"
+                    type="button"
+                    disabled={!snapshot.session || !lecture}
+                    title={snapshot.session ? 'Add a review marker at the current time' : 'Waiting for an active session'}
+                    onClick={() => client.markBookmark(currentTime)}
+                    aria-label={`Mark this moment at ${formatTime(currentTime)}`}
+                  >
+                    <span aria-hidden="true">◆</span> Mark moment
+                  </button>
+                </div>
+              </div>
             </section>
 
             <section className="transcript-card" aria-labelledby="transcript-title">
@@ -458,54 +360,9 @@ export default function App() {
                   <p className="eyebrow">Follow along</p>
                   <h2 id="transcript-title">Transcript</h2>
                 </div>
-                <button className="button button--outline button--small" type="button" onClick={() => transcriptInputRef.current?.click()}>
-                  {transcriptName ? 'Replace file' : 'Add captions'}
-                </button>
-                <input
-                  ref={transcriptInputRef}
-                  className="sr-only"
-                  type="file"
-                  accept=".vtt,.srt,text/vtt,application/x-subrip"
-                  aria-label="Choose a WebVTT or SRT transcript"
-                  onChange={(event) => {
-                    void chooseTranscript(event.currentTarget.files?.[0]);
-                    event.currentTarget.value = '';
-                  }}
-                />
               </div>
-              {transcriptError && <p className="inline-error" role="alert">{transcriptError}</p>}
-              {cues.length > 0 ? (
-                <>
-                  <p className="transcript-file">{transcriptName} · Select a caption to jump to that passage.</p>
-                  <div className="transcript-list" aria-label="Transcript passages">
-                    {cues.map((cue, index) => {
-                      const active = currentTime >= cue.startS && currentTime <= cue.endS;
-                      return (
-                        <button
-                          className={`transcript-line${active ? ' transcript-line--active' : ''}`}
-                          type="button"
-                          key={`${cue.startS}-${index}`}
-                          onClick={() => {
-                            if (videoElement) videoElement.currentTime = cue.startS;
-                          }}
-                          aria-current={active ? 'true' : undefined}
-                        >
-                          <time>{formatTime(cue.startS)}</time>
-                          <span>{cue.text}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                <div className="transcript-empty">
-                  <span className="transcript-empty__icon" aria-hidden="true">Aa</span>
-                  <div>
-                    <strong>{transcriptError ? 'Transcript unavailable' : 'No transcript added yet'}</strong>
-                    <p>Add a timed WebVTT or SRT file to navigate and replay captioned passages.</p>
-                  </div>
-                </div>
-              )}
+              {/* key: a new lecture starts without the previous lecture's transcript */}
+              <TranscriptPanel key={lecture?.videoId ?? 'none'} player={player} onTranscriptChange={setTranscript} />
             </section>
           </div>
 
@@ -533,7 +390,7 @@ export default function App() {
                     <BookmarkCard
                       key={bookmark.bookmarkId}
                       bookmark={bookmark}
-                      cues={cues}
+                      sentences={sentences}
                       dismissed={dismissed.has(bookmark.bookmarkId)}
                       earlierCount={earlierCounts[bookmark.bookmarkId] ?? 0}
                       onReplay={replay}
@@ -548,7 +405,7 @@ export default function App() {
                   <span className="review-empty__icon" aria-hidden="true">✳</span>
                   <strong>No review moments yet</strong>
                   <p>Start the lecture to receive suggestions, or add a marker at any moment.</p>
-                  {!video && <span className="review-empty__hint">Your moments will appear here.</span>}
+                  {!lecture && <span className="review-empty__hint">Your moments will appear here.</span>}
                 </div>
               )}
             </section>

@@ -1126,3 +1126,104 @@ h1 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- Shared LecturePlayer / TranscriptPanel (Person 4 components) themed with this design ----
+   Added by the integration branch; the components only expose lp-/tp- classes, so all styling lives here. */
+.player-card .lp,
+.transcript-card .tp {
+  font: inherit;
+  color: var(--ink);
+}
+
+.player-card .lp-toolbar,
+.player-card .lp-controls,
+.transcript-card .tp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
+.player-card .lp button,
+.transcript-card .tp button {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.player-card .lp button:hover:not(:disabled),
+.transcript-card .tp button:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green-deep);
+}
+
+.player-card .lp button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.player-card .lp input[type='file']::file-selector-button,
+.transcript-card .tp input[type='file']::file-selector-button {
+  min-height: 34px;
+  margin-right: 10px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--green);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.player-card .lp input[type='file'],
+.transcript-card .tp input[type='file'] {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.player-card .lp-seek,
+.player-card .lp input[type='range'] {
+  accent-color: var(--green);
+}
+
+.player-card .lp select {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  font: inherit;
+  font-size: 12px;
+}
+
+.player-card .lp-time,
+.player-card .lp-filename,
+.transcript-card .tp-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.player-card .lp-video {
+  border-radius: 12px;
+}
+
+.transcript-card .tp-empty,
+.transcript-card .tp-warning,
+.transcript-card .tp-error {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.transcript-card .tp-error {
+  color: #8a3b2d;
+}
