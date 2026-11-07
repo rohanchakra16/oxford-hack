@@ -1,65 +1,73 @@
-# HANDOFF — Person 5 (platform & integration)
+# HANDOFF — Person 5 (platform & integration, @rohanchakra16)
 
-Branch: `infra/shared-foundation` (not merged; do not merge without team review)
-Last updated: 2026-11-07, during the initial build session.
+Branch: `infra/shared-foundation`. The team lead has authorised merging to `main` once CI passes.
+Last updated: 2026-11-07.
 
 ## 1. Objective and ownership
 
-Reliable, reviewable foundation the other four workstreams connect to: shared contracts, transport,
-clock sync + playback mapping, integration harness, repo tooling/CI, local-service security.
+Reliable, reviewable foundation the other workstreams connect to: shared contracts, transport,
+clock sync and playback mapping, integration harness, repo tooling and CI, local-service security.
+Ownership follows `AGENTS.md` §4. P5 owns `contracts/`, `platform/`, `integration/` and `.github/workflows/`,
+plus the frontend integration layer (`frontend/src/{contracts,integration,diagnostics}`), as proposed in
+`docs/frontend-integration.md`. That doc is PROPOSED and still needs agreement from @aryanmorarji and @Betty505.
 
-| Person | Owns |
+## 2. Completed (committed and pushed)
+
+| Commit | What |
 |---|---|
-| P1 | EEG acquisition, quality, filtering, features (`backend/src/oxford_hack/eeg/`, beyond `interface.py`) |
-| P2 | Webcam gaze + calibration (`frontend/src/gaze/`, not created yet) |
-| P3 | Models, combination, decision state machine (`backend/src/oxford_hack/inference/`, beyond `interface.py`) |
-| P4 | Product UI, player, transcript, bookmark UI (`frontend/src/product/`) — boundary PROPOSED in `docs/frontend-integration.md` |
-| P5 | `contracts/`, `backend/src/oxford_hack/{contracts,timing,session,transport,harness}`, `frontend/src/{contracts,integration,diagnostics}`, CI, setup |
+| `d9fa7c3` | Proposed v0.1.0 contracts: pydantic source, generated JSON Schema, 24 valid + 16 invalid fixtures |
+| `50bce8f` | Frontend `ReviewClient` interface, live adapter, synthetic adapter, ajv validator, `docs/frontend-integration.md` |
+| `ffa9373` | Clock sync, device-clock mappers, playback segment mapping |
+| `46caa66` | Session hub, P1/P3 adapter interfaces, synthetic producers, deterministic simulator, record/replay |
+| `5d8f731` | FastAPI/WebSocket transport, origin/host/token checks, test hooks (opt-in), `oxford-backend serve/replay` |
+| `4b408a4` | CI (platform + frontend jobs), PR template |
+| `0875430` | `backend/` moved to `platform/` to match `AGENTS.md` |
 
-## 2. Completed (committed)
+## 3. Tests actually run (locally, macOS, Python 3.12.4, Node 26)
 
-- `d9fa7c3` Proposed v0.1.0 contracts: pydantic source (`backend/src/oxford_hack/contracts/`),
-  generated JSON Schema (`contracts/schema/`), 24 valid + 16 invalid synthetic fixtures.
+- platform: `ruff check`, `ruff format --check`, `mypy` (strict) clean; `pytest`: 121 passed.
+- frontend: `eslint`, `tsc -b` clean; `vitest`: 56 passed. The live adapter is unit-tested against a fake socket only.
+- Drift checks: schema, fixtures, sample recording and TS types are all up to date.
+- Manual serve smoke test: health ok, foreign Host header gets 421, test hooks get 404 by default.
+- CI: not yet run on GitHub at the time of writing; see the PR.
 
-## 3. Tests actually run
+## 4. In progress / not started
 
-- Ad-hoc: every valid fixture parses; every invalid fixture is rejected with its `expectedCode` (Python).
-- Ad-hoc simulation (not yet a committed test): hub + synthetic browser with 123 s clock offset and jitter;
-  bookmarks mapped to the expected media time (verified by hand: 30 s + 21.35 s elapsed = 51.35 s).
-- No pytest/vitest suite committed yet. No CI run yet.
+- Developer diagnostics page (`frontend/src/diagnostics/`): placeholder only.
+- Playwright infra tests (`frontend/e2e/infra/`) and CI job: not started.
+- Root `npm run dev` (starts platform and frontend together): not started.
+- `--eeg-source module:factory` CLI hook for P1's adapter: not started.
+- Docs: `docs/TIMING.md`, `docs/SECURITY.md`, `docs/INTEGRATION.md`, `docs/REPLAY.md`, `contracts/README.md`.
+  These are referenced in code comments but not written yet.
 
-## 4. In progress / uncommitted
+## 5. Known issues and decisions awaiting the team
 
-- Backend (written, not yet tested or committed): `timing/` (clock sync, device clock, playback mapping),
-  `session/` (hub, sensor monitor), `transport/app.py` (FastAPI, handshake, WS, test hooks),
-  `harness/` (synthetic EEG, placeholder inference, deterministic simulator), `eeg/interface.py`,
-  `inference/interface.py`. Missing: `cli.py`, replay, recorder, tests.
-- Frontend (written, not yet tested or committed): package setup + lockfile, generated TS types,
-  ajv validator, integration interface/store/reporter/live client. Missing: synthetic adapter, index,
-  diagnostics page, tests.
-
-## 5. Known issues / decisions awaiting agreement
-
-- Contracts are PROPOSED. Exact-match `schemaVersion` policy (any change bumps the version).
-- One session = one video. Bookmarks do not survive a backend restart (by design for now).
-- Frontend boundary with P4 is PROPOSED (`docs/frontend-integration.md`, being written).
-- Sandbox notes for this machine: npm/uv need `npm_config_cache=$TMPDIR/npm-cache` /
-  `UV_CACHE_DIR=$TMPDIR/uv-cache` inside the Claude sandbox; git network ops need github.com allowed.
+- Contracts are PROPOSED. `schemaVersion` must match exactly, and any change bumps it.
+- `person2/webcam-gaze` adds `packages/gaze/schema/gaze_observation.v0.schema.json`, which competes with the shared
+  `gaze_observations` / `gaze_calibration` contract. It needs reconciling with @ShinJuKim; I haven't edited their files.
+- `feature/EEG-input` (@annieqqa) is a root-level pip project (`requirements.txt`, `eeg/`) with `config.yaml` hard-coding
+  250 Hz / 8 channels. Their adapter should implement `oxford_hack.eeg.interface.EegSource`. How it's loaded is still open.
+- `AGENTS.md` asks agents to post on the "Message Board" via `tools/board`. That tool isn't in the repo, so I haven't posted.
+- One session per video. Bookmarks don't survive a backend restart.
+- Sandbox on this machine: npm and uv need `npm_config_cache=$TMPDIR/npm-cache` and `UV_CACHE_DIR=$TMPDIR/uv-cache`.
+  Binding local ports and `git` network operations need running outside the sandbox (or `allowLocalBinding`).
 
 ## 6. Next steps
 
-1. Synthetic adapter + `docs/frontend-integration.md` + vitest tests -> commit "frontend integration interface".
-2. Backend pytest suite (timing, hub, transport, contracts) -> commit per area.
-3. `cli.py` (serve/replay), recorder, replay sample, root `npm run dev`.
-4. Diagnostics page, Playwright (`frontend/e2e/`), CI workflows, docs.
+1. Push, open the PR, wait for CI, merge (authorised).
+2. Diagnostics page, then Playwright infra tests and a CI job.
+3. `npm run dev`, then the docs listed above.
 
-Resume commands:
 ```bash
-cd backend && uv sync && uv run pytest
+cd platform && uv sync --locked && uv run pytest
 cd frontend && npm ci && npm test
 ```
 
 ## 7. Failed approaches (don't repeat)
 
-- `uv run` directly after a failed `uv sync` left the project not importable; `uv sync --reinstall-package oxford-hack-backend` fixed it.
-- ajv's `discriminator` keyword rejects pydantic's `mapping`; the frontend validator selects the schema by `type` instead.
+- `uv run` after a failed `uv sync` left the package unimportable. `uv sync --reinstall-package <name>` fixed it.
+- ajv's `discriminator` rejects pydantic's `mapping`. The frontend validator picks the schema by `type` instead.
+- `tsc -b` without `noEmit` wrote `.js` files next to the sources. Both tsconfigs now set `noEmit`.
+- The simulated network delivered messages out of order. Real WebSockets are FIFO, and the simulator now is too.
+- WebSocket TestClient connections default to the `testserver` host, which the loopback Host check rejects.
+  Tests use `ws://127.0.0.1:8765/...`.
