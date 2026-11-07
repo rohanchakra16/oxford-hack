@@ -134,7 +134,12 @@ seek → segment → heartbeats → pause, and media errors are reported.
   error clears; play, 2× speed, `seek(30)`, `replayRange(50, 53)` (paused at 53.10 s), and Replay on
   a synthetic suggestion (0:21–0:36). Each new file starts a new session (`syn-ses-N`).
 
-Not verified: live backend, Firefox/Safari, real lecture files, long files (>1 h), React component
+- Manual, by @aryanmorarji on Windows, Microsoft Edge, synthetic adapter: a real downloaded lecture
+  (MP4, ~350 MB, ~2 h) loads and plays with no errors. Checked: duration shown in h:mm:ss, seeking near
+  the end, 1.5× and 2×, `replayRange(600, 615)`, Replay on a synthetic suggestion, pause/resume, and
+  opening a second lecture (new session).
+
+Not verified: live backend, Firefox/Safari, non-H.264 codecs (HEVC/H.265, some MKV), React component
 tests (needs a DOM test library: shared config, Person 5 review).
 
 ## Decisions and assumptions
