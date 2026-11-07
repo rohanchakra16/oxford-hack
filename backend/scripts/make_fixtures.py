@@ -24,7 +24,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "contracts" / "fixtures"
 
 SIM = p.Provenance(run_kind="simulated", producer="fixture-generator", producer_version="0.1.0")
-DETECTOR = p.DetectorInfo(detector_id="placeholder-scripted", detector_version="0.1.0", config_version="sim-1")
+DETECTOR = p.DetectorInfo(
+    detector_id="placeholder-scripted", detector_version="0.1.0", config_version="sim-1"
+)
 DEVICE = p.EegDeviceInfo(model=None, confirmed=False, sample_rate_hz=None, channel_names=None, units=None)
 MAPPING = p.MappingConfig(
     lead_in_s=2.0,
@@ -55,8 +57,11 @@ SIGNALS = [
     p.ContributingSignal(
         signal="gaze",
         window_ids=["gazew-12"],
-        scores=[p.SignalScore(name="outside_video_fraction", value=0.6, scale="fraction_of_window",
-                              missing_reason=None)],
+        scores=[
+            p.SignalScore(
+                name="outside_video_fraction", value=0.6, scale="fraction_of_window", missing_reason=None
+            )
+        ],
     ),
 ]
 BOOKMARK = p.ReviewBookmark(
@@ -125,7 +130,9 @@ PAYLOADS: dict[str, Contract] = {
     "session_end": p.SessionEnd(reason="video_changed"),
     "session_config": CONFIG,
     "session_ended": p.SessionEnded(reason="client_ended"),
-    "session_snapshot": p.SessionSnapshot(config=CONFIG, bookmarks=[BOOKMARK], sensor_status=SENSORS, last_seq=41),
+    "session_snapshot": p.SessionSnapshot(
+        config=CONFIG, bookmarks=[BOOKMARK], sensor_status=SENSORS, last_seq=41
+    ),
     "error": p.ErrorReport(
         code="schema_version_mismatch",
         message="received schemaVersion '0.2.0'; this component supports exactly '0.1.0'",
@@ -160,14 +167,20 @@ PAYLOADS: dict[str, Contract] = {
         evidence=p.BackendInterval(start_backend_ms=52000.0, end_backend_ms=56000.0),
         device_evidence_start_device_s=10452.0,
         device_evidence_end_device_s=10456.0,
-        clock_correction=p.ClockCorrection(method="fixed_offset", offset_s=-10400.0, drift_ppm=None,
-                                           uncertainty_ms=2.0),
+        clock_correction=p.ClockCorrection(
+            method="fixed_offset", offset_s=-10400.0, drift_ppm=None, uncertainty_ms=2.0
+        ),
         samples=p.SampleCounts(expected=1000, received=998),
         channels=["ch-a", "ch-b"],
         features=[
             p.EegFeature(name="synthetic_power", unit="a.u.", channel="ch-a", value=0.0, missing_reason=None),
-            p.EegFeature(name="synthetic_power", unit="a.u.", channel="ch-b", value=None,
-                         missing_reason="channel rejected: flatline"),
+            p.EegFeature(
+                name="synthetic_power",
+                unit="a.u.",
+                channel="ch-b",
+                value=None,
+                missing_reason="channel rejected: flatline",
+            ),
         ],
         quality=p.EegWindowQuality(
             usable=True,
@@ -250,7 +263,11 @@ PAYLOADS: dict[str, Contract] = {
         event_id="evt-2", reason="crosses_boundary", detail="evidence spans a seek at segment seg-2 end"
     ),
     "user_feedback": p.UserFeedback(
-        feedback_id="fb-1", bookmark_id="bm-evt-1", action="rated_useful", t_browser_ms=9500.0, media_time_s=40.0
+        feedback_id="fb-1",
+        bookmark_id="bm-evt-1",
+        action="rated_useful",
+        t_browser_ms=9500.0,
+        media_time_s=40.0,
     ),
     "sensor_status": SENSORS,
 }
@@ -275,9 +292,6 @@ def mutate(msg_type: str, path: list[str | int], value: Any, *, delete: bool = F
     return json.dumps(obj)
 
 
-
-
-
 def invalid_cases() -> dict[str, dict[str, Any]]:
     pb = json.dumps(valid_wire("playback_state"))
     cases: dict[str, tuple[str, str, str, str]] = {
@@ -294,8 +308,12 @@ def invalid_cases() -> dict[str, dict[str, Any]]:
             "structural",
             mutate("playback_state", ["schemaVersion"], "0.2.0"),
         ),
-        "unknown-type": ("Unknown message type", "unknown_type", "structural",
-                         mutate("heartbeat", ["type"], "focus_meter")),
+        "unknown-type": (
+            "Unknown message type",
+            "unknown_type",
+            "structural",
+            mutate("heartbeat", ["type"], "focus_meter"),
+        ),
         "missing-field": (
             "Required field missing (playbackRate)",
             "invalid_message",

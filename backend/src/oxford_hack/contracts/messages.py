@@ -176,27 +176,43 @@ MESSAGES: dict[str, MessageSpec] = {
     "session_ended": MessageSpec(SessionEndedMessage, "backend_to_browser", "backend", "browser", "P5"),
     "session_snapshot": MessageSpec(SessionSnapshotMessage, "backend_to_browser", "backend", "browser", "P5"),
     "error": MessageSpec(ErrorMessage, "both_ws", "browser|backend", "backend|browser", "P5"),
-    "playback_state": MessageSpec(PlaybackStateMessage, "browser_to_backend", "browser (P4)", "backend", "P4"),
+    "playback_state": MessageSpec(
+        PlaybackStateMessage, "browser_to_backend", "browser (P4)", "backend", "P4"
+    ),
     "playback_eligibility": MessageSpec(
         PlaybackEligibilityMessage, "backend_to_browser", "backend", "inference (P3), browser", "P5"
     ),
-    "eeg_features": MessageSpec(EegFeatureWindowMessage, "backend_internal", "EEG (P1)", "hub, inference", "P1"),
+    "eeg_features": MessageSpec(
+        EegFeatureWindowMessage, "backend_internal", "EEG (P1)", "hub, inference", "P1"
+    ),
     "eeg_status": MessageSpec(EegStatusMessage, "backend_internal", "EEG (P1)", "hub", "P1"),
     "gaze_observations": MessageSpec(
         GazeObservationBatchMessage, "browser_to_backend", "browser (P2)", "backend", "P2"
     ),
-    "gaze_calibration": MessageSpec(GazeCalibrationMessage, "browser_to_backend", "browser (P2)", "backend", "P2"),
-    "review_candidate": MessageSpec(ReviewCandidateMessage, "backend_internal", "inference (P3)", "hub", "P3"),
-    "review_bookmark": MessageSpec(ReviewBookmarkMessage, "backend_to_browser", "backend", "browser (P4)", "P5"),
-    "manual_bookmark": MessageSpec(ManualBookmarkMessage, "browser_to_backend", "browser (P4)", "backend", "P4"),
+    "gaze_calibration": MessageSpec(
+        GazeCalibrationMessage, "browser_to_backend", "browser (P2)", "backend", "P2"
+    ),
+    "review_candidate": MessageSpec(
+        ReviewCandidateMessage, "backend_internal", "inference (P3)", "hub", "P3"
+    ),
+    "review_bookmark": MessageSpec(
+        ReviewBookmarkMessage, "backend_to_browser", "backend", "browser (P4)", "P5"
+    ),
+    "manual_bookmark": MessageSpec(
+        ManualBookmarkMessage, "browser_to_backend", "browser (P4)", "backend", "P4"
+    ),
     "candidate_rejected": MessageSpec(
         CandidateRejectedMessage, "backend_to_browser", "backend", "browser (diagnostics)", "P5"
     ),
     "user_feedback": MessageSpec(UserFeedbackMessage, "browser_to_backend", "browser (P4)", "backend", "P4"),
-    "sensor_status": MessageSpec(SensorStatusMessage, "backend_to_browser", "backend", "browser, inference", "P5"),
+    "sensor_status": MessageSpec(
+        SensorStatusMessage, "backend_to_browser", "backend", "browser, inference", "P5"
+    ),
 }
 
-BROWSER_TO_BACKEND = frozenset(k for k, v in MESSAGES.items() if v.channel in ("browser_to_backend", "both_ws"))
+BROWSER_TO_BACKEND = frozenset(
+    k for k, v in MESSAGES.items() if v.channel in ("browser_to_backend", "both_ws")
+)
 BACKEND_INTERNAL = frozenset(k for k, v in MESSAGES.items() if v.channel == "backend_internal")
 
 AnyMessage = Annotated[
@@ -298,7 +314,9 @@ def validate_message(obj: object, *, allowed_types: frozenset[str] | None = None
     try:
         return ANY_MESSAGE_ADAPTER.validate_python(obj, by_alias=True, by_name=False)
     except ValidationError as err:
-        raise ContractError("invalid_message", f"{msg_type}: {_summarise(err)}", message_id=message_id) from None
+        raise ContractError(
+            "invalid_message", f"{msg_type}: {_summarise(err)}", message_id=message_id
+        ) from None
 
 
 def to_wire(message: EnvelopeBase) -> dict[str, Any]:

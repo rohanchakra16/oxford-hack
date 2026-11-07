@@ -11,7 +11,6 @@ from pydantic import Field, model_validator
 
 from .base import (
     AutomaticMode,
-    BackendInterval,
     BackendMs,
     BrowserMs,
     Contract,
@@ -20,12 +19,19 @@ from .base import (
     DurationMs,
     Id,
     Label,
-    MediaInterval,
     MediaS,
     OperatingMode,
-    Provenance,
     RunKind,
     ShortText,
+)
+from .base import (
+    BackendInterval as BackendInterval,
+)
+from .base import (
+    MediaInterval as MediaInterval,
+)
+from .base import (
+    Provenance as Provenance,
 )
 
 # --------------------------------------------------------------------------------------------
@@ -635,7 +641,9 @@ class ReviewBookmark(Contract):
         automatic = self.source != "manual"
         fields = (self.event_id, self.evidence_media, self.evidence, self.decision_backend_ms, self.detector)
         if automatic and any(f is None for f in fields):
-            raise ValueError("experimental bookmarks need eventId, evidence, evidenceMedia, decision and detector")
+            raise ValueError(
+                "experimental bookmarks need eventId, evidence, evidenceMedia, decision and detector"
+            )
         if not automatic and any(f is not None for f in fields):
             raise ValueError("manual bookmarks must not carry detector evidence")
         return self
@@ -717,4 +725,3 @@ class SessionSnapshot(Contract):
     bookmarks: list[ReviewBookmark]
     sensor_status: SensorStatus
     last_seq: Count
-

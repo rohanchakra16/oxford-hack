@@ -9,7 +9,9 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Literal
 
+from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
 
 from oxford_hack.contracts import MESSAGES, SCHEMA_VERSION
@@ -19,7 +21,9 @@ OUT = ROOT / "contracts" / "schema" / "oxford-hack.schema.json"
 
 
 def build() -> str:
-    models = [(spec.model, "validation") for spec in MESSAGES.values()]
+    models: list[tuple[type[BaseModel], Literal["validation"]]] = [
+        (spec.model, "validation") for spec in MESSAGES.values()
+    ]
     refs, defs = models_json_schema(models, ref_template="#/$defs/{model}", by_alias=True)
     messages = {}
     for name, spec in MESSAGES.items():
@@ -37,7 +41,8 @@ def build() -> str:
         "title": "oxford-hack shared message contracts",
         "description": (
             "PROPOSED - generated from backend/src/oxford_hack/contracts. Do not edit by hand. "
-            "Structural rules only; cross-field rules are documented in descriptions and enforced by the backend."
+            "Structural rules only; cross-field rules are documented in descriptions "
+            "and enforced by the backend."
         ),
         "x-schemaVersion": SCHEMA_VERSION,
         "x-messages": messages,
@@ -51,7 +56,9 @@ def main() -> int:
     text = build()
     if "--check" in sys.argv:
         if not OUT.exists() or OUT.read_text() != text:
-            print(f"{OUT.relative_to(ROOT)} is out of date: run `npm run contracts:generate`", file=sys.stderr)
+            print(
+                f"{OUT.relative_to(ROOT)} is out of date: run `npm run contracts:generate`", file=sys.stderr
+            )
             return 1
         print("schema up to date")
         return 0
