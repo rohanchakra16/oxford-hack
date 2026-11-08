@@ -7,12 +7,11 @@ from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
-
 from oxford_hack.contracts import SCHEMA_VERSION
 from oxford_hack.harness.synthetic import simulation_factory
 from oxford_hack.session.hub import Hub, IdFactory
 from oxford_hack.transport.app import ServerConfig, create_app
+from starlette.websockets import WebSocketDisconnect
 
 TOKEN = "test-launch-token-0123456789"
 ORIGIN = "http://127.0.0.1:5173"
@@ -234,3 +233,23 @@ def test_websocket_rejects_non_loopback_host(client: TestClient) -> None:
     ):
         pass
     assert exc.value.code == 4403
+
+
+def test_attention_routes_require_token_and_origin(client: TestClient) -> None:
+    url = "/api/v0/attention/missing-session"
+    assert client.get(url).status_code == 403
+    assert client.get(url, headers={"origin": ORIGIN}).status_code == 401
+    headers = {"origin": ORIGIN, "x-launch-token": TOKEN}
+    assert client.get(url, headers=headers).status_code == 409
+    assert (
+        client.post(
+            url + "/calibration", headers=headers, json={"action": "invalid", "participant": "local"}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            url + "/calibration", headers=headers, json={"action": "start", "participant": "local"}
+        ).status_code
+        == 409
+    )

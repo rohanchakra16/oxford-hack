@@ -81,6 +81,11 @@ class InjectRequest(_Camel):
     message: dict[str, Any]
 
 
+class CalibrationRequest(_Camel):
+    action: str = Field(pattern="^(start|cancel|reset|load)$")
+    participant: str = Field(default="local", min_length=1, max_length=64)
+
+
 class LoopbackHostMiddleware:
     """Reject requests whose Host is not loopback (DNS-rebinding protection)."""
 
@@ -297,6 +302,59 @@ def create_app(
             conn.close(1000, "closed")
             with contextlib.suppress(Exception):
                 await asyncio.wait_for(writer, timeout=1.0)
+
+    def attention_access(request: Request) -> JSONResponse | None:
+        token = request.headers.get("x-launch-token", "")
+        if not _origin_allowed(request.headers.get("origin"), config):
+            return JSONResponse({"error": "origin_rejected"}, 403)
+        if not hmac.compare_digest(token.encode(), config.launch_token.encode()):
+            return JSONResponse({"error": "not_authenticated"}, 401)
+        return None
+
+    @app.get("/api/v0/attention/{session_id}")
+    async def attention_state(request: Request, session_id: str) -> JSONResponse:
+        if (denied := attention_access(request)) is not None:
+            return denied
+        hub = hub_of(request.app)
+        session = hub.sessions.get(session_id)
+        adapter = session.inference if session else None
+        snapshot_fn = getattr(adapter, "snapshot", None)
+        if session is None or snapshot_fn is None:
+            return JSONResponse({"error": "model_output_unavailable"}, 409)
+        state = snapshot_fn()
+        state["media"] = None
+        window = getattr(adapter, "_window", None)
+        if window is not None:
+            now = clock.now_ms()
+            # Same strict backend->media mapping used for actual bookmarks.
+            if now - window.evidence.end_backend_ms <= 2000:
+                mapped = session.timeline.map_evidence(
+                    window.evidence, hub._clock_for(session, now), session.config.mapping
+                ).mapped
+                if mapped is not None:
+                    state["media"] = {
+                        "segmentId": mapped.segment_id,
+                        **mapped.evidence_media.model_dump(by_alias=True),
+                    }
+            else:
+                state.update(score=None, raw=None, level="unavailable", reason="Model output interrupted")
+        return JSONResponse(state)
+
+    @app.post("/api/v0/attention/{session_id}/calibration")
+    async def attention_calibration(
+        request: Request, session_id: str, body: CalibrationRequest
+    ) -> JSONResponse:
+        if (denied := attention_access(request)) is not None:
+            return denied
+        session = hub_of(request.app).sessions.get(session_id)
+        action = getattr(session.inference, "calibration_action", None) if session else None
+        if action is None:
+            return JSONResponse({"error": "model_output_unavailable"}, 409)
+        try:
+            action(body.action, body.participant)
+        except ValueError as error:
+            return JSONResponse({"error": str(error)}, 400)
+        return JSONResponse({"ok": True})
 
     if config.test_hooks:
 

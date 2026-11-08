@@ -155,8 +155,8 @@ class UnicornSource:
                     t_backend_ms=clock.now_ms(),
                     provenance={
                         "run_kind": "live",
-                        "producer": PRODUCER,
-                        "producer_version": "0.1.0",
+                        "producer": getattr(self, "producer", PRODUCER),
+                        "producer_version": getattr(self, "model_version", "0.1.0"),
                     },
                 )
             )
@@ -186,7 +186,9 @@ class UnicornSource:
                 controller = StreamingController(
                     device,
                     tracker,
-                    SpectralExtractor(),
+                    self.extractor()
+                    if hasattr(self, "extractor")
+                    else SpectralExtractor(),
                     FeatureOnly(),
                     window_duration_seconds=2,
                     update_interval_seconds=0.5,
@@ -209,7 +211,11 @@ class UnicornSource:
                     end_ms = frame["window_end_timestamp"] * 1000
                     good = (
                         frame["evaluation_quality"]["usable"]
-                        and all(f["valid"] for f in frame["features"].values())
+                        and (
+                            frame["features"]["attention_score"]["valid"]
+                            if hasattr(self, "pipeline")
+                            else all(f["valid"] for f in frame["features"].values())
+                        )
                         and uncertainty is not None
                         and uncertainty <= 50
                         and 0 <= now - end_ms <= 2000
@@ -233,24 +239,32 @@ class UnicornSource:
                     )
                     if end_ms > now:
                         continue
-                    features = [
-                        {
-                            "name": f"log_relative_{band}",
-                            "unit": "log_relative_power",
-                            "channel": channel,
-                            "value": frame["features"][f"{channel}:{band}"]["value"],
-                            "missing_reason": None
-                            if frame["features"][f"{channel}:{band}"]["valid"]
-                            else "spectral feature unavailable",
-                        }
-                        for channel in device.names
-                        for band, _, _ in BANDS
-                    ]
+                    features = (
+                        self.encode_features(frame)
+                        if hasattr(self, "encode_features")
+                        else [
+                            {
+                                "name": f"log_relative_{band}",
+                                "unit": "log_relative_power",
+                                "channel": channel,
+                                "value": frame["features"][f"{channel}:{band}"][
+                                    "value"
+                                ],
+                                "missing_reason": None
+                                if frame["features"][f"{channel}:{band}"]["valid"]
+                                else "spectral feature unavailable",
+                            }
+                            for channel in device.names
+                            for band, _, _ in BANDS
+                        ]
+                    )
                     sink.publish_window(
                         EegFeatureWindow(
                             window_id=f"{self.stream_id}-{frame['frame_index']}",
                             stream_id=self.stream_id,
-                            feature_set_version=FEATURE_SET,
+                            feature_set_version=getattr(
+                                self, "feature_set", FEATURE_SET
+                            ),
                             evidence={
                                 "start_backend_ms": start_ms,
                                 "end_backend_ms": end_ms,
@@ -286,8 +300,10 @@ class UnicornSource:
                             t_processed_backend_ms=now,
                             provenance={
                                 "run_kind": "live",
-                                "producer": PRODUCER,
-                                "producer_version": "0.1.0",
+                                "producer": getattr(self, "producer", PRODUCER),
+                                "producer_version": getattr(
+                                    self, "model_version", "0.1.0"
+                                ),
                             },
                         )
                     )
@@ -320,4 +336,6 @@ class UnicornSource:
 
 
 def make_source():
-    return UnicornSource()
+    from .model_source import make_model_source
+
+    return make_model_source()

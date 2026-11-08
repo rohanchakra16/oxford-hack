@@ -1,0 +1,33 @@
+import { expect, test } from '@playwright/test';
+import { MAIN_URL } from '../main-eeg.config';
+import { makeSyntheticLecture } from '../infra/makeVideo';
+
+test('ReMind main page shows interactive orange review points and persists the final summary', async ({ page }) => {
+  test.setTimeout(60_000);
+  const lecture = await makeSyntheticLecture();
+  await page.goto(`${MAIN_URL}/?adapter=synthetic`);
+  await expect(page).toHaveTitle(/ReMind/);
+  await expect(page.getByRole('link', { name: 'ReMind home' })).toBeVisible();
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
+  await page.getByRole('button', { name: 'Start simulated data', exact: true }).click();
+  await page.getByRole('button', { name: 'Simulate attention drop', exact: true }).click();
+  const marker = page.locator('.att-marker--review').first();
+  await expect(marker).toBeVisible({ timeout: 20_000 });
+  const target = await marker.getAttribute('aria-label');
+  expect(target).toContain('simulated');
+  expect(await marker.locator('.att-marker__head').evaluate((node) => getComputedStyle(node).fill)).toBe('rgb(255, 148, 31)');
+  await page.locator('video').evaluate((v: HTMLVideoElement) => v.pause());
+  await marker.click();
+  await expect(marker).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.locator('video').evaluate((v: HTMLVideoElement) => v.currentTime)).toBeLessThan(3);
+  await page.getByRole('button', { name: 'Attention summary', exact: true }).click();
+  await expect(page.getByTestId('attention-summary')).toBeVisible();
+  await expect(page.getByTestId('attention-summary').locator('.att-marker--review')).not.toHaveCount(0);
+  await page.locator('video').evaluate((v: HTMLVideoElement) => { v.currentTime = v.duration - .1; void v.play(); });
+  await expect(page.getByText('Lecture complete', { exact: true })).toBeVisible();
+  await page.reload();
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.getByRole('button', { name: 'Attention summary (saved)', exact: true }).click();
+  await expect(page.getByTestId('attention-summary').locator('.att-marker--review')).not.toHaveCount(0);
+});
