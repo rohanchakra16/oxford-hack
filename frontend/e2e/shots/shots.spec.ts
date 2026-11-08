@@ -111,8 +111,25 @@ test('screenshots camera blocked', async ({ page }) => {
   await load(page, false);
   await page.getByRole('button', { name: 'Session setup' }).click();
   await page.getByRole('button', { name: 'Calibrate gaze' }).click();
-  await expect(page.getByTestId('gaze-status')).toContainText(/camera/i);
+  await expect(page.getByTestId('gaze-status')).toHaveAttribute('data-failure', 'permission');
+  await expect(page.getByTestId('gaze-status')).toContainText(/blocked/i);
   await shot(page, 'desktop-8-camera-blocked');
+});
+
+test('an unrecognised camera failure is not presented as a permission problem', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('Constraint could not be satisfied'), { name: 'OverconstrainedError' }));
+  });
+  await openApp(page);
+  await load(page, false);
+  await page.getByRole('button', { name: 'Session setup' }).click();
+  await page.getByRole('button', { name: 'Calibrate gaze' }).click();
+  const status = page.getByTestId('gaze-status');
+  await expect(status).toHaveAttribute('data-failure', 'unknown');
+  await expect(status).toContainText('could not be identified');
+  await expect(status).not.toContainText(/blocked/i);
 });
 
 test('screenshots maximised and empty drag', async ({ page }) => {

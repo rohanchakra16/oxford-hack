@@ -35,7 +35,12 @@ export function usePersonalAttention(client: ReviewClient, sessionId: string | u
     const read = async () => {
       try {
         const response = await fetch(`${backend}/api/v0/attention/${sessionId}`, { headers: headers(), signal: abort.signal });
-        if (!response.ok) throw new Error('Live model output unavailable. Check the model connection and pairing.');
+        if (!response.ok) {
+          // 404/501/503: this build of the local service has no score source. Anything else is a failed read.
+          throw new Error([404, 501, 503].includes(response.status)
+            ? 'No compatible attention-score source is connected, so the graph shows your markers and review moments only.'
+            : 'Attention scores could not be read from the local session. Retrying.');
+        }
         const next: PersonalAttention = await response.json();
         if (abort.signal.aborted) return;
         setState(next); setError('');
@@ -45,7 +50,7 @@ export function usePersonalAttention(client: ReviewClient, sessionId: string | u
           store.record({ sessionId, videoId, segmentId: next.media.segmentId,
           evidence: next.media, mediaS: next.media.endMediaS, value: next.score,
           metric: 'attention_score', scale: 'score_0_100', valid: next.score !== null,
-          origin: 'measured', provenance: 'Annie model output · personal baseline · 2.5 s smoothing',
+          origin: 'measured', provenance: 'Personal attention model · personal baseline · 2.5 s smoothing',
           threshold: next.threshold, thresholdVersion: 'personal-model-v1' });
         } else {
           // A gap has no inferred score. Position it just after the last mapped
@@ -54,7 +59,7 @@ export function usePersonalAttention(client: ReviewClient, sessionId: string | u
         }
       } catch (e) {
         if (!abort.signal.aborted) {
-          const message = e instanceof Error ? e.message : 'Live model unavailable';
+          const message = e instanceof TypeError ? 'The local session could not be reached, so no attention scores are available.' : e instanceof Error ? e.message : 'Attention scores are unavailable';
           addGap();
           setState(null); setError(message); store.setAvailability({ state: 'unavailable', message });
         }
@@ -86,16 +91,16 @@ export function PersonalCalibration({ attention, enabled }: { attention: ReturnT
   return <section className="focus-tools personal-calibration" aria-label="Personal attention calibration">
     <h2>Personal calibration</h2>
     <label>Profile name <input aria-label="Profile name" key={attention.participant} defaultValue={attention.participant} disabled={s?.calibrating} maxLength={64} onBlur={(e) => attention.setParticipant(e.target.value)} /></label>
-    <p>Your profile is remembered on this computer. Compatible EEG baselines load automatically for future lectures.</p>
-    <p role="status">{attention.error || (s?.calibrating ? s.calibrationMessage : s?.profile ? 'Saved baseline ready for this model and device configuration.' : s?.calibrationMessage) || 'Connect Annie’s model to calibrate. No attention score is inferred from missing data.'}</p>
+    <p role="status">{attention.error || (s?.calibrating ? s.calibrationMessage : s?.profile ? 'Saved baseline ready for this model and device configuration.' : s?.calibrationMessage) || 'Attention calibration needs a connected EEG score source. No score is inferred from missing data.'}</p>
     {!enabled && <p>Open a lecture and connect the local session to calibrate.</p>}
-    {s?.calibrating && <><progress value={s.progress} max={1} aria-label="Calibration progress" /><p>Continue to the lecture and watch attentively for 20 seconds. Calibration keeps running when you close setup.</p></>}
+    {s?.calibrating && <><progress value={s.progress} max={1} aria-label="Calibration progress" /><p>Watch attentively for 20 seconds. This keeps running if you close setup.</p></>}
     <div className="bookmark-actions">
       <button className="button button--outline button--small" disabled={!enabled || s?.calibrating} onClick={() => void attention.action('start')}>{s?.profile ? 'Recalibrate' : 'Calibrate attention'}</button>
       {s?.calibrating && <button className="button button--quiet button--small" onClick={() => void attention.action('cancel')}>Cancel</button>}
       {s?.profile && <button className="button button--quiet button--small" onClick={() => void attention.action('reset')}>Reset baseline</button>}
     </div>
     <details className="setup-help"><summary>Calibration details</summary>
+      <p>Your profile is remembered on this computer. Compatible EEG baselines load automatically for future lectures.</p>
       {s?.profile && <p>Saved {new Date(s.profile.created * 1000).toLocaleDateString()} · Mean {s.profile.mean.toFixed(1)} · SD {s.profile.std.toFixed(1)} · low ≤ {s.profile.low.toFixed(1)} · recovery ≥ {s.profile.recovery.toFixed(1)}</p>}
       <p>Model score {s?.score === null || s?.score === undefined ? 'unavailable' : `${s.score.toFixed(0)} / 100 · ${s.level}`}. This is a normalized model output, not a probability of attention.</p>
     </details>

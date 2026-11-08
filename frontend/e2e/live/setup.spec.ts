@@ -58,7 +58,7 @@ test('new lectures and reloads automatically load the remembered profile without
   await name.fill('Alice');
   await name.press('Tab');
   await expect.poll(() => loads.includes('Alice')).toBe(true);
-  await expect(page.getByText('A compatible saved baseline is loaded. No repeat EEG calibration needed.')).toBeVisible();
+  await expect(page.getByText('Saved baseline loaded.', { exact: true })).toBeVisible();
   await page.reload();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
   await expect(page.getByRole('textbox', { name: 'Profile name' })).toHaveValue('Alice');

@@ -38,11 +38,18 @@ export function createGazeCamera({ getVideoElement, onObservation, onObservation
     onCalibration({ id: state.attempt.id, status: state.status,
       contract: toContractCalibration(state, gazeProvenance('live', 'gaze-0.1.0')) });
   });
-  engine.on('camera', (state) => { if (state.status === 'error') onUnavailable(state.message); });
+  let lastFailure = null;
+  engine.on('camera', (state) => { if (state.status === 'error') { lastFailure = state; onUnavailable(state.message); } else if (state.status === 'starting') lastFailure = null; });
   return {
     async start() {
-      await engine.start();
-      if (engine.camera.state.status !== 'live') throw new Error('Camera unavailable. Allow camera access and try again.');
+      let startError;
+      try { await engine.start(); } catch (error) { startError = error; }
+      const camera = engine.camera.state;
+      if (camera.status !== 'live') {
+        // Report the camera's own cause (not whatever later step failed) so the UI can give matching advice.
+        throw Object.assign(new Error(camera.message || lastFailure?.message || 'Camera unavailable'), { code: camera.reason || lastFailure?.reason });
+      }
+      if (startError) throw startError;
     },
     calibrate: (ui, signal) => engine.calibrate(ui, { signal }),
     getCalibration: () => {

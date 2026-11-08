@@ -7,15 +7,17 @@ import type { ReviewClient } from '../../frontend/src/integration';
 import type { GazeCalibration as Calibration } from '../../frontend/src/contracts/generated/types';
 
 
-/** Turns whatever the camera layer rejected with into one actionable sentence. */
-function explainCameraFailure(error: unknown): string {
+type CameraFailure = 'permission' | 'missing' | 'busy' | 'unknown';
+
+/** Classifies what the camera layer rejected with. Only a recognised cause gets cause-specific advice. */
+export function explainCameraFailure(error: unknown): { kind: CameraFailure; message: string } {
   const e = error as { name?: string; code?: string; message?: string } | string | null | undefined;
   const text = typeof e === 'string' ? e : `${e?.name ?? ''} ${e?.code ?? ''} ${e?.message ?? ''}`;
-  if (/NotAllowed|PermissionDenied|denied|blocked|dismissed/i.test(text)) return 'Camera access was blocked. Allow the camera for this site in your browser’s address bar, then calibrate again.';
-  if (/NotFound|DevicesNotFound|no camera|not found/i.test(text)) return 'No camera was found. Connect one, then calibrate again.';
-  if (/NotReadable|TrackStart|in use|busy/i.test(text)) return 'The camera is in use by another app. Close it, then calibrate again.';
-  const detail = typeof e === 'string' ? e : e?.message;
-  return `${detail ? `${detail} ` : ''}The camera could not start. Allow camera access for this site, make sure no other app is using it, then calibrate again.`;
+  if (/NotAllowed|PermissionDenied|PERMISSION_DENIED|denied|blocked|dismissed/i.test(text)) return { kind: 'permission', message: 'Camera access was blocked. Allow the camera for this site in your browser’s address bar, then calibrate again.' };
+  if (/NotFound|DevicesNotFound|no camera|not found|device not found/i.test(text)) return { kind: 'missing', message: 'No camera was found. Connect one, then calibrate again.' };
+  if (/NotReadable|TrackStart|CAMERA_IN_USE|in use|busy/i.test(text)) return { kind: 'busy', message: 'The camera is in use by another app. Close it, then calibrate again.' };
+  const detail = (typeof e === 'string' ? e : e?.message)?.trim();
+  return { kind: 'unknown', message: `Camera setup failed${detail ? `: ${detail}` : ''}. The cause could not be identified. Check that the camera is connected, allowed for this site and not used by another app, then try again.` };
 }
 
 export function GazeCalibration({ player, buffer, onStarted, client, participant = 'local', onBusyChange }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void; client?: ReviewClient; participant?: string; onBusyChange?: (busy: boolean) => void }) {
@@ -28,6 +30,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
   };
   const [busy, setBusy] = useState(false);
   /** Where the camera setup is: drives the step indicator only; behaviour is unchanged. */
+  const [failure, setFailure] = useState<CameraFailure | null>(null);
   const [phase, setPhase] = useState<'idle' | 'permission' | 'calibrating' | 'ready' | 'unavailable'>('idle');
   const [saved, setSaved] = useState(() => readGazeMemory(participant));
   const [status, setStatus] = useState(() => readGazeMemory(participant)
@@ -72,7 +75,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
               : event.status === 'in_progress' ? 'Follow each calibration dot with your eyes.' : 'Calibration unavailable. Recalibrate to continue.');
           },
           onUnavailable: (message) => {
-            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); invalidate(); setPhase('unavailable'); setStatus(explainCameraFailure(message)); }
+            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); invalidate(); const f = explainCameraFailure(message); setPhase('unavailable'); setFailure(f.kind); setStatus(f.message); }
           },
         });
         engine.current = gaze;
@@ -100,8 +103,9 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
       if (!controller.signal.aborted) {
         buffer.clear(); engine.current?.stop(); engine.current = null;
         invalidate();
-        setPhase('unavailable');
-        setStatus(explainCameraFailure(error));
+        const f = explainCameraFailure(error);
+        setPhase('unavailable'); setFailure(f.kind);
+        setStatus(f.message);
       }
     } finally {
       if (!controller.signal.aborted) { setBusy(false); onBusyChange?.(false); setTarget(null); }
@@ -122,7 +126,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
       <li data-step="calibrating">Follow the dots</li>
       <li data-step="ready">{phase === 'unavailable' ? 'Unavailable' : 'Ready'}</li>
     </ol>
-    <p role="status" data-testid="gaze-status">{status}</p>
+    <p role="status" data-testid="gaze-status" data-failure={phase === 'unavailable' ? failure ?? undefined : undefined}>{status}</p>
     {saved && <button disabled={!player?.getLecture() || busy} onClick={() => void calibrate(true)}>Use saved camera setup</button>}
     <button disabled={!player?.getLecture() || busy} onClick={() => void calibrate()}>Calibrate gaze</button>
     <button disabled={!busy && !engine.current} onClick={stop}>Stop camera</button>
