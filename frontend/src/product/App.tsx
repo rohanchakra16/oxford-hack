@@ -16,6 +16,7 @@ import { FlagIcon } from './icons';
 import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
+import { useExperiment } from '../experiment/useExperiment';
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
@@ -183,21 +184,23 @@ export default function App() {
   const [earlierCounts, setEarlierCounts] = useState<Record<string, number>>({});
   const [reminders, setReminders] = useState<WireReviewBookmark[]>([]);
   const [replayError, setReplayError] = useState<string | null>(null);
-  const [attentionStore] = useState(() => new AttentionTimelineStore());
+  const [liveAttentionStore] = useState(() => new AttentionTimelineStore());
+  const experiment = useExperiment(player, lecture?.videoId);
+  const attentionStore = experiment.enabled ? experiment.store : liveAttentionStore;
   const [viewMode, setViewMode] = useState<PlayerViewMode>('normal');
   const [showSummary, setShowSummary] = useState(false);
   const [setupOpen, setSetupOpen] = useState(() => new URLSearchParams(window.location.search).get('setup') === '1');
   const timeline = useTimeline(attentionStore);
-  useAttentionLecture(attentionStore, player);
-  const personalAttention = usePersonalAttention(client, snapshot.session?.sessionId, lecture?.videoId, attentionStore);
+  useAttentionLecture(liveAttentionStore, player);
+  const personalAttention = usePersonalAttention(client, experiment.enabled ? undefined : snapshot.session?.sessionId, lecture?.videoId, liveAttentionStore);
 
   useEffect(() => client.onEvent((event) => {
     if (event.type === 'session_started' || event.type === 'session_ended') setReminders([]);
-    if (event.type === 'bookmark_added' && event.bookmark.source !== 'manual') {
+    if (!experiment.enabled && event.type === 'bookmark_added' && event.bookmark.source !== 'manual') {
       setReminders((saved) => saved.some((b) => b.bookmarkId === event.bookmark.bookmarkId)
         ? saved : [...saved, event.bookmark]);
     }
-  }), [client]);
+  }), [client, experiment.enabled]);
 
   useEffect(() => () => client.dispose(), [client]);
 
@@ -221,20 +224,23 @@ export default function App() {
   const ended = useSyncExternalStore(player?.subscribe ?? NOOP_SUBSCRIBE, () => player?.getState().ended ?? false);
 
   const activeBookmarks = useMemo(
-    () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (client.kind === 'live' || !focus.enabled || bookmark.source === 'manual')), ...focus.moments]
+    () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (experiment.enabled ? bookmark.source === 'manual' : (client.kind === 'live' || !focus.enabled || bookmark.source === 'manual'))), ...(experiment.enabled
+      ? timeline.markers.filter((marker) => marker.kind === 'review').map((marker) => ({ bookmarkId: `focus:${marker.id}`,
+        videoId: lecture?.videoId ?? '', suggestedMediaS: marker.startS, endMediaS: marker.endS ?? undefined, source: 'experimental_combined' as const }))
+      : focus.moments)]
       .sort((a, b) => a.suggestedMediaS - b.suggestedMediaS),
-    [snapshot.bookmarks, lecture, focus.enabled, focus.moments, client],
+    [snapshot.bookmarks, lecture, focus.enabled, focus.moments, client, experiment.enabled, timeline.markers],
   );
 
   useEffect(() => {
-    if (!lecture) return;
+    if (!lecture || experiment.enabled) return;
     for (const bookmark of activeBookmarks) attentionStore.addMarker(markerFromBookmark({ ...bookmark, runKind: client.kind === 'synthetic' ? 'simulated' : 'live' }));
-  }, [activeBookmarks, lecture, attentionStore, client]);
+  }, [activeBookmarks, lecture, attentionStore, client, experiment.enabled]);
   useEffect(() => {
-    if (client.kind !== 'synthetic' || !focus.snapshot || !player) return;
+    if (experiment.enabled || client.kind !== 'synthetic' || !focus.snapshot || !player) return;
     const observation = observationFromEvaluation(focus.snapshot, player.getState());
     if (observation) attentionStore.record({ ...observation, origin: 'simulated' });
-  }, [focus.snapshot, client, player, attentionStore]);
+  }, [focus.snapshot, client, player, attentionStore, experiment.enabled]);
   useEffect(() => { if (ended) setShowSummary(true); }, [ended]);
   useEffect(() => { setShowSummary(false); }, [lecture?.videoId]);
 
@@ -332,7 +338,12 @@ export default function App() {
           </div>
         </section>
 
-        {snapshot.kind === 'synthetic' && (
+        {experiment.enabled && <div className="mode-banner" role="status" data-testid="experiment-banner">
+          <span className="mode-banner__icon" aria-hidden="true" />
+          <div><strong>Experimental mode</strong><span>{experiment.source ? `EEG CSV: ${experiment.source.name} · randomized gaze every 10 seconds.` : 'Import an EEG CSV in Session setup → Calibration → Experimental mode.'} Test scores and review dots are simulated.</span></div>
+        </div>}
+
+        {!experiment.enabled && snapshot.kind === 'synthetic' && (
           <div className="mode-banner" role="status">
             <span className="mode-banner__icon" aria-hidden="true" />
             <div>
@@ -342,7 +353,7 @@ export default function App() {
           </div>
         )}
 
-        {snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG') && (
+        {!experiment.enabled && snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG') && (
           <div className="mode-banner" role="status" data-testid="test-eeg-banner">
             <span className="mode-banner__icon" aria-hidden="true" />
             <div>
@@ -355,7 +366,7 @@ export default function App() {
           </div>
         )}
 
-        {connection.state !== 'connected' && connection.state !== 'idle' && (
+        {!experiment.enabled && connection.state !== 'connected' && connection.state !== 'idle' && (
           <div className={`connection-banner connection-banner--${connectionTone}`} role="status">
             <strong>
               {connection.state === 'pairing_required' ? 'Connect to your session' :
@@ -432,10 +443,10 @@ export default function App() {
           </div>
 
           <aside className="side-column" aria-label="Session and review">
-            <AttentionGraph store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />
+            <AttentionGraph key={experiment.enabled ? 'experiment' : 'normal'} store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />
             <button className="button button--outline button--small" disabled={!timeline.videoId} onClick={() => setShowSummary((value) => !value)}>{showSummary ? 'Hide attention summary' : timeline.completed ? 'Attention summary (saved)' : 'Attention summary'}</button>
-            {client.kind === 'synthetic' && <AttentionDemoPanel store={attentionStore} playback={player} />}
-            {reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
+            {!experiment.enabled && client.kind === 'synthetic' && <AttentionDemoPanel store={attentionStore} playback={player} />}
+            {!experiment.enabled && reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
               <h2>Heads-up <span className="count-badge">{reminders.length}</span></h2>
               <div className="reminder-stack__items">
                 {reminders.map((bookmark) => <article className="reminder-notice" key={bookmark.bookmarkId} data-testid="review-reminder" role="status">
@@ -455,7 +466,7 @@ export default function App() {
                 Moments are suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.
               </p>
               {(ended || focus.snapshot?.ended) && <p role="status">Lecture complete. Choose a saved flag to revisit a moment.</p>}
-              {snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
+              {!experiment.enabled && snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
                 <div className="manual-only-note" role="status">
                   Automatic suggestions are paused. Add a marker whenever you want to revisit a moment.
                 </div>
@@ -485,7 +496,7 @@ export default function App() {
               )}
             </section>
 
-            {focus.notice && !ended && !focus.snapshot?.ended && <section className="focus-tools" role="status" aria-label="Focus heads-up">
+            {!experiment.enabled && focus.notice && !ended && !focus.snapshot?.ended && <section className="focus-tools" role="status" aria-label="Focus heads-up">
               <strong>Heads-up: review moment saved</strong>
               <p>You may want to revisit {formatTime(focus.notice.mediaRange.startMediaS)} when you’re ready.</p>
               <button onClick={() => { const bookmark = focus.moments.find((b) => b.suggestedMediaS === focus.notice!.mediaRange.startMediaS); if (bookmark) replay(bookmark); }}>Replay saved moment</button>
@@ -497,7 +508,7 @@ export default function App() {
       </main>
 
       <SessionSetup open={setupOpen} onClose={() => setSetupOpen(false)} snapshot={snapshot} lecture={lecture}
-        player={player} focus={focus} attention={personalAttention}
+        player={player} focus={focus} attention={personalAttention} experiment={experiment}
         devices={<DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />} />
 
       <footer className="page-footer">

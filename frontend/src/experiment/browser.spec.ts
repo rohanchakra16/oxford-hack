@@ -1,0 +1,68 @@
+import { expect, test } from '@playwright/test';
+import { makeSyntheticLecture } from '../../e2e/infra/makeVideo';
+
+test('CSV experiment stays in calibration, follows playback and stops cleanly', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = async () => { throw new Error('Experiment unexpectedly requested camera'); };
+  });
+  await page.goto('/?adapter=synthetic');
+  await expect(page.getByLabel('Enable experimental mode')).not.toBeVisible();
+  const lecture = await makeSyntheticLecture();
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  const video = page.locator('video');
+  await expect(video).toHaveJSProperty('readyState', 4);
+  await video.evaluate((v) => { v.dataset.experimentIdentity = 'same'; });
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
+  const setup = page.locator('dialog.session-setup');
+  const controls = page.locator('.experiment-controls');
+  await expect(controls).not.toHaveAttribute('open', '');
+  await controls.locator('summary').click();
+  await page.getByLabel('Enable experimental mode').check();
+  await expect(page.getByRole('button', { name: 'Calibrate attention', exact: true })).not.toBeVisible();
+  await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'scores.csv', mimeType: 'text/csv', buffer: Buffer.from('time_s,attention_score\n' + Array.from({ length: 30 }, (_, i) => `${i},20`).join('\n')) });
+  await expect(controls.getByText(/scores.csv · 30.0 seconds/)).toBeVisible();
+  await expect(controls.getByText(/EEG: 20 · Combined test score/)).toBeVisible();
+  await expect(page.getByRole('img', { name: /Simulated gaze/ })).toBeVisible();
+  await controls.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: '../test-results/experiment/calibration-desktop.png' });
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
+  await expect(setup).not.toBeVisible();
+  await expect(page.getByTestId('experiment-banner')).toContainText('scores.csv');
+  await video.evaluate((v: HTMLVideoElement) => v.play());
+  await expect(page.locator('.att-line--simulated')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.att-marker--review')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('article.bookmark-card')).toHaveCount(1);
+  await video.evaluate((v: HTMLVideoElement) => { v.pause(); v.currentTime = 31; });
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
+  await expect(controls.getByText('EEG CSV finished. Rewind the lecture to replay it.')).toBeVisible();
+  await video.evaluate((v: HTMLVideoElement) => { v.currentTime = 0; });
+  await expect(controls.getByText(/EEG: 20 · Combined test score/)).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await controls.scrollIntoViewIfNeeded();
+  expect(await setup.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: '../test-results/experiment/calibration-mobile.png' });
+  await page.getByLabel('Enable experimental mode').uncheck();
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
+  await expect(page.getByTestId('experiment-banner')).not.toBeVisible();
+  await expect(page.locator('.att-line--simulated')).toHaveCount(0);
+  await expect(page.locator('article.bookmark-card')).toHaveCount(0);
+  await expect(video).toHaveAttribute('data-experiment-identity', 'same');
+  expect(errors).toEqual([]);
+});
+
+test('offline live page can import raw EEG; invalid replacement cannot keep stale scores', async ({ page }) => {
+  await page.goto('/?setup=1');
+  await page.locator('.experiment-controls summary').click();
+  await page.getByLabel('Enable experimental mode').check();
+  const raw = 'timestamp,sample_index,Fz\n' + Array.from({ length: 1000 }, (_, i) => `${i / 250},${i},${Math.sin(2 * Math.PI * 20 * i / 250)}`).join('\n');
+  await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'raw.csv', mimeType: 'text/csv', buffer: Buffer.from(raw) });
+  await expect(page.getByText(/raw.csv · 4.0 seconds · Spectral test proxy/)).toBeVisible();
+  await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'bad.csv', mimeType: 'text/csv', buffer: Buffer.from('time_s,score\n0,120') });
+  await expect(page.getByRole('alert')).toContainText('Attention scores must be on a 0–100 scale');
+  await expect(page.getByText(/raw.csv ·/)).not.toBeVisible();
+  await page.reload();
+  await page.locator('.experiment-controls summary').click();
+  await expect(page.getByLabel('Enable experimental mode')).not.toBeChecked();
+});
