@@ -3,6 +3,7 @@ import json
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
 from inference.question_generation import (
     OPENROUTER_URL,
     OpenRouterQuestionGenerator,
@@ -30,6 +31,8 @@ def good_content(quote="At a fixed voltage, current decreases as resistance incr
             "status": "ready",
             "question": "What happens to current when resistance rises at a fixed voltage?",
             "suggested_answer": "It decreases, because I = V/R.",
+            "choices": ["It decreases.", "It increases.", "It stays constant.", "It doubles."],
+            "correct_choice_index": 0,
             "supporting_quote": quote,
         }
     )
@@ -75,6 +78,35 @@ def test_unmatched_quote_is_rejected():
     with pytest.raises(QuestionGenerationError) as error:
         gen(t).generate(EXCERPT)
     assert error.value.code == "invalid_output"
+
+
+@pytest.mark.parametrize(
+    "choices,correct",
+    [
+        (["Same", "same", "Different", "Fourth"], 0),
+        (["First", "Second", "Third"], 0),
+        (["First", "Second", "Third", "Fourth", None], 0),
+        (["First", "Second", "Third", "Fourth"], 4),
+        (["First", "Second", "Third", "Fourth"], True),
+        (["First", "Second", "Third", " "], 0),
+    ],
+)
+def test_invalid_four_choice_questions_are_rejected(choices, correct):
+    data = json.loads(good_content())
+    data.update(choices=choices, correct_choice_index=correct)
+    with pytest.raises(QuestionGenerationError) as error:
+        gen(FakeTransport(reply(json.dumps(data)))).generate(EXCERPT)
+    assert error.value.code == "invalid_output"
+
+
+def test_ready_question_preserves_four_choices_and_the_answer_key():
+    data = json.loads(good_content())
+    data["choices"][0], data["choices"][2] = data["choices"][2], data["choices"][0]
+    data["correct_choice_index"] = 2
+    result = gen(FakeTransport(reply(json.dumps(data)))).generate(EXCERPT)
+    assert result.choices == data["choices"]
+    assert result.correct_choice_index == 2
+    assert result.model_dump(by_alias=True)["correctChoiceIndex"] == 2
 
 
 def test_fenced_json_is_accepted():
@@ -189,4 +221,4 @@ def test_route_success_and_errors():
     assert r.status_code == 429 and r.headers["retry-after"] == "12" and r.json()["error"] == "rate_limited"
     status = c.get("/api/v0/questions/status", headers=h).json()
     assert status["configured"] and status["model"] == "openrouter/free"
-    assert status["promptVersion"] == "recall-q-v2-context"
+    assert status["promptVersion"] == "recall-q-v3-quiz"

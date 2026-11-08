@@ -9,7 +9,8 @@ The local demo offers two explicit providers in **Review moments → Recall ques
   ChatGPT password, borrow Codex's credentials, or require an OpenAI API key.
 
 Questions remain optional, requested from saved moments, and do not control playback.
-Bookmark summaries are deferred. This feature does not collect, grade or score student answers.
+Bookmark summaries and AI answer grading are deferred. Typed answers and multiple-choice selections
+remain in browser memory; neither the backend nor a provider receives student responses.
 
 ## Demo setup
 
@@ -25,7 +26,11 @@ Bookmark summaries are deferred. This feature does not collect, grade or score s
 5. Approve the transcript-processing checkbox. This permits the selected external provider to
    analyse the complete transcript once, then receive the fixed overview and relevant passages
    when a question is requested. No transcript is uploaded merely by loading it or connecting.
-6. Add a saved moment and press **Test your recall**. Reveal the suggested answer when ready.
+6. Choose **Text answer — self-check** or **Four choices — automatically marked**. Press **Start quiz
+   for N saved moments**, or use **Test your recall** on one moment. Submit each answer; typed
+   responses require an explicit self-check after comparing with the suggested answer.
+7. Accuracy appears after every answerable question in that quiz has been answered. Typed scores
+   are labeled **Self-assessed accuracy**; choice scores use the generated answer key.
 
 Provider, model or transcript changes require fresh transcript consent and clear question results.
 There is no automatic fallback to another provider or billing path. Use **Manage ChatGPT usage**
@@ -71,7 +76,7 @@ when necessary. An oversized final target sentence yields insufficient context r
 sentence. A sentence starting in the target may finish beyond it; this is boundary completion,
 not a guarantee of zero text beyond the evidence end. Manual marks look back 20 seconds.
 
-Generated question, suggested answer and quote have a combined 3,000-character soft target and
+Generated question, suggested answer, quote and four answer choices have a combined 3,000-character soft target and
 3,500 hard maximum. The old 400/600/600 string slicing is removed. Oversized output or a provider
 truncation signal receives at most one regeneration attempt. Only complete successful output is
 cached; repeated incomplete output becomes unavailable, never a fabricated successful question.
@@ -89,6 +94,32 @@ with a reason for breaks, logistics or unrelated personal digressions. The card 
 the bookmark and replay remain available. Simple explanations, revision and anecdotes that teach
 relevant concepts remain eligible. Uncertain relevance returns `insufficient_context` instead of
 asserting that the passage is irrelevant. These judgments require real-lecture quality evaluation.
+
+## Answers and fixed quiz sessions (#83)
+
+Every ready response supplies four distinct choices and a zero-based `correctChoiceIndex`. The
+question prompt asks for one unambiguously correct answer and three plausible, parallel distractors
+without trick wording or all/none-of-the-above options. Backend validation rejects missing/duplicate
+choices and invalid indexes. The prompt version is `recall-q-v3-quiz`; old cached output is not reused.
+Educational correctness and distractor ambiguity still require lecture-specific review.
+
+- Text mode supplies a 2,000-character textbox. Submit to reveal the reference, then choose **I got
+  it right** or **I need to review**. No string matching or AI grading is presented as correctness.
+- Choice mode shuffles display positions once per question/quiz, retaining the canonical answer key.
+  Exactly one selection is submitted and locked; feedback reveals the correct choice and explanation.
+- A batch snapshots the current non-dismissed saved moments. Later bookmarks do not enter that
+  batch. Individual requests can start a one-question session. Existing active-batch questions remain
+  answerable even if their moment is subsequently dismissed from the review view.
+- Progress waits for generation to settle and all ready questions to be answered/self-checked.
+  Skipped, insufficient-context and unavailable items are counted separately and excluded from
+  accuracy. A batch with zero answerable questions never reports 0% or 100%.
+- Provider/model/transcript/consent changes invalidate the quiz. Starting a new quiz clears all
+  responses and reshuffles choices. Answer fingerprints prevent stale answers from scoring a
+  regenerated question. Attempts are local and session-only; reloading clears them.
+
+`frontend/src/questions/quiz.ts` computes scoring, `useRecallQuiz.ts` owns the fixed batch,
+`QuestionAnswer.tsx` renders accessible answer forms and `RecallQuizControls.tsx` presents progress
+and the final score. No answer-marking API endpoint or student-data upload was added.
 
 ## Local HTTP routes
 
@@ -108,7 +139,7 @@ Selection is `{ provider: "openrouter" }` or
 `{ provider: "chatgpt", accountId: "...", model: "account-visible-slug" }`.
 Context sentences are `{ startMediaS, endMediaS, text }`. A question request retains the existing
 `bookmarkId`, `videoId`, `startMediaS`, `endMediaS`, `text` fields and adds `selection`, `contextId`,
-`targetStartMediaS`, `targetEndMediaS`. Context IDs are scoped to the selected provider/account/model
+`targetStartMediaS`, `targetEndMediaS`. Ready responses additionally expose `choices` and `correctChoiceIndex`. Context IDs are scoped to the selected provider/account/model
 and video. A stale or mismatched context returns 409 `context_expired`.
 
 The legacy excerpt-only request remains supported for offline evaluation. The live browser always

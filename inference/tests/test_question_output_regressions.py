@@ -23,6 +23,8 @@ SHORT = {
     "status": "ready",
     "question": "Why does current decrease when resistance increases at fixed voltage?",
     "suggested_answer": "Ohm's law gives I = V/R, so increasing R decreases I at fixed V.",
+    "choices": ["It decreases.", "It increases.", "It stays constant.", "It doubles."],
+    "correct_choice_index": 0,
     "supporting_quote": "At a fixed voltage, increasing resistance decreases current.",
 }
 
@@ -83,6 +85,8 @@ def assert_short_complete(result):
 
 def test_complete_output_above_soft_limit_survives_without_legacy_field_slices():
     content = {
+        "choices": SHORT["choices"],
+        "correct_choice_index": 0,
         "status": "ready",
         "question": (
             "Why does increasing resistance reduce current at fixed voltage? " * 10

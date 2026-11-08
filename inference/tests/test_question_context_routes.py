@@ -61,6 +61,13 @@ class Provider:
                 "status": "ready",
                 "question": "How does resistance affect current?",
                 "suggested_answer": "Increasing resistance reduces current at a fixed voltage.",
+                "choices": [
+                    "It decreases.",
+                    "It increases.",
+                    "It stays constant.",
+                    "It doubles.",
+                ],
+                "correct_choice_index": 0,
                 "supporting_quote": "increasing resistance decreases current",
                 "skip_reason": "",
             }
