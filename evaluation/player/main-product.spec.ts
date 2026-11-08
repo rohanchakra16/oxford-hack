@@ -22,6 +22,7 @@ test('main frontend calibrates, saves combined flags, keeps manual markers and r
             videoPoint:{x:0.5,y:0.5},modelConfidence:0.9
           });},65);
         },
+        getCalibration:()=>null,
         stop:()=>clearInterval(timer)
       };
     }
@@ -29,7 +30,9 @@ test('main frontend calibrates, saves combined flags, keeps manual markers and r
   await page.goto('/?adapter=synthetic');
   await expect(page.getByRole('heading', { name: /Find your way back/ })).toBeVisible();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
   await page.getByRole('button', { name: 'Calibrate EEG + gaze' }).click();
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
   await expect(page.getByRole('status', { name: 'Focus heads-up' })).toBeVisible({ timeout: 40_000 });
   await expect(page.locator('article.bookmark-card')).toHaveCount(1);

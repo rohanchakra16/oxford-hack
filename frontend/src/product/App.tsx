@@ -9,13 +9,13 @@ import {
 } from '../integration';
 import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle, type PlayerViewMode } from '../player';
 import { AttentionTimelineStore, AttentionGraph, AttentionSummary, AttentionInfoIndicator, AttentionDemoPanel, markerFromBookmark, observationFromEvaluation, useAttentionLecture, useTimeline, type AttentionMarker, type SeekTarget } from '../attention';
-import { usePersonalAttention, PersonalCalibration } from '../focus/usePersonalAttention';
+import { usePersonalAttention } from '../focus/usePersonalAttention';
 import { Wordmark } from './Wordmark';
 import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
 import { FlagIcon } from './icons';
 import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
-import { FocusSetup } from '../focus/FocusSetup';
+import { SessionSetup } from './SessionSetup';
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
@@ -186,6 +186,7 @@ export default function App() {
   const [attentionStore] = useState(() => new AttentionTimelineStore());
   const [viewMode, setViewMode] = useState<PlayerViewMode>('normal');
   const [showSummary, setShowSummary] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(() => new URLSearchParams(window.location.search).get('setup') === '1');
   const timeline = useTimeline(attentionStore);
   useAttentionLecture(attentionStore, player);
   const personalAttention = usePersonalAttention(client, snapshot.session?.sessionId, lecture?.videoId, attentionStore);
@@ -317,7 +318,7 @@ export default function App() {
                     ? 'Version mismatch'
                     : snapshot.kind === 'synthetic' ? 'Simulation stopped' : 'Not connected'}
           </span>
-          <a className="diagnostics-link" href="/diagnostics">System status</a>
+          <button className="button button--outline button--small setup-trigger" onClick={() => setSetupOpen(true)}>Session setup</button>
         </div>
       </header>
 
@@ -433,7 +434,7 @@ export default function App() {
           <aside className="side-column" aria-label="Session and review">
             <AttentionGraph store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />
             <button className="button button--outline button--small" disabled={!timeline.videoId} onClick={() => setShowSummary((value) => !value)}>{showSummary ? 'Hide attention summary' : timeline.completed ? 'Attention summary (saved)' : 'Attention summary'}</button>
-            {client.kind === 'live' ? <PersonalCalibration attention={personalAttention} enabled={Boolean(snapshot.session)} /> : <AttentionDemoPanel store={attentionStore} playback={player} />}
+            {client.kind === 'synthetic' && <AttentionDemoPanel store={attentionStore} playback={player} />}
             {reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
               <h2>Heads-up <span className="count-badge">{reminders.length}</span></h2>
               <div className="reminder-stack__items">
@@ -484,24 +485,20 @@ export default function App() {
               )}
             </section>
 
-            <FocusSetup player={player} lecture={lecture} focus={focus} />
             {focus.notice && !ended && !focus.snapshot?.ended && <section className="focus-tools" role="status" aria-label="Focus heads-up">
               <strong>Heads-up: review moment saved</strong>
               <p>You may want to revisit {formatTime(focus.notice.mediaRange.startMediaS)} when you’re ready.</p>
               <button onClick={() => { const bookmark = focus.moments.find((b) => b.suggestedMediaS === focus.notice!.mediaRange.startMediaS); if (bookmark) replay(bookmark); }}>Replay saved moment</button>
               <button onClick={focus.closeNotice}>Close heads-up</button>
             </section>}
-            <DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />
-            {snapshot.session?.config.detector?.detectorId.startsWith('experimental-live-eeg') && (
-              <p className="live-eeg-note" role="status">
-                Experimental EEG reminders  ·  calibrate your personal model baseline before watching.
-                Reminders follow 8 seconds of low model estimates after smoothing, with a 30-second cooldown.
-                {snapshot.sensors?.automaticSuggestions ? ' Model estimates are experimental.' : ' Waiting for usable model output from your headset.'}
-              </p>
-            )}
+
           </aside>
         </div>
       </main>
+
+      <SessionSetup open={setupOpen} onClose={() => setSetupOpen(false)} snapshot={snapshot} lecture={lecture}
+        player={player} focus={focus} attention={personalAttention}
+        devices={<DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />} />
 
       <footer className="page-footer">
         <span>ReMind</span>

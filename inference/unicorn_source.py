@@ -325,7 +325,14 @@ class UnicornSource:
                     except Exception:
                         pass
 
-        self.thread = Thread(target=run, name="unicorn-live-source", daemon=True)
+        def reconnect():
+            while not self.stop_event.is_set():
+                self.stream_id = f"unicorn-{uuid4().hex}"
+                run()
+                if self.stop_event.wait(getattr(self, "reconnect_delay_s", 3.0)):
+                    break
+
+        self.thread = Thread(target=reconnect, name="unicorn-live-source", daemon=True)
         self.thread.start()
 
     def stop(self):

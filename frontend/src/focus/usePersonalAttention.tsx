@@ -85,15 +85,19 @@ export function PersonalCalibration({ attention, enabled }: { attention: ReturnT
   const s = attention.state;
   return <section className="focus-tools personal-calibration" aria-label="Personal attention calibration">
     <h2>Personal calibration</h2>
-    <label>Local participant <input aria-label="Local participant" key={attention.participant} defaultValue={attention.participant} maxLength={64} onBlur={(e) => attention.setParticipant(e.target.value)} /></label>
+    <label>Profile name <input aria-label="Profile name" key={attention.participant} defaultValue={attention.participant} disabled={s?.calibrating} maxLength={64} onBlur={(e) => attention.setParticipant(e.target.value)} /></label>
+    <p>Your profile is remembered on this computer. Compatible EEG baselines load automatically for future lectures.</p>
     <p role="status">{attention.error || (s?.calibrating ? s.calibrationMessage : s?.profile ? 'Saved baseline ready for this model and device configuration.' : s?.calibrationMessage) || 'Connect Annie’s model to calibrate. No attention score is inferred from missing data.'}</p>
-    {s?.calibrating && <><progress value={s.progress} max={1} aria-label="Calibration progress" /><p>Watch the lecture attentively. Only usable model outputs count.</p></>}
+    {!enabled && <p>Open a lecture and connect the local session to calibrate.</p>}
+    {s?.calibrating && <><progress value={s.progress} max={1} aria-label="Calibration progress" /><p>Continue to the lecture and watch attentively for 20 seconds. Calibration keeps running when you close setup.</p></>}
     <div className="bookmark-actions">
       <button className="button button--outline button--small" disabled={!enabled || s?.calibrating} onClick={() => void attention.action('start')}>{s?.profile ? 'Recalibrate' : 'Calibrate attention'}</button>
       {s?.calibrating && <button className="button button--quiet button--small" onClick={() => void attention.action('cancel')}>Cancel</button>}
       {s?.profile && <button className="button button--quiet button--small" onClick={() => void attention.action('reset')}>Reset baseline</button>}
     </div>
-    {s?.profile && <small>Mean {s.profile.mean.toFixed(1)} · SD {s.profile.std.toFixed(1)} · low ≤ {s.profile.low.toFixed(1)} · recovery ≥ {s.profile.recovery.toFixed(1)}</small>}
-    <p>Model score {s?.score === null || s?.score === undefined ? 'unavailable' : `${s.score.toFixed(0)} / 100 · ${s.level}`}. This is a normalized model output, not a probability of attention.</p>
+    <details className="setup-help"><summary>Calibration details</summary>
+      {s?.profile && <p>Saved {new Date(s.profile.created * 1000).toLocaleDateString()} · Mean {s.profile.mean.toFixed(1)} · SD {s.profile.std.toFixed(1)} · low ≤ {s.profile.low.toFixed(1)} · recovery ≥ {s.profile.recovery.toFixed(1)}</p>}
+      <p>Model score {s?.score === null || s?.score === undefined ? 'unavailable' : `${s.score.toFixed(0)} / 100 · ${s.level}`}. This is a normalized model output, not a probability of attention.</p>
+    </details>
   </section>;
 }

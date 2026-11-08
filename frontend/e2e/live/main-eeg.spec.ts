@@ -18,7 +18,7 @@ test('main normal-viewing flow maps controlled live-model windows, stacks remind
   await page.goto(`${MAIN_URL}/?signals=eeg#pair=${token}`);
   await expect(page.getByText('Session connected')).toBeVisible();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
-  await expect(page.getByText(/Experimental EEG reminders/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Session setup', exact: true })).toBeVisible();
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
   const reminders = page.getByTestId('review-reminder');
   await expect(reminders).toHaveCount(1, { timeout: 20_000 }).catch(async (error: Error) => {
