@@ -6,7 +6,7 @@ import { GazeWindowBuffer } from './gaze';
 import type { ReviewClient } from '../../frontend/src/integration';
 import type { GazeCalibration as Calibration } from '../../frontend/src/contracts/generated/types';
 
-export function GazeCalibration({ player, buffer, onStarted, client, participant = 'local' }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void; client?: ReviewClient; participant?: string }) {
+export function GazeCalibration({ player, buffer, onStarted, client, participant = 'local', onBusyChange }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void; client?: ReviewClient; participant?: string; onBusyChange?: (busy: boolean) => void }) {
   const engine = useRef<GazeCamera | null>(null);
   const abort = useRef(new AbortController());
   const calibration = useRef<Omit<Calibration, 'provenance'> | null>(null);
@@ -24,9 +24,10 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
   useEffect(() => () => {
     abort.current.abort();
     engine.current?.stop();
+    onBusyChange?.(false);
     if (calibration.current) client?.sendGazeCalibration({ ...calibration.current, status: 'expired', invalidatedReason: 'Lecture or camera changed', tBrowserMs: performance.now() });
     buffer.clear();
-  }, [buffer, client]);
+  }, [buffer, client, onBusyChange]);
 
   const calibrate = async (reuse = false) => {
     if (!player || busy) return;
@@ -34,6 +35,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
     const controller = new AbortController();
     abort.current = controller;
     setBusy(true); setStatus('Starting the camera…'); buffer.clear();
+    onBusyChange?.(true);
     try {
       const { createGazeCamera } = await import('./gaze-runtime');
       if (controller.signal.aborted) return;
@@ -84,13 +86,14 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
         setStatus(`Calibration unavailable: ${(error as Error).message}. Check camera permission and the gaze assets setup.`);
       }
     } finally {
-      if (!controller.signal.aborted) { setBusy(false); setTarget(null); }
+      if (!controller.signal.aborted) { setBusy(false); onBusyChange?.(false); setTarget(null); }
     }
   };
 
   const stop = () => {
     abort.current.abort(); engine.current?.stop(); engine.current = null;
     invalidate();
+    onBusyChange?.(false);
     buffer.clear(); setTarget(null); setBusy(false); setStatus('Camera stopped. Combined bookmarks are paused until recalibration.');
   };
 
