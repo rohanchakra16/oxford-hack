@@ -153,6 +153,7 @@ for (const design of ['current', 'brutal'] as const) {
     const token = readFileSync('frontend/test-results/shots-token', 'utf8').trim();
     await page.goto(`${SHOTS_URL}/${design === 'brutal' ? '?design=brutal' : ''}#pair=${token}`);
     await expect(page.getByText('Session connected')).toBeVisible();
+    await shot(page, `compare-${design}-empty`);
     await load(page, true);
     await page.getByRole('tab', { name: /Moments/ }).click();
     await expect(page.getByTestId('review-reminder')).toHaveCount(1, { timeout: 120_000 });

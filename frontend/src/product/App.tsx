@@ -18,6 +18,23 @@ import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
 import './brutal.css'; // variation B, applied only with ?design=brutal
+if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('design') === 'brutal') {
+  void import('@fontsource-variable/dm-sans');
+  void import('@fontsource-variable/jetbrains-mono');
+}
+
+/** A few playful shapes for the empty import screen of variation B. Decorative only. */
+function Decor() {
+  const star = 'M50 4 L61 36 L96 38 L68 58 L78 92 L50 72 L22 92 L32 58 L4 38 L39 36 Z';
+  const burst = 'M50 2 L58 20 L78 8 L74 30 L96 30 L82 46 L98 62 L76 62 L80 84 L60 74 L50 96 L40 74 L20 84 L24 62 L2 62 L18 46 L4 30 L26 30 L22 8 L42 20 Z';
+  const flower = 'M50 8 C70 8 74 30 62 38 C86 34 96 56 80 68 C92 84 74 98 58 86 C54 100 38 100 36 86 C20 98 4 80 18 66 C2 54 14 32 38 38 C26 28 30 8 50 8 Z';
+  const pos: Array<[string, string, string, string, string]> = [
+    [star, '4%', '10%', '84px', 'rotate(-12deg)'], [flower, '86%', '8%', '96px', 'rotate(8deg)'], [burst, '7%', '70%', '78px', 'rotate(10deg)'],
+    [star, '88%', '66%', '88px', 'rotate(18deg)'], [flower, '16%', '40%', '56px', 'rotate(-8deg)'], [burst, '78%', '38%', '52px', 'rotate(-14deg)'],
+  ];
+  return <div className="decor" aria-hidden="true">{pos.map(([d, left, top, size, rot], i) =>
+    <svg key={i} viewBox="0 0 100 100" style={{ left, top, ['--s' as string]: size, transform: rot }}><path d={d} /></svg>)}</div>;
+}
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
@@ -373,6 +390,7 @@ export default function App() {
 
   return (
     <div className={`app-shell app-shell--${lecture ? 'loaded' : 'empty'}`} data-design={design}>
+      {design && !lecture && <Decor />}
       <header className="topbar glass-bar">
         <a className="brand" href="/" aria-label="ReMind home">
           <Wordmark />
