@@ -77,3 +77,90 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* ---------- view modes (#55) ---------- */
+.lp {
+  transition: max-width 220ms ease;
+}
+.lp-overlay-slot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.lp-view-buttons {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+/* Minimised: compact; docking/position is decided by the page layout. */
+.lp--minimised {
+  max-width: 380px;
+  gap: 6px;
+}
+.lp--minimised .lp-toolbar {
+  display: none;
+}
+.lp--minimised .lp-controls {
+  gap: 4px;
+  font-size: 0.85em;
+}
+.lp--minimised .lp-controls input[aria-label='Volume'],
+.lp--minimised .lp-controls label {
+  display: none;
+}
+.lp--minimised .lp-seek {
+  flex-basis: 100%;
+  order: -1;
+}
+/* Maximised: fills the window above the page. */
+.lp--maximised {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  max-width: none;
+  padding: 16px;
+  background: #0d0f0f;
+  color: #eee;
+  animation: lp-grow 200ms ease;
+}
+.lp--maximised .lp-stage,
+.lp--fullscreen .lp-stage {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+.lp--maximised .lp-filename {
+  color: #bbb;
+}
+/* True fullscreen (Fullscreen API on the whole player, so controls and overlays stay visible). */
+.lp--fullscreen,
+.lp:fullscreen {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  background: #000;
+  color: #eee;
+}
+.lp--fullscreen .lp-toolbar {
+  display: none;
+}
+@keyframes lp-grow {
+  from {
+    opacity: 0.6;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp,
+  .lp--maximised {
+    transition: none;
+    animation: none;
+  }
+}

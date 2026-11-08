@@ -3,7 +3,7 @@
  * and expose a PlayerHandle (state, seek, replayRange) to the rest of the app.
  * Owner: Person 4 (@aryanmorarji). See src/player/README.md.
  */
-import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
 import { attachMediaElement, type ReviewClient, type StartSessionOptions } from '../integration';
 import { PlayerController, type ObservedEvent, type PlaybackStatus } from './controller';
 import { checkVideoFile, describeMediaError, formatMediaTime, localVideoId } from './localMedia';
@@ -41,6 +41,13 @@ export type LoadState =
   | { kind: 'ready'; fileName: string }
   | { kind: 'error'; message: string };
 
+/**
+ * Layout mode. `minimised` only makes the player compact; where it is docked (e.g. beside the
+ * sidebar) is the composition's decision. `maximised` fills the window. True fullscreen is separate
+ * (browser Fullscreen API) and can be entered from any mode.
+ */
+export type PlayerViewMode = 'normal' | 'minimised' | 'maximised';
+
 export interface LecturePlayerProps {
   client: ReviewClient;
   /** Session settings passed to client.startSession. Composition (Betty) decides these. */
@@ -48,6 +55,18 @@ export interface LecturePlayerProps {
   ref?: Ref<PlayerHandle | null>;
   /** Called when a lecture is loaded or cleared. */
   onLectureChange?: (lecture: LoadedLecture | null) => void;
+  /** Controlled view mode. Omit to let the player manage it (starts at `defaultViewMode`). */
+  viewMode?: PlayerViewMode;
+  defaultViewMode?: PlayerViewMode;
+  onViewModeChange?: (mode: PlayerViewMode) => void;
+  /** Called when true fullscreen is entered or left. */
+  onFullscreenChange?: (fullscreen: boolean) => void;
+  /**
+   * Content layered over the video stage (e.g. the attention ⓘ indicator). It is inside the
+   * element that goes fullscreen, so it stays anchored to the video in every mode. The slot itself
+   * does not take pointer events; children opt in with `pointer-events: auto`.
+   */
+  overlay?: ReactNode;
 }
 
 const DEFAULT_SESSION: Pick<StartSessionOptions, 'runKind' | 'sensors'> = {
@@ -57,8 +76,30 @@ const DEFAULT_SESSION: Pick<StartSessionOptions, 'runKind' | 'sensors'> = {
 const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
 const NOOP_SUBSCRIBE = () => () => {};
 
-export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectureChange }: LecturePlayerProps) {
+export function LecturePlayer({
+  client,
+  session = DEFAULT_SESSION,
+  ref,
+  onLectureChange,
+  viewMode,
+  defaultViewMode = 'normal',
+  onViewModeChange,
+  onFullscreenChange,
+  overlay,
+}: LecturePlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const rootRef = useRef<HTMLElement | null>(null);
+  const [ownMode, setOwnMode] = useState<PlayerViewMode>(defaultViewMode);
+  const mode = viewMode ?? ownMode;
+  const [fullscreen, setFullscreen] = useState(false);
+  const onViewModeChangeRef = useRef(onViewModeChange);
+  onViewModeChangeRef.current = onViewModeChange;
+  const onFullscreenChangeRef = useRef(onFullscreenChange);
+  onFullscreenChangeRef.current = onFullscreenChange;
+  const setMode = (next: PlayerViewMode) => {
+    if (viewMode === undefined) setOwnMode(next);
+    onViewModeChangeRef.current?.(next);
+  };
   /** The element the current controller was built on (set together with the controller). */
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const [controller, setController] = useState<PlayerController | null>(null);
@@ -94,6 +135,43 @@ export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectur
       }
     };
   }, [client]);
+
+  // Track true fullscreen (entered via the button, left via the button, Esc or the browser).
+  useEffect(() => {
+    const onChange = () => {
+      const on = document.fullscreenElement === rootRef.current && rootRef.current !== null;
+      setFullscreen(on);
+      onFullscreenChangeRef.current?.(on);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // Esc leaves the maximised layout (overlays that handle Esc themselves stop propagation first).
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  useEffect(() => {
+    if (mode !== 'maximised' || fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented && modeRef.current === 'maximised') {
+        if (viewMode === undefined) setOwnMode('normal');
+        onViewModeChangeRef.current?.('normal');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mode, fullscreen, viewMode]);
+
+  async function toggleFullscreen() {
+    const el = rootRef.current;
+    if (!el) return;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await el.requestFullscreen();
+    } catch {
+      /* Fullscreen refused (iframe policy / browser); the maximised mode still works. */
+    }
+  }
 
   const status = useSyncExternalStore(
     controller?.subscribe ?? NOOP_SUBSCRIBE,
@@ -147,7 +225,13 @@ export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectur
   const playing = ready && !status.paused && !status.ended;
 
   return (
-    <section className="lp" aria-label="Lecture player">
+    <section
+      ref={rootRef}
+      className={`lp lp--${mode}${fullscreen ? ' lp--fullscreen' : ''}`}
+      aria-label="Lecture player"
+      data-view-mode={mode}
+      data-fullscreen={fullscreen || undefined}
+    >
       <div className="lp-toolbar">
         <label className="lp-open">
           <span>Open lecture</span>
@@ -201,6 +285,11 @@ export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectur
             Buffering…
           </p>
         )}
+        {overlay !== undefined && (
+          <div className="lp-overlay-slot" data-testid="player-overlay-slot">
+            {overlay}
+          </div>
+        )}
       </div>
 
       <div className="lp-controls" aria-disabled={!ready}>
@@ -248,6 +337,32 @@ export function LecturePlayer({ client, session = DEFAULT_SESSION, ref, onLectur
             ))}
           </select>
         </label>
+        <span className="lp-view-buttons" role="group" aria-label="Player size">
+          {mode !== 'minimised' && !fullscreen && (
+            <button type="button" onClick={() => setMode('minimised')} aria-label="Minimise player" title="Minimise">
+              Minimise
+            </button>
+          )}
+          {mode !== 'normal' && !fullscreen && (
+            <button type="button" onClick={() => setMode('normal')} aria-label="Restore player size" title="Restore">
+              Restore
+            </button>
+          )}
+          {mode !== 'maximised' && !fullscreen && (
+            <button type="button" onClick={() => setMode('maximised')} aria-label="Maximise player" title="Maximise">
+              Maximise
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            aria-pressed={fullscreen}
+            title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          >
+            {fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          </button>
+        </span>
         {status?.replay && (
           <span className="lp-replay" role="status">
             Replaying {formatMediaTime(status.replay.startS)}–{formatMediaTime(status.replay.endS)}{' '}

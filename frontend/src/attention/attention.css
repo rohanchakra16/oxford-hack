@@ -1,0 +1,373 @@
+/*
+ * Attention timeline UI (#55). Prefixed `att-`. Uses the shared --ui-* tokens that the product
+ * visual pass will publish, falling back to the current product tokens, then to literals.
+ */
+.att-graph,
+.att-summary,
+.att-demo,
+.att-info {
+  --att-ink: var(--ui-ink, var(--ink, #242a29));
+  --att-muted: var(--ui-muted, var(--muted, #78817e));
+  --att-line: var(--ui-line, var(--line, #e7eae5));
+  --att-paper: var(--ui-surface, var(--paper, #fff));
+  --att-accent: var(--ui-accent, var(--green, #2f6252));
+  --att-accent-soft: var(--ui-accent-soft, var(--green-soft, #eaf3ed));
+  --att-low: var(--ui-warning, #e39a2d);
+  --att-review: var(--ui-danger, #d2553b);
+  --att-bookmark: var(--ui-info, #3f63c9);
+  --att-sim: var(--ui-simulated, #8a63c9);
+  --att-radius: var(--ui-radius, 12px);
+  font-family: var(--ui-font, inherit);
+  color: var(--att-ink);
+}
+
+.att-eyebrow {
+  margin: 0 0 4px;
+  color: var(--att-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+/* ---------- graph ---------- */
+.att-graph {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border: 1px solid var(--att-line);
+  border-radius: var(--att-radius);
+  background: var(--att-paper);
+  min-width: 0;
+}
+.att-graph__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.att-graph__head > div:first-child { flex: 1; min-width: 0; }
+.att-graph__title { margin: 0; font-size: 15px; line-height: 1.2; }
+.att-graph__plot { position: relative; }
+.att-graph__svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
+.att-graph__empty,
+.att-graph__note {
+  position: absolute;
+  left: 34px;
+  right: 10px;
+  top: 40%;
+  margin: 0;
+  text-align: center;
+  color: var(--att-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+.att-graph__note { top: 4px; left: auto; text-align: right; font-weight: 600; }
+
+.att-grid line { stroke: var(--att-line); stroke-width: 1; }
+.att-grid text,
+.att-axis { fill: var(--att-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.att-threshold line { stroke: var(--att-low); stroke-dasharray: 4 4; stroke-width: 1; }
+.att-threshold text { fill: var(--att-low); font-size: 9px; font-weight: 700; }
+
+.att-hit { fill: transparent; cursor: crosshair; }
+
+.att-low {
+  fill: var(--att-low);
+  fill-opacity: 0.16;
+  cursor: pointer;
+  transition: fill-opacity 140ms ease;
+}
+.att-low:hover,
+.att-low:focus-visible { fill-opacity: 0.32; outline: none; }
+.att-low--simulated { fill: var(--att-sim); }
+
+.att-line { pointer-events: none; }
+.att-line path {
+  fill: none;
+  stroke: var(--att-accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.att-line--simulated path { stroke: var(--att-sim); stroke-dasharray: 5 3; }
+.att-line--faded path { stroke-opacity: 0.25; stroke-width: 1.5; }
+.att-line__low { fill: var(--att-low); }
+
+.att-marker { cursor: pointer; outline: none; }
+.att-marker__hit { fill: transparent; }
+.att-marker__stem { pointer-events: none; stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.55; }
+.att-marker__head { stroke: var(--att-paper); stroke-width: 1.5; transition: transform 140ms ease; }
+.att-marker--review .att-marker__stem { stroke: var(--att-review); }
+.att-marker--review .att-marker__head { fill: var(--att-review); }
+.att-marker--bookmark .att-marker__stem { stroke: var(--att-bookmark); }
+.att-marker--bookmark .att-marker__head { fill: var(--att-bookmark); }
+.att-marker--simulated .att-marker__head { fill: var(--att-paper); stroke: var(--att-sim); stroke-dasharray: 2 1.5; }
+.att-marker:hover .att-marker__head,
+.att-marker:focus-visible .att-marker__head { transform: scale(1.35); }
+.att-marker:focus-visible .att-marker__stem { opacity: 1; stroke-dasharray: none; }
+
+.att-playhead line { stroke: var(--att-ink); stroke-width: 1.5; }
+.att-playhead circle { fill: var(--att-ink); }
+.att-playhead { transition: transform 240ms linear; }
+.att-crosshair line { stroke: var(--att-muted); stroke-dasharray: 2 2; }
+.att-crosshair circle { fill: var(--att-paper); stroke: var(--att-accent); stroke-width: 2; }
+
+.att-tip {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--att-ink);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  animation: att-fade-in 120ms ease;
+}
+.att-tip strong { font-size: 12px; }
+.att-tip__reason { opacity: 0.85; }
+.att-tip__hint { opacity: 0.6; font-size: 10px; }
+
+.att-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--att-muted);
+  font-size: 10.5px;
+}
+.att-legend li { display: inline-flex; align-items: center; gap: 5px; }
+.att-key { display: inline-block; width: 12px; height: 10px; border-radius: 2px; }
+.att-key--line { height: 2px; background: var(--att-accent); }
+.att-key--low { background: color-mix(in srgb, var(--att-low) 30%, transparent); }
+.att-key--review { width: 9px; height: 9px; border-radius: 50%; background: var(--att-review); }
+.att-key--bookmark { width: 8px; height: 8px; background: var(--att-bookmark); transform: rotate(45deg); }
+.att-key--simulated { height: 0; border-top: 2px dashed var(--att-sim); }
+
+.att-refresh {
+  border: 0;
+  background: none;
+  color: var(--att-muted);
+  font: inherit;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 2px 0;
+}
+.att-refresh:hover { color: var(--att-accent); text-decoration: underline; }
+
+.att-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+.att-badge--simulated { background: color-mix(in srgb, var(--att-sim) 14%, transparent); color: var(--att-sim); }
+
+/* ---------- buttons / chips ---------- */
+.att-button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.att-button:hover:not(:disabled) { transform: translateY(-1px); }
+.att-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.att-button--primary { background: var(--att-accent); color: #fff; }
+.att-button--outline { background: var(--att-paper); border-color: var(--att-line); color: var(--att-ink); }
+.att-button--quiet { background: transparent; color: var(--att-muted); }
+
+.att-chip {
+  border: 1px solid var(--att-line);
+  border-radius: 999px;
+  background: var(--att-paper);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.att-chip:hover { border-color: var(--att-accent); }
+.att-chip--low { border-left: 3px solid var(--att-low); }
+.att-chip--review { border-left: 3px solid var(--att-review); }
+.att-chip--bookmark { border-left: 3px solid var(--att-bookmark); }
+
+/* ---------- summary ---------- */
+.att-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--att-line);
+  border-radius: var(--att-radius);
+  background: var(--att-paper);
+  animation: att-rise 260ms ease;
+}
+.att-summary__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.att-summary__head h2 { margin: 0; font-size: 20px; }
+.att-summary__notice {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--att-sim) 10%, transparent);
+  color: var(--att-ink);
+  font-size: 12px;
+}
+.att-summary .att-graph { border: 0; padding: 0; }
+.att-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.att-stat { padding: 10px 12px; border-radius: 10px; background: var(--att-accent-soft); }
+.att-stat dt { color: var(--att-muted); font-size: 11px; font-weight: 600; }
+.att-stat dd { margin: 4px 0 0; display: flex; flex-direction: column; }
+.att-stat__value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.att-stat__value--link { border: 0; background: none; padding: 0; text-align: left; color: var(--att-accent); cursor: pointer; font-family: inherit; }
+.att-stat__value--link:hover { text-decoration: underline; }
+.att-stat__hint { color: var(--att-muted); font-size: 11px; }
+.att-summary__lows h3 { margin: 0 0 6px; font-size: 13px; }
+.att-summary__lows ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+/* ---------- demo ---------- */
+.att-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed color-mix(in srgb, var(--att-sim) 55%, transparent);
+  border-radius: var(--att-radius);
+  background: color-mix(in srgb, var(--att-sim) 5%, var(--att-paper));
+}
+.att-demo__head { display: flex; align-items: center; gap: 8px; }
+.att-demo__head p { margin: 0; color: var(--att-muted); font-size: 11.5px; }
+.att-demo__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------- in-video info indicator ---------- */
+.att-info {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+.att-info[data-state='visible'],
+.att-info[data-state='open'] { opacity: 1; transform: none; }
+.att-info[data-state='idle'] { opacity: 0; transform: translateY(-4px); }
+/* After fading, the icon comes back softly while the pointer is over the video. */
+.lp-stage:hover .att-info[data-state='idle'],
+.att-info[data-state='idle']:focus-within { opacity: 0.75; transform: none; }
+.att-info[data-state='visible'] .att-info__icon,
+.att-info[data-state='open'] .att-info__icon,
+.lp-stage:hover .att-info .att-info__icon,
+.att-info:focus-within .att-info__icon { pointer-events: auto; }
+.att-info[data-state='visible'] .att-info__icon { animation: att-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.3); }
+
+.att-info__icon {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid rgb(255 255 255 / 85%);
+  border-radius: 50%;
+  background: rgb(20 22 22 / 55%);
+  color: #fff;
+  font: 700 15px/1 Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 25%);
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+.att-info__icon:hover { background: rgb(20 22 22 / 78%); transform: scale(1.06); }
+.att-info__icon:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.att-info__count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--att-review);
+  color: #fff;
+  font: 700 10px/16px system-ui, sans-serif;
+  font-style: normal;
+}
+.att-info__pop {
+  pointer-events: auto;
+  margin-top: 8px;
+  width: min(300px, calc(100vw - 32px));
+  max-height: min(320px, 70vh);
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgb(24 26 26 / 92%);
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: left;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  animation: att-fade-in 160ms ease;
+}
+.att-info__pop .att-eyebrow { color: rgb(255 255 255 / 60%); }
+.att-info__detail { display: flex; flex-direction: column; gap: 6px; }
+.att-info__detail strong { font-size: 14px; }
+.att-info__detail dl { display: flex; gap: 16px; margin: 0; }
+.att-info__detail dt { color: rgb(255 255 255 / 60%); font-size: 10.5px; }
+.att-info__detail dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.att-info__reason { margin: 0; color: rgb(255 255 255 / 80%); }
+.att-info__detail .att-button { align-self: flex-start; margin-top: 2px; }
+.att-info__more { margin: 10px 0 0; padding: 8px 0 0; border-top: 1px solid rgb(255 255 255 / 15%); list-style: none; }
+.att-info__more button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: rgb(255 255 255 / 85%);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.att-info__more button:hover { color: #fff; text-decoration: underline; }
+.att-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.att-dot--review { background: var(--att-review); }
+.att-dot--bookmark { background: var(--att-bookmark); }
+
+@keyframes att-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes att-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes att-pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .att-info, .att-info__icon, .att-summary, .att-tip, .att-info__pop, .att-playhead { animation: none !important; transition: none !important; }
+}
