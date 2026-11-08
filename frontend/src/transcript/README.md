@@ -10,7 +10,8 @@ Lives in `frontend/src/transcript/` (see the path note in `src/player/README.md`
 ## What it does
 
 - Opens a caption file **from this device**: WebVTT (`.vtt`) or SubRip (`.srt`). It is read in the
-  browser and never uploaded.
+  browser and never uploaded. Exception: if bookmark questions are enabled (#72,
+  `src/questions/`), the excerpt around each bookmark is sent via the local backend to OpenRouter.
 - Turns caption cues into **sentences**. Captions break wherever the captioner chose, often
   mid-sentence; replay should start at the beginning of a sentence.
 - Shows the sentences with start times, highlights the one playing now, and keeps it in view
