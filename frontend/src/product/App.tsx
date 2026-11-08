@@ -7,7 +7,10 @@ import {
   type ReviewClient,
   type SensorState,
 } from '../integration';
-import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle } from '../player';
+import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle, type PlayerViewMode } from '../player';
+import { AttentionTimelineStore, AttentionGraph, AttentionSummary, AttentionInfoIndicator, AttentionDemoPanel, markerFromBookmark, observationFromEvaluation, useAttentionLecture, useTimeline, type AttentionMarker, type SeekTarget } from '../attention';
+import { usePersonalAttention, PersonalCalibration } from '../focus/usePersonalAttention';
+import { Wordmark } from './Wordmark';
 import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
 import { FlagIcon } from './icons';
 import { planReplay } from './replayPlan';
@@ -180,6 +183,12 @@ export default function App() {
   const [earlierCounts, setEarlierCounts] = useState<Record<string, number>>({});
   const [reminders, setReminders] = useState<WireReviewBookmark[]>([]);
   const [replayError, setReplayError] = useState<string | null>(null);
+  const [attentionStore] = useState(() => new AttentionTimelineStore());
+  const [viewMode, setViewMode] = useState<PlayerViewMode>('normal');
+  const [showSummary, setShowSummary] = useState(false);
+  const timeline = useTimeline(attentionStore);
+  useAttentionLecture(attentionStore, player);
+  const personalAttention = usePersonalAttention(client, snapshot.session?.sessionId, lecture?.videoId, attentionStore);
 
   useEffect(() => client.onEvent((event) => {
     if (event.type === 'session_started' || event.type === 'session_ended') setReminders([]);
@@ -216,6 +225,18 @@ export default function App() {
     [snapshot.bookmarks, lecture, focus.enabled, focus.moments, client],
   );
 
+  useEffect(() => {
+    if (!lecture) return;
+    for (const bookmark of activeBookmarks) attentionStore.addMarker(markerFromBookmark({ ...bookmark, runKind: client.kind === 'synthetic' ? 'simulated' : 'live' }));
+  }, [activeBookmarks, lecture, attentionStore, client]);
+  useEffect(() => {
+    if (client.kind !== 'synthetic' || !focus.snapshot || !player) return;
+    const observation = observationFromEvaluation(focus.snapshot, player.getState());
+    if (observation) attentionStore.record({ ...observation, origin: 'simulated' });
+  }, [focus.snapshot, client, player, attentionStore]);
+  useEffect(() => { if (ended) setShowSummary(true); }, [ended]);
+  useEffect(() => { setShowSummary(false); }, [lecture?.videoId]);
+
   const onLectureChange = (next: LoadedLecture | null) => {
     setLecture(next);
     setDismissed(new Set());
@@ -250,6 +271,15 @@ export default function App() {
     setDismissed((previous) => new Set(previous).add(bookmark.bookmarkId));
   };
 
+  const seekAttention = (time: number, marker?: AttentionMarker) => {
+    if (marker) {
+      const bookmark = activeBookmarks.find((b) => b.bookmarkId === marker.id);
+      if (bookmark) { replay(bookmark); return; }
+    }
+    player?.seek(time);
+  };
+  const seekGraph = (time: number, target: SeekTarget) => seekAttention(time, target.kind === 'marker' ? target.marker : undefined);
+
   const moveEarlier = (bookmark: ReviewBookmark) => {
     const count = (earlierCounts[bookmark.bookmarkId] ?? 0) + 1;
     setEarlierCounts((previous) => ({ ...previous, [bookmark.bookmarkId]: count }));
@@ -271,9 +301,8 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Lecture Recovery home">
-          <span className="brand-mark" aria-hidden="true">r.</span>
-          <span>recall<span className="brand-light">room</span></span>
+        <a className="brand" href="/" aria-label="ReMind home">
+          <Wordmark />
         </a>
         <div className="topbar__right">
           <span className={`connection-pill connection-pill--${connectionTone}`} role="status">
@@ -359,7 +388,10 @@ export default function App() {
         <div className="content-grid">
           <div className="main-column">
             <section className="player-card" aria-label="Lecture video">
-              <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange} filePickerTarget={lectureFileTarget} />
+              <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange}
+                filePickerTarget={lectureFileTarget}
+                viewMode={viewMode} onViewModeChange={setViewMode}
+                overlay={<AttentionInfoIndicator store={attentionStore} onSeek={seekAttention} />} />
               {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="focus-bookmark-flags">
                 {activeBookmarks.map((bookmark) => <button className="button button--quiet button--small" key={bookmark.bookmarkId} onClick={() => replay(bookmark)} aria-label={`Replay bookmark at ${formatTime(bookmark.suggestedMediaS)}`}>
                   <FlagIcon />{formatTime(bookmark.suggestedMediaS)}
@@ -387,6 +419,8 @@ export default function App() {
               </div>
             </section>
 
+            {showSummary && <AttentionSummary store={attentionStore} playback={player} onSeek={seekGraph} onClose={() => setShowSummary(false)} />}
+
             <section className="transcript-card" aria-labelledby="transcript-title">
               <div className="section-heading">
                 <h2 id="transcript-title">Transcript</h2>
@@ -397,6 +431,9 @@ export default function App() {
           </div>
 
           <aside className="side-column" aria-label="Session and review">
+            <AttentionGraph store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />
+            <button className="button button--outline button--small" disabled={!timeline.videoId} onClick={() => setShowSummary((value) => !value)}>{showSummary ? 'Hide attention summary' : timeline.completed ? 'Attention summary (saved)' : 'Attention summary'}</button>
+            {client.kind === 'live' ? <PersonalCalibration attention={personalAttention} enabled={Boolean(snapshot.session)} /> : <AttentionDemoPanel store={attentionStore} playback={player} />}
             {reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
               <h2>Heads-up <span className="count-badge">{reminders.length}</span></h2>
               <div className="reminder-stack__items">
@@ -455,21 +492,19 @@ export default function App() {
               <button onClick={focus.closeNotice}>Close heads-up</button>
             </section>}
             <DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />
-
             {snapshot.session?.config.detector?.detectorId.startsWith('experimental-live-eeg') && (
               <p className="live-eeg-note" role="status">
-                Experimental EEG reminders · focus on the lecture for the first 8 seconds of usable EEG to set your baseline.
-                Reminders follow 8 seconds of sustained low estimates after smoothing.
-                {snapshot.sensors?.automaticSuggestions ? ' EEG changes are not validated attention measurements.' : ' Waiting for usable EEG from your headset.'}
+                Experimental EEG reminders  ·  calibrate your personal model baseline before watching.
+                Reminders follow 8 seconds of low model estimates after smoothing, with a 30-second cooldown.
+                {snapshot.sensors?.automaticSuggestions ? ' Model estimates are experimental.' : ' Waiting for usable model output from your headset.'}
               </p>
             )}
-
           </aside>
         </div>
       </main>
 
       <footer className="page-footer">
-        <span>recallroom</span>
+        <span>ReMind</span>
         <span>Learning, at your pace. Experimental signals are not validated attention measurements.</span>
       </footer>
     </div>

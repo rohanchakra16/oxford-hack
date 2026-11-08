@@ -68,11 +68,11 @@ def build_hub_factory(args: argparse.Namespace, settings: HubSettings) -> Callab
         if not getattr(args, "eeg_source", None):
             args.eeg_source = "inference.unicorn_source:make_source"
         if args.eeg_source == "inference.unicorn_source:make_source":
-            from inference.unicorn_baseline import (  # type: ignore[import-not-found]
-                inference_factory as unicorn_factory,
+            from inference.personalized import (  # type: ignore[import-not-found]
+                inference_factory as personalized_factory,
             )
 
-            live_detector_factory = unicorn_factory
+            live_detector_factory = personalized_factory
         else:
             from inference.live_attention import (  # type: ignore[import-not-found]
                 inference_factory as live_attention_factory,

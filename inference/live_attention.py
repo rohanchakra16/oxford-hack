@@ -235,19 +235,17 @@ class LiveAttentionInference:
             "ready", "experimental live EEG estimate; not validated attention"
         )
         if self._smoothed >= c.recovery_min:
-            self._pending_end = self._pending_start = None
-            self._ids.clear()
             if self._recovery_since is None:
                 self._recovery_since = end
             if end - self._recovery_since >= c.recovery_ms:
+                self._pending_end = self._pending_start = None
+                self._ids.clear()
                 self._episode_reported = False
             return []
         self._recovery_since = None
         if self._episode_reported:
             return []
-        if self._smoothed > c.low_max:
-            self._pending_end = self._pending_start = None
-            self._ids.clear()
+        if self._smoothed > c.low_max and self._pending_end is None:
             return []
         if self._pending_end is None:
             self._pending_end, self._pending_start = end, start
