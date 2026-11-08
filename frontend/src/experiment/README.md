@@ -4,6 +4,7 @@ Open **Session setup → Calibration → Experimental mode · testing only**, en
 the checkbox and import a CSV. Open a lecture and play it. Closing setup leaves
 the experiment running. Disabling the checkbox stops its timers and restores the
 normal attention graph. Mode choice and CSV contents are never persisted.
+The included `example.csv` produces a test dip from five to eighteen seconds.
 
 Input stays in the browser; parsing runs in a worker (20 MB limit). Supported:
 

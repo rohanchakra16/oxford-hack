@@ -15,6 +15,7 @@ describe('experimental EEG CSV import', () => {
   it('supports explicit milliseconds and one-second score rows without timestamps', () => {
     expect(parseEegCsv('time_ms,score\n100,80\n1100,20').points[1]!.timeS).toBe(1);
     expect(parseEegCsv('attention_score\n80\n20').durationS).toBe(2);
+    expect(parseEegCsv('attention_score\n80\n20', NaN).durationS).toBe(2);
   });
 
   it('does not hold a score over a sparse recording gap', () => {

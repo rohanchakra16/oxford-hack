@@ -9,7 +9,6 @@ export const MAX_CSV_BYTES = 20 * 1024 * 1024;
 /** Local-only test input. Missing signal is a gap, never a zero attention score. */
 export function parseEegCsv(text: string, sampleRate = 250): EegReplay {
   if (text.length > MAX_CSV_BYTES) throw new Error('Choose a CSV smaller than 20 MB.');
-  if (!Number.isFinite(sampleRate) || sampleRate < 64 || sampleRate > 1000) throw new Error('Raw EEG sample rate must be between 64 and 1000 Hz.');
   const rows = csvRows(text.replace(/^\uFEFF/, ''));
   const header = rows.shift()?.map((cell) => cell.trim().toLowerCase().replace(/[\s-]+/g, '_')) ?? [];
   if (!header.length || !rows.length) throw new Error('CSV needs a header and data rows.');
@@ -18,6 +17,7 @@ export function parseEegCsv(text: string, sampleRate = 250): EegReplay {
   const timeColumn = header.findIndex((h) => ['timestamp', 'time', 'time_s', 'timestamp_s', 'time_ms', 'timestamp_ms'].includes(h));
   const scoreColumn = header.findIndex((h) => ['attention_score', 'attention', 'score'].includes(h));
   const channels = header.flatMap((h, i) => i !== timeColumn && i !== scoreColumn && !['sample_index', 'index', 'label'].includes(h) ? [i] : []);
+  if (scoreColumn < 0 && timeColumn < 0 && (!Number.isFinite(sampleRate) || sampleRate < 64 || sampleRate > 1000)) throw new Error('Raw EEG sample rate must be between 64 and 1000 Hz.');
   if (scoreColumn < 0 && (!channels.length || channels.length > 32)) throw new Error('Include attention_score (0–100), or 1–32 numeric EEG channel columns.');
   const step = scoreColumn >= 0 ? 1 : 1 / sampleRate;
   const timeScale = timeColumn >= 0 && header[timeColumn]!.endsWith('_ms') ? .001 : 1;
