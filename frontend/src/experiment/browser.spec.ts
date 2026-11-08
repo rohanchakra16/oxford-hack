@@ -76,3 +76,77 @@ test('offline live page can import raw EEG; invalid replacement cannot keep stal
   await page.locator('.experiment-controls summary').click();
   await expect(page.getByLabel('Enable experimental mode')).not.toBeChecked();
 });
+
+test('CSV and calibrated webcam run together locally, stop cleanly and never guess missing gaze', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  // This stand-in checks UI wiring and isolation; physical-camera accuracy requires a person.
+  await page.route('**/gaze-runtime*', (route) => route.fulfill({ contentType: 'application/javascript', body: `
+    export function createGazeCamera(options) {
+      let timer;
+      const camera = window.__experimentCamera = { state: 'on', stopped: false,
+        backendChannel: Boolean(options.onObservationBatch), sendFrames: true };
+      return {
+        start: async () => {},
+        calibrate: async (ui) => {
+          ui.show({ x: 200, y: 200 }, 0, 1);
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          ui.hide(); options.onCalibration({ id: 'experiment-camera', status: 'valid' });
+          timer = setInterval(() => { if (camera.sendFrames) options.onSample({
+            tMs: performance.now(), state: camera.state, viewport: { x: 200, y: 200 },
+            pInside: camera.state === 'on' ? .95 : 0, reason: null }); }, 33);
+        },
+        getCalibration: () => null,
+        stop: () => { clearInterval(timer); camera.stopped = true; }
+      };
+    }` }));
+  await page.goto('/?adapter=synthetic');
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(await makeSyntheticLecture());
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
+  await page.locator('.experiment-controls summary').click();
+  await page.getByLabel('Enable experimental mode').check();
+  await page.getByLabel('Experiment gaze source').selectOption('webcam');
+  const controls = page.locator('.experiment-controls');
+  await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'webcam-scores.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('time_s,attention_score\n' + Array.from({ length: 40 }, (_, i) => `${i},20`).join('\n')) });
+  await expect(controls.getByText(/Combined test score: unavailable/)).toBeVisible();
+  await expect(page.getByRole('img', { name: /Simulated gaze/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Calibrate gaze', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Continue to lecture', exact: true })).toBeDisabled();
+  await expect(controls.getByText(/Combined test score: 36 \/ 100 · Webcam gaze: on video/)).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __experimentCamera: { backendChannel: boolean } }).__experimentCamera.backendChannel)).toBe(false);
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
+  await expect(page.getByTestId('experiment-banner')).toContainText('calibrated webcam gaze');
+  await page.getByRole('tab', { name: /^Attention/ }).click();
+  await page.locator('video').evaluate((video: HTMLVideoElement) => video.play());
+  await expect(page.getByTestId('gaze-now')).toContainText('Looking at the video');
+  const setCamera = (state: string, sendFrames = true) => page.evaluate(({ state, sendFrames }) => {
+    Object.assign((window as unknown as { __experimentCamera: object }).__experimentCamera, { state, sendFrames });
+  }, { state, sendFrames });
+  await setCamera('off');
+  await expect(page.getByTestId('gaze-now')).toContainText('Looking away');
+  await expect(page.getByTestId('gaze-border')).toHaveAttribute('data-state', 'off');
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
+  await expect(controls.getByText(/Combined test score: 16 \/ 100 · Webcam gaze: looking away/)).toBeVisible();
+  await setCamera('uncertain');
+  await expect(controls.getByText(/Combined test score: unavailable · Webcam gaze: uncertain/)).toBeVisible();
+  await setCamera('lost');
+  await expect(controls.getByText(/Combined test score: unavailable · Webcam gaze: not measurable/)).toBeVisible();
+  await setCamera('on');
+  await expect(controls.getByText(/Combined test score: 36/)).toBeVisible();
+  await setCamera('on', false);
+  await expect(controls.getByText(/Combined test score: unavailable/)).toBeVisible({ timeout: 4000 });
+  await page.getByRole('button', { name: 'Stop camera', exact: true }).click();
+  expect(await page.evaluate(() => (window as unknown as { __experimentCamera: { stopped: boolean } }).__experimentCamera.stopped)).toBe(true);
+  await page.getByLabel('Experiment gaze source').selectOption('randomized');
+  await expect(page.getByRole('img', { name: /Simulated gaze/ })).toBeVisible();
+  await page.getByLabel('Experiment gaze source').selectOption('webcam');
+  await page.getByRole('button', { name: 'Calibrate gaze', exact: true }).click();
+  await expect(controls.getByText(/Combined test score: 36/)).toBeVisible();
+  await page.getByLabel('Enable experimental mode').uncheck();
+  expect(await page.evaluate(() => (window as unknown as { __experimentCamera: { stopped: boolean } }).__experimentCamera.stopped)).toBe(true);
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
+  await expect(page.getByTestId('experiment-banner')).not.toBeVisible();
+  await expect(page.getByTestId('gaze-now')).toContainText('Camera not tracking');
+  expect(errors).toEqual([]);
+});
