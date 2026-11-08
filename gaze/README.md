@@ -123,7 +123,7 @@ Requires Node 22+ (verified with 22.23.4). From `gaze/`:
 ```bash
 npm install
 npm run setup        # once: copies MediaPipe WASM, downloads the pinned face model into public/ (git-ignored)
-npm test             # 55 unit tests: features, calibration, probability decision, letterbox geometry, smoothing, accuracy scoring, contract adapter, capture recorder
+npm test             # 65 unit tests: features, calibration, probability decision, letterbox geometry, smoothing, accuracy scoring, contract adapter, capture recorder, startup asset checks
 npm run typecheck
 npm run dev          # harness at http://localhost:5174; open in Chrome and allow the camera
 ```
@@ -131,6 +131,20 @@ npm run dev          # harness at http://localhost:5174; open in Chrome and allo
 Model setup: `@mediapipe/tasks-vision` 1.2.2 (Apache-2.0); model
 `face_landmarker/float16/1/face_landmarker.task` from Google's model storage. Both are served from `public/`, so
 the demo works offline after `npm run setup`. GPU delegate with CPU fallback.
+
+Startup errors. Any app that embeds the engine must serve `gaze/public/` (model at `/models`, WASM at
+`/mediapipe/wasm`, or pass `modelAssetPath` / `wasmBasePath`). The files are git-ignored, so every checkout and
+worktree that serves the app needs its own `npm --prefix gaze ci && npm --prefix gaze run setup`.
+`engine.start()` loads the model first, before asking for the camera:
+- **Model files missing or wrong:** it throws a `GazeStartupError` with `kind: "assets_missing"`, naming each
+  bad URL (HTTP error, the dev server's HTML fallback, wrong file signature) and the setup command.
+- **Files fine but MediaPipe can't create the model** (WASM/WebGL/browser): `kind: "model_load_failed"`.
+- **Camera problems are not thrown.** They appear in `engine.camera.state` as `status: "error"` with a
+  `CAMERA_*` reason and a message saying what to do (permission denied, camera busy, no camera, needs
+  https/localhost).
+
+`engine.modelState` (and the `model` event) reports `loading` / `ready` / `error`, separately from the camera.
+Calling `start()` again retries whichever step failed.
 
 Harness (`index.html`), in order:
 1. **Start camera.** The preview shows eye corners (blue) and iris centres (red).

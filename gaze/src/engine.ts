@@ -14,6 +14,7 @@ import {
   type PursuitConfig,
   type TimedFeatures,
 } from "./calibration";
+import { assetsMissingError, checkGazeAssets, GazeStartupError, modelLoadError, type GazeStartupErrorKind } from "./assets";
 import { Camera, type CameraState } from "./camera";
 import { extractFeatures, medianFeatures, type Landmark } from "./features";
 import {
@@ -103,11 +104,21 @@ type Events = {
   frame: FrameDebug;
   calibration: CalibrationModel | null;
   calibrationState: CalibrationStateEvent;
+  model: ModelState;
 };
+
+/** Face-model loading state, separate from the camera's: a model failure is not a camera problem. */
+export type ModelState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ready" }
+  | { status: "error"; kind: GazeStartupErrorKind; message: string };
 
 export class GazeEngine {
   readonly camera: Camera;
   private landmarker: FaceLandmarker | null = null;
+  private modelLoad: Promise<FaceLandmarker> | null = null;
+  private _modelState: ModelState = { status: "idle" };
   private opts: Required<Omit<GazeEngineOptions, "cameraVideo">>;
   private running = false;
   private seq = 0;
@@ -153,18 +164,54 @@ export class GazeEngine {
     this.listeners[type]?.forEach((fn) => (fn as (e: Events[K]) => void)(e));
   }
 
+  get modelState(): ModelState {
+    return this._modelState;
+  }
+
+  private setModelState(s: ModelState) {
+    this._modelState = s;
+    this.emit("model", s);
+  }
+
+  /**
+   * Loads the face model (checking its files first), then starts the camera.
+   * Throws a GazeStartupError if the model can't be loaded; camera failures are reported through
+   * `camera.state` (reason codes CAMERA_*), not thrown. Safe to call again to retry either step.
+   */
   async start(): Promise<void> {
-    if (this.running) {
-      // Allow retrying the camera (e.g. after the user grants permission) without restarting everything.
-      if (this.camera.state.status !== "live") await this.camera.start();
-      return;
-    }
+    // Model first: a missing model shouldn't cost the user a camera permission prompt.
+    if (!this.landmarker) this.landmarker = await this.loadModel();
+    if (this.camera.state.status !== "live") await this.camera.start();
+    if (this.running) return;
     this.running = true;
-    await this.camera.start();
-    if (!this.landmarker) this.landmarker = await this.createLandmarker();
     this.timers.push(window.setInterval(() => this.heartbeat(), 1000));
     this.timers.push(window.setInterval(() => this.emitSummary(), this.opts.summaryIntervalMs));
     this.scheduleFrame();
+  }
+
+  /** Checks the model files and creates the face landmarker; concurrent calls share one load. */
+  private loadModel(): Promise<FaceLandmarker> {
+    this.modelLoad ??= (async () => {
+      this.setModelState({ status: "loading" });
+      try {
+        const problems = await checkGazeAssets(this.opts);
+        if (problems.length) throw assetsMissingError(problems);
+        let landmarker: FaceLandmarker;
+        try {
+          landmarker = await this.createLandmarker();
+        } catch (err) {
+          throw modelLoadError(err);
+        }
+        this.setModelState({ status: "ready" });
+        return landmarker;
+      } catch (err) {
+        const e = err instanceof GazeStartupError ? err : modelLoadError(err);
+        this.setModelState({ status: "error", kind: e.kind, message: e.message });
+        this.modelLoad = null; // allow a retry after the files are fixed
+        throw e;
+      }
+    })();
+    return this.modelLoad;
   }
 
   stop(): void {
