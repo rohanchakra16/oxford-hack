@@ -36,8 +36,10 @@ export function usePersonalAttention(client: ReviewClient, sessionId: string | u
       try {
         const response = await fetch(`${backend}/api/v0/attention/${sessionId}`, { headers: headers(), signal: abort.signal });
         if (!response.ok) {
-          // 404/501/503: this build of the local service has no score source. Anything else is a failed read.
-          throw new Error([404, 501, 503].includes(response.status)
+          // 409 (model_output_unavailable) and 404/501/503: this session has no score source attached.
+          // 401/403: the session did not accept this page's pairing. Anything else is a failed read.
+          if (response.status === 401 || response.status === 403) throw new Error('The local session did not accept this page. Reopen the app from the launcher link.');
+          throw new Error([404, 409, 501, 503].includes(response.status)
             ? 'No compatible attention-score source is connected, so the graph shows your markers and review moments only.'
             : 'Attention scores could not be read from the local session. Retrying.');
         }
@@ -91,7 +93,7 @@ export function PersonalCalibration({ attention, enabled }: { attention: ReturnT
   return <section className="focus-tools personal-calibration" aria-label="Personal attention calibration">
     <h2>Personal calibration</h2>
     <label>Profile name <input aria-label="Profile name" key={attention.participant} defaultValue={attention.participant} disabled={s?.calibrating} maxLength={64} onBlur={(e) => attention.setParticipant(e.target.value)} /></label>
-    <p role="status">{attention.error || (s?.calibrating ? s.calibrationMessage : s?.profile ? 'Saved baseline ready for this model and device configuration.' : s?.calibrationMessage) || 'Attention calibration needs a connected EEG score source. No score is inferred from missing data.'}</p>
+    <p role="status">{(attention.error.startsWith('No compatible') ? 'Attention calibration is unavailable: no compatible score source is connected.' : attention.error) || (s?.calibrating ? s.calibrationMessage : s?.profile ? 'Saved baseline ready for this model and device configuration.' : s?.calibrationMessage) || 'Attention calibration needs a connected EEG score source. No score is inferred from missing data.'}</p>
     {!enabled && <p>Open a lecture and connect the local session to calibrate.</p>}
     {s?.calibrating && <><progress value={s.progress} max={1} aria-label="Calibration progress" /><p>Watch attentively for 20 seconds. This keeps running if you close setup.</p></>}
     <div className="bookmark-actions">

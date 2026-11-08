@@ -17,6 +17,7 @@ import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
+import './brutal.css'; // variation B, applied only with ?design=brutal
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
@@ -335,6 +336,7 @@ export default function App() {
   const trackingTone = eegSummary.tone === 'good' && gazeSummary.tone === 'good' ? 'good' : eegSummary.tone === 'good' || gazeSummary.tone === 'good' ? 'part' : 'off';
   const testEeg = snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG');
   const complete = ended || focus.snapshot?.ended;
+  const design = useMemo(() => (new URLSearchParams(window.location.search).get('design') === 'brutal' ? 'brutal' : undefined), []);
   const tabs: { id: PanelTab; label: string; count?: number }[] = [
     { id: 'transcript', label: 'Transcript' },
     { id: 'moments', label: 'Moments', count: activeBookmarks.length },
@@ -370,7 +372,7 @@ export default function App() {
   );
 
   return (
-    <div className={`app-shell app-shell--${lecture ? 'loaded' : 'empty'}`}>
+    <div className={`app-shell app-shell--${lecture ? 'loaded' : 'empty'}`} data-design={design}>
       <header className="topbar glass-bar">
         <a className="brand" href="/" aria-label="ReMind home">
           <Wordmark />

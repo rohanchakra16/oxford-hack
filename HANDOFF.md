@@ -90,6 +90,16 @@ g.Pype: see `docs/GPYPE.md`; recommendation unchanged (keep the current source, 
 
 Known: Qt GUI teardown crash in CI is gated on JUnit; bookmarks do not survive a backend restart; Impeccable not installed (published rules applied by hand).
 
+## 4d. Product redesign (PR #71, branch design-2, NOT merged: lead chooses the visual direction)
+
+- Owner: Rohan's Claude owns final composition and visual design (frontend/src/product/, LecturePlayer styling).
+- Variant A (default, preserved): dark stage + tabbed side panel (Transcript / Moments / Attention), import card when empty, setup modal.
+- Variant B: restrained neo-brutalist treatment of the loaded screen, opt-in with `?design=brutal` (frontend/src/product/brutal.css). Refs: bergside/awesome-design-skills `neobrutalism` (tokens) and neobrutalism.dev (button/tabs/badge/alert/slider structure via its registry; theme tokens were not retrievable, so shadow offsets and radii are our own choice). Delete brutal.css and the `data-design` line in App.tsx to drop it.
+- Usability fixes: narrow controls dock under the video; camera failures are classified from the engine's real cause (permission / missing / busy / unknown) and an unrecognised failure is never described as a permission denial; "Annie's model" wording removed; setup is shorter with technical text under details; graph/calibration messages follow the actual HTTP status (409/404/501/503 = no compatible score source; 401/403 = pairing rejected; otherwise unreachable/retrying).
+- Verified (automated): calibration dot centres match requested viewport coordinates within 1 px at 1440x900, 1280x720, 390x844 with the setup dialog open (frontend/e2e/live/calibration-geometry.spec.ts, stand-in camera). NOT verified: real-camera gaze accuracy; that needs a person and a webcam.
+- E2E selector notes: moment cards need the Moments tab, graph/demo controls need the Attention tab.
+- Screenshots: docs/design/before2 (rejected baseline), after7 (current narrow/laptop), compare/ (A vs B, same lecture and viewport).
+
 ## 5. Known issues and decisions awaiting the team
 
 - Contracts are PROPOSED. `schemaVersion` must match exactly, and any change bumps it.

@@ -143,3 +143,27 @@ test('screenshots maximised and empty drag', async ({ page }) => {
   await page.waitForTimeout(500);
   await shot(page, 'desktop-9-maximised');
 });
+
+/** Same lecture, viewport and populated review state under both visual treatments (?design=brutal is variation B). */
+for (const design of ['current', 'brutal'] as const) {
+  test(`compare loaded screen: ${design}`, async ({ page }) => {
+    test.setTimeout(240_000);
+    mkdirSync(out, { recursive: true });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const token = readFileSync('frontend/test-results/shots-token', 'utf8').trim();
+    await page.goto(`${SHOTS_URL}/${design === 'brutal' ? '?design=brutal' : ''}#pair=${token}`);
+    await expect(page.getByText('Session connected')).toBeVisible();
+    await load(page, true);
+    await page.getByRole('tab', { name: /Moments/ }).click();
+    await expect(page.getByTestId('review-reminder')).toHaveCount(1, { timeout: 120_000 });
+    await page.locator('video').evaluate((v: HTMLVideoElement) => { v.pause(); v.currentTime = 20; });
+    await page.waitForTimeout(500);
+    await shot(page, `compare-${design}-moments-headsup`);
+    await page.getByRole('tab', { name: /Transcript/ }).click();
+    await page.waitForTimeout(400);
+    await shot(page, `compare-${design}-transcript`);
+    await page.getByRole('tab', { name: /Attention/ }).click();
+    await page.waitForTimeout(400);
+    await shot(page, `compare-${design}-attention`);
+  });
+}
