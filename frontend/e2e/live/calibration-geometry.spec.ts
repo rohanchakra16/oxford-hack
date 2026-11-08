@@ -19,7 +19,7 @@ const fixture = `
         for (let i = 0; i < points.length; i++) {
           window.__expected.push(points[i]);
           ui.show(points[i], i, points.length);
-          await new Promise((r) => setTimeout(r, 700));
+          await new Promise((r) => setTimeout(r, 1000));
         }
         ui.hide();
         options.onCalibration({id:'geometry',status:'valid'});
@@ -42,7 +42,7 @@ for (const [name, viewport] of [['desktop', { width: 1440, height: 900 }], ['lap
     const seen: Array<{ dx: number; dy: number }> = [];
     for (let i = 0; i < 4; i++) {
       await page.waitForFunction((n) => (window as unknown as { __expected?: unknown[] }).__expected?.length === n, i + 1);
-      await page.waitForTimeout(80);
+      await page.waitForTimeout(500); // the dot glides between targets (350 ms); measure once it has stopped
       const box = (await dot.boundingBox())!;
       const expected = await page.evaluate((n) => (window as unknown as { __expected: Array<{ x: number; y: number }> }).__expected[n], i);
       seen.push({ dx: box.x + box.width / 2 - expected.x, dy: box.y + box.height / 2 - expected.y });

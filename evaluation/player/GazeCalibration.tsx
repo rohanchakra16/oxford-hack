@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PlayerHandle } from '../../frontend/src/player';
-import type { GazeCamera } from './gaze-runtime';
+import type { GazeCamera, GazeSample } from './gaze-runtime';
 import { readGazeMemory, resetGazeMemory, saveGazeMemory } from './gaze-memory';
 import { GazeWindowBuffer } from './gaze';
 import type { ReviewClient } from '../../frontend/src/integration';
@@ -20,8 +20,11 @@ export function explainCameraFailure(error: unknown): { kind: CameraFailure; mes
   return { kind: 'unknown', message: `Camera setup failed${detail ? `: ${detail}` : ''}. The cause could not be identified. Check that the camera is connected, allowed for this site and not used by another app, then try again.` };
 }
 
-export function GazeCalibration({ player, buffer, onStarted, client, participant = 'local', onBusyChange }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void; client?: ReviewClient; participant?: string; onBusyChange?: (busy: boolean) => void }) {
+export function GazeCalibration({ player, buffer, onStarted, client, participant = 'local', onBusyChange, onSample }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void; client?: ReviewClient; participant?: string; onBusyChange?: (busy: boolean) => void; /** Local-only live gaze frames for on-screen feedback; null when tracking stops. */ onSample?: (sample: GazeSample | null) => void }) {
   const engine = useRef<GazeCamera | null>(null);
+  // A ref, so a new callback identity each render never re-runs the camera cleanup effect.
+  const sampleOut = useRef(onSample);
+  sampleOut.current = onSample;
   const abort = useRef(new AbortController());
   const calibration = useRef<Omit<Calibration, 'provenance'> | null>(null);
   const invalidate = () => {
@@ -41,6 +44,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
   useEffect(() => () => {
     abort.current.abort();
     engine.current?.stop();
+    sampleOut.current?.(null);
     onBusyChange?.(false);
     if (calibration.current) client?.sendGazeCalibration({ ...calibration.current, status: 'expired', invalidatedReason: 'Lecture or camera changed', tBrowserMs: performance.now() });
     buffer.clear();
@@ -74,8 +78,9 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
               ? 'Camera calibrated. Your EEG baseline is managed in Personal calibration above.'
               : event.status === 'in_progress' ? 'Follow each calibration dot with your eyes.' : 'Calibration unavailable. Recalibrate to continue.');
           },
+          onSample: (sample) => { if (engine.current === gaze && !abort.current.signal.aborted) sampleOut.current?.(sample); },
           onUnavailable: (message) => {
-            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); invalidate(); const f = explainCameraFailure(message); setPhase('unavailable'); setFailure(f.kind); setStatus(f.message); }
+            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); invalidate(); sampleOut.current?.(null); const f = explainCameraFailure(message); setPhase('unavailable'); setFailure(f.kind); setStatus(f.message); }
           },
         });
         engine.current = gaze;
@@ -114,6 +119,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
 
   const stop = () => {
     abort.current.abort(); engine.current?.stop(); engine.current = null;
+    sampleOut.current?.(null);
     invalidate();
     onBusyChange?.(false);
     buffer.clear(); setTarget(null); setBusy(false); setPhase('idle'); setStatus('Camera stopped. Combined bookmarks are paused until recalibration.');

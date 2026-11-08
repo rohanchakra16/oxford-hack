@@ -3,10 +3,12 @@ import type { LoadedLecture, PlayerHandle } from '../player';
 import { observeEvaluation, type EvaluationSnapshot, type Segment } from '../../../evaluation/player/client';
 import { GazeWindowBuffer } from '../../../evaluation/player/gaze';
 import type { ReviewClient } from '../integration';
+import { GazeLiveStore } from './gazeLive';
 
 /** Product composition over the already tested evaluator; no second detector. */
 export function useFocusReview(player: PlayerHandle | null, lecture: LoadedLecture | null, duration: number | null, client?: ReviewClient) {
   const [gaze] = useState(() => new GazeWindowBuffer());
+  const [gazeLive] = useState(() => new GazeLiveStore());
   const [enabled, setEnabled] = useState(false);
   const [snapshot, setSnapshot] = useState<EvaluationSnapshot | null>(null);
   const [error, setError] = useState('');
@@ -25,7 +27,7 @@ export function useFocusReview(player: PlayerHandle | null, lecture: LoadedLectu
   }, [enabled, player, lecture, duration, gaze, attempt, client]);
   const current = snapshot?.videoId === lecture?.videoId ? snapshot : null;
   return {
-    gaze, enabled, client, live: client?.kind === 'live', snapshot: current, error, notice,
+    gaze, gazeLive, enabled, client, live: client?.kind === 'live', snapshot: current, error, notice,
     start: () => setEnabled(true),
     closeNotice: () => setNotice(null),
     reconnect: () => setAttempt((n) => n + 1),

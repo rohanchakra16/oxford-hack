@@ -573,9 +573,12 @@ svg { flex: none; }
   padding: 8px 8px 8px 18px; border: 1px solid var(--ui-line-strong); border-radius: 999px; background: #fff; box-shadow: var(--ui-shadow-2);
 }
 .calibration-dot {
-  position: fixed; width: 22px; height: 22px; border-radius: 50%; background: var(--ui-ink); border: 4px solid #fff;
-  box-shadow: 0 0 0 4px var(--ui-accent), 0 4px 14px rgb(20 24 32 / 30%); transform: translate(-50%, -50%);
+  position: fixed; width: 22px; height: 22px; border-radius: 50%; background: #e5372e; border: 4px solid #fff;
+  box-shadow: 0 0 0 4px rgb(229 55 46 / 40%), 0 4px 14px rgb(20 24 32 / 30%); transform: translate(-50%, -50%);
+  /* Glide between the stationary targets. Samples are taken only after a settle period (> this duration), when the dot has stopped. */
+  transition: left 350ms ease, top 350ms ease;
 }
+@media (prefers-reduced-motion: reduce) { .calibration-dot { transition: none; } }
 
 /* ---------- footer ---------- */
 .page-footer { padding: 6px 24px 22px; text-align: center; color: var(--ui-ink-3); font-size: 12px; }

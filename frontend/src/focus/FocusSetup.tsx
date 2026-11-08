@@ -11,7 +11,8 @@ export function FocusSetup({ player, lecture, focus, participant, onCalibrationB
   onCalibrationBusyChange?: (busy: boolean) => void;
 }) {
   return <div className="focus-tools">
-    <GazeCalibration key={`${lecture?.videoId ?? 'none'}:${participant ?? 'local'}`} player={player} buffer={focus.gaze} onStarted={focus.start} client={focus.live ? focus.client : undefined} participant={participant} onBusyChange={onCalibrationBusyChange} />
+    <GazeCalibration key={`${lecture?.videoId ?? 'none'}:${participant ?? 'local'}`} player={player} buffer={focus.gaze} onStarted={focus.start} client={focus.live ? focus.client : undefined} participant={participant} onBusyChange={onCalibrationBusyChange}
+      onSample={(sample) => focus.gazeLive.push(sample, sample ? { videoId: lecture?.videoId ?? null, mediaTimeS: player?.getState().mediaTimeS ?? 0, paused: player?.getState().paused ?? true } : undefined)} />
     {focus.enabled && focus.error && <>
       <p role="status">{focus.error}</p>
       <button className="button button--outline button--small" onClick={focus.reconnect}>Reconnect focus tracking</button>
