@@ -7,12 +7,24 @@ import {
   type ReviewClient,
   type SensorState,
 } from '../integration';
-import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle } from '../player';
+import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle, type PlayerViewMode } from '../player';
 import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
 import { FlagIcon } from './icons';
 import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { FocusSetup } from '../focus/FocusSetup';
+import {
+  AttentionGraph,
+  AttentionInfoIndicator,
+  AttentionSummary,
+  AttentionTimelineStore,
+  markerFromBookmark,
+  observationFromEvaluation,
+  useAttentionLecture,
+  useTimeline,
+  type AttentionMarker,
+} from '../attention';
+import '../attention/attention.css';
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
@@ -214,6 +226,39 @@ export default function App() {
     [snapshot.bookmarks, lecture, focus.enabled, focus.moments, client],
   );
 
+  // Attention UI (#55): one bounded store per page, fed only from existing sources (no new connection).
+  const [attention] = useState(() => new AttentionTimelineStore());
+  const [viewMode, setViewMode] = useState<PlayerViewMode>('normal');
+  const [showSummary, setShowSummary] = useState(false);
+  const timeline = useTimeline(attention);
+  useAttentionLecture(attention, player);
+
+  // Markers mirror the authoritative bookmark list (server bookmarks + focus moments) for this lecture.
+  useEffect(() => {
+    if (!timeline.videoId) return;
+    attention.syncMarkers(
+      activeBookmarks.filter((b) => b.videoId === timeline.videoId).map(markerFromBookmark),
+      (m) => !m.id.startsWith('demo-'),
+    );
+  }, [activeBookmarks, timeline.videoId, attention]);
+
+  // Live mode has no score stream until the EEG score contract is agreed: markers only, never a made-up curve.
+  useEffect(() => {
+    attention.setAvailability(client.kind === 'live'
+      ? { state: 'unavailable', message: 'Live score unavailable' }
+      : { state: 'available' });
+  }, [client, attention]);
+
+  // Off-live focus mode: plot the evaluator's own snapshots (combined loss / EEG score), gaps when invalid.
+  useEffect(() => {
+    if (client.kind === 'live' || !focus.snapshot || !player) return;
+    const observation = observationFromEvaluation(focus.snapshot, player.getState());
+    if (observation) attention.record(observation);
+  }, [focus.snapshot, player, client, attention]);
+
+  useEffect(() => { if (ended) setShowSummary(true); }, [ended]);
+  useEffect(() => { setShowSummary(false); }, [timeline.videoId]);
+
   const onLectureChange = (next: LoadedLecture | null) => {
     setLecture(next);
     setDismissed(new Set());
@@ -257,6 +302,14 @@ export default function App() {
 
   const rate = (bookmark: ReviewBookmark, useful: boolean) => {
     if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, useful ? 'rated_useful' : 'rated_not_useful', currentTime);
+  };
+
+  // Graph / ⓘ / summary seeks: a known bookmark goes through the shared replay path (sentence rule,
+  // feedback, error banner); anything else (low region, plain time) is a seek.
+  const seekAttention = (timeS: number, marker?: AttentionMarker) => {
+    const bookmark = marker && activeBookmarks.find((b) => b.bookmarkId === marker.id);
+    if (bookmark) replay(bookmark);
+    else player?.seek(timeS);
   };
 
   const connection = snapshot.connection;
@@ -349,10 +402,19 @@ export default function App() {
           </div>
         )}
 
-        <div className="content-grid">
+        <div className={`content-grid${viewMode === 'minimised' ? ' content-grid--minimised' : ''}`}>
           <div className="main-column">
+            {/* One mounted player: minimising moves it with grid areas (remounting would end the session). */}
             <section className="player-card" aria-label="Lecture video">
-              <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange} />
+              <LecturePlayer
+                client={client}
+                session={sessionSettings}
+                ref={setPlayer}
+                onLectureChange={onLectureChange}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                overlay={<AttentionInfoIndicator store={attention} onSeek={seekAttention} />}
+              />
               {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="focus-bookmark-flags">
                 {activeBookmarks.map((bookmark) => <button className="button button--quiet button--small" key={bookmark.bookmarkId} onClick={() => replay(bookmark)} aria-label={`Replay bookmark at ${formatTime(bookmark.suggestedMediaS)}`}>
                   <FlagIcon />{formatTime(bookmark.suggestedMediaS)}
@@ -376,9 +438,29 @@ export default function App() {
                   >
                     <FlagIcon /> Mark moment
                   </button>
+                  <button
+                    className="button button--quiet button--small"
+                    type="button"
+                    disabled={!timeline.videoId}
+                    onClick={() => setShowSummary((open) => !open)}
+                    data-testid="attention-summary-toggle"
+                  >
+                    {showSummary ? 'Hide summary' : timeline.completed ? 'Attention summary (saved)' : 'Attention summary'}
+                  </button>
                 </div>
               </div>
             </section>
+
+            {/* display: contents normally; the minimised layout turns it into the main study column. */}
+            <div className="study-stack">
+            {showSummary && (
+              <AttentionSummary
+                store={attention}
+                playback={player}
+                onSeek={(t, target) => seekAttention(t, target.kind === 'marker' ? target.marker : undefined)}
+                onClose={() => setShowSummary(false)}
+              />
+            )}
 
             <section className="transcript-card" aria-labelledby="transcript-title">
               <div className="section-heading">
@@ -387,9 +469,16 @@ export default function App() {
               {/* key: a new lecture starts without the previous lecture's transcript */}
               <TranscriptPanel key={lecture?.videoId ?? 'none'} player={player} onTranscriptChange={setTranscript} />
             </section>
+            </div>
           </div>
 
           <aside className="side-column" aria-label="Session and review">
+            <AttentionGraph
+              store={attention}
+              playback={player}
+              variant="compact"
+              onSeek={(t, target) => seekAttention(t, target.kind === 'marker' ? target.marker : undefined)}
+            />
             {reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
               <h2>Heads-up <span className="count-badge">{reminders.length}</span></h2>
               <div className="reminder-stack__items">
