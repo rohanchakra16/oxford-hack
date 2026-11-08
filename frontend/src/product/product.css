@@ -661,3 +661,17 @@ svg { flex: none; }
 /* ReMind wordmark: approved 01A Loop mark plus the word. */
 .remind-wordmark { display: inline-flex; align-items: center; gap: 10px; font-size: 1.6rem; font-weight: 750; letter-spacing: -.04em; line-height: 1; }
 .remind-wordmark__mark { display: block; flex: none; width: 31px; height: 34px; }
+
+/* Recall questions (opt-in): a quiet disclosure, then a clear per-moment action. */
+.recall-setup { border-top: 0; padding-top: 0; }
+.recall-setup[open] { padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: 12px; background: var(--ui-surface-2); }
+.bookmark-question-provider { display: grid; gap: 10px; margin: 10px 0 0; padding: 0; border: 0; font-size: 12.5px; line-height: 1.5; color: var(--ui-ink-2); }
+.bookmark-question-provider legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.bookmark-question-provider label { display: grid; gap: 4px; font-weight: 560; color: var(--ui-ink); }
+.bookmark-question-provider select { min-height: 36px; padding: 0 10px; border: 1px solid var(--ui-line-strong); border-radius: 10px; background: #fff; color: var(--ui-ink); font: inherit; }
+.bookmark-question-provider label:has(input[type='checkbox']) { display: flex; align-items: flex-start; gap: 8px; font-weight: 440; color: var(--ui-ink-2); }
+.bookmark-question-provider button { justify-self: start; }
+.bookmark-recall { display: grid; gap: 8px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--ui-line); justify-items: start; }
+.bookmark-recall .bookmark-card__note { margin: 0; color: var(--ui-ink-3); font-size: 12px; }
+.bookmark-question { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--ui-surface-2); font-size: 13.5px; line-height: 1.5; }
+.bookmark-question-text { margin: 0; font-weight: 560; color: var(--ui-ink); }

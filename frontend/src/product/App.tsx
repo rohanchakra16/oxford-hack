@@ -584,7 +584,12 @@ export default function App() {
               <p className="panel-lede">
                 {complete ? 'Lecture complete. Choose a moment to revisit it.' : 'Suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.'}
               </p>
-              {client.kind === 'live' && <QuestionProviderControls {...questions.controls} />}
+              {client.kind === 'live' && (
+                <details className="info-disclosure recall-setup">
+                  <summary>Recall questions · AI provider</summary>
+                  <QuestionProviderControls {...questions.controls} />
+                </details>
+              )}
               {!experiment.enabled && snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
                 <div className="manual-only-note" role="status">
                   Automatic suggestions are paused. Add a marker whenever you want to revisit a moment.

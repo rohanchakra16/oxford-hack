@@ -166,3 +166,8 @@
 .app-shell[data-design='brutal'][data-design] :is(.btn.btn--primary, .button.button--primary, .import__action .lp-open):not(:disabled) { background: var(--b-blue); color: var(--b-ink); }
 .app-shell[data-design='brutal'][data-design] :is(.btn.btn--primary, .button.button--primary, .import__action .lp-open):hover:not(:disabled) { background: var(--b-blue-hover); }
 .app-shell[data-design='brutal'][data-design] .moment-rail { width: fit-content; max-width: 100%; }
+
+.app-shell[data-design='brutal'] .recall-setup[open] { border: 2px solid var(--b-ink); border-radius: 6px; background: var(--b-wash); }
+.app-shell[data-design='brutal'] .bookmark-question-provider select { border: 2px solid var(--b-ink); border-radius: 6px; }
+.app-shell[data-design='brutal'] .bookmark-question { border: 2px solid var(--b-ink); border-radius: 6px; background: var(--b-wash); }
+.app-shell[data-design='brutal'] .bookmark-recall { border-top: 1px solid var(--ui-line); }
