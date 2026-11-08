@@ -38,6 +38,17 @@ export interface CalibrationUI {
   hide(): void;
 }
 
+/** Local-only frame summary for on-screen feedback; never sent to the backend. */
+export interface GazeSample {
+  tMs: number;
+  state: 'on' | 'off' | 'uncertain' | 'lost';
+  /** Estimated gaze in viewport CSS px; null whenever the state is `lost`. */
+  viewport: { x: number; y: number } | null;
+  pInside: number | null;
+  /** Why the frame is `lost` (null otherwise). */
+  reason: string | null;
+}
+
 export interface GazeCamera {
   start(): Promise<void>;
   calibrate(ui: {
@@ -54,6 +65,7 @@ export function createGazeCamera(options: {
   getVideoElement(): HTMLVideoElement;
   onObservation(observation: GazeObservation): void;
   onObservationBatch?(observations: GazeObservation[]): void;
+  onSample?(sample: GazeSample): void;
   onCalibration(event: { id: string; status: 'in_progress' | 'valid' | 'invalid' | 'expired'; contract?: Omit<GazeCalibration, 'provenance'> }): void;
   onUnavailable(message: string): void;
 }): GazeCamera;

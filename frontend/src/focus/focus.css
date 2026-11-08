@@ -7,3 +7,29 @@
 .calibration-overlay { position: fixed; inset: 0; z-index: 1000; background: #ffffff66; }
 .calibration-instructions { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); text-align: center; background: #fff; padding: 8px 16px; border-radius: 12px; }
 .calibration-dot { position: fixed; width: 20px; height: 20px; border-radius: 50%; background: #174f42; border: 4px solid white; box-shadow: 0 0 0 4px #174f42; transform: translate(-50%, -50%); }
+
+/* ---------- gaze feedback: border and crosshair on the video, timeline in the Attention tab ---------- */
+.gaze-border { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; transition: box-shadow 120ms ease; }
+.gaze-border[data-state='off'] { box-shadow: inset 0 0 0 5px #e5372e; }
+.gaze-border[data-state='unsure'] { box-shadow: inset 0 0 0 3px rgb(160 168 184 / 90%); border: 2px dashed rgb(28 41 60 / 55%); }
+.gaze-crosshair { position: fixed; width: 32px; height: 32px; margin: -16px 0 0 -16px; pointer-events: none; z-index: 5; transition: left 80ms linear, top 80ms linear; }
+.gaze-crosshair svg { display: block; fill: none; stroke: #00a152; stroke-width: 3; filter: drop-shadow(0 0 2px #fff); }
+.gaze-crosshair[data-state='off'] svg { stroke: #e5372e; }
+.gaze-crosshair[data-state='uncertain'] svg { stroke: #b7880f; stroke-dasharray: 4 3; }
+@media (prefers-reduced-motion: reduce) { .gaze-crosshair, .gaze-border { transition: none; } }
+
+.gaze-section { display: grid; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--ui-line, #ccd); }
+.gaze-section h3 { margin: 0; font-size: 14px; }
+.gaze-section__sub, .gaze-empty { margin: 0; font-size: 12.5px; color: var(--ui-ink-2, #555); line-height: 1.5; }
+.gaze-now { margin: 0; font-size: 13px; }
+.gaze-strip { width: 100%; height: 26px; display: block; border: 2px solid var(--ui-ink, #1c293c); background: #fff; }
+.gaze-run--on { fill: #00d26a; background: #00d26a; }
+.gaze-run--off { fill: #e5372e; background: #e5372e; }
+.gaze-run--uncertain { fill: #f5b301; background: #f5b301; }
+.gaze-run--lost { fill: #aab2c0; background: repeating-linear-gradient(135deg, #aab2c0 0 3px, #e4e8ef 3px 6px); }
+.gaze-playhead { fill: var(--ui-ink, #1c293c); }
+.gaze-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none; font-size: 12px; }
+.gaze-legend li { display: inline-flex; align-items: center; gap: 5px; }
+.gaze-legend i { width: 12px; height: 12px; border: 1.5px solid var(--ui-ink, #1c293c); display: inline-block; }
+.gaze-toggles { display: grid; gap: 4px; font-size: 13px; }
+.gaze-toggles label { display: flex; gap: 8px; align-items: center; }

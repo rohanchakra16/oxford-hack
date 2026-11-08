@@ -15,6 +15,8 @@ import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type T
 import { AlertIcon, ChevronRightIcon, CloseIcon, EyeIcon, FilmIcon, FlagIcon, ReplayIcon, SettingsIcon, ActivityIcon, ThumbsDownIcon, ThumbsUpIcon, UndoIcon, CheckIcon } from '../ui/icons';
 import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
+import { GazeOverlay } from '../focus/GazeOverlay';
+import { GazeSection } from '../focus/GazeSection';
 import { SessionSetup } from './SessionSetup';
 import { useExperiment } from '../experiment/useExperiment';
 import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
@@ -240,6 +242,9 @@ export default function App() {
   const [importTarget, setImportTarget] = useState<HTMLDivElement | null>(null);
   const [transcriptFileTarget, setTranscriptFileTarget] = useState<HTMLDivElement | null>(null);
   const [panelTab, setPanelTab] = useState<PanelTab>('moments');
+  /** Gaze feedback on the video: both come from real calibrated webcam frames and only show while the camera tracks. */
+  const [gazeCrosshair, setGazeCrosshair] = useState(false);
+  const [gazeBorder, setGazeBorder] = useState(true);
   const [client] = useState(() => createReviewClient());
   useReviewConnection(client);
   const snapshot = useReviewSnapshot(client);
@@ -543,6 +548,7 @@ export default function App() {
               </div>
             )}
             overlay={<>
+              <GazeOverlay store={focus.gazeLive} crosshair={gazeCrosshair} border={gazeBorder} />
               <AttentionInfoIndicator store={attentionStore} onSeek={seekAttention} />
               {headsUp}
             </>} />
@@ -634,6 +640,8 @@ export default function App() {
               </button>
               {showSummary && <AttentionSummary store={attentionStore} playback={player} onSeek={seekGraph} onClose={() => setShowSummary(false)} />}
               {!experiment.enabled && client.kind === 'synthetic' && <AttentionDemoPanel store={attentionStore} playback={player} />}
+              <GazeSection store={focus.gazeLive} player={player} durationS={duration} crosshair={gazeCrosshair} border={gazeBorder}
+                onCrosshair={setGazeCrosshair} onBorder={setGazeBorder} />
             </div>
           </aside>
         )}

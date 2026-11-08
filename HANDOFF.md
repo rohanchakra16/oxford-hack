@@ -101,6 +101,12 @@ Known: Qt GUI teardown crash in CI is gated on JUnit; bookmarks do not survive a
 - E2E selector notes: moment cards need the Moments tab, graph/demo controls need the Attention tab.
 - Screenshots: docs/design/before2 (rejected baseline), after7 (current narrow/laptop), compare/ (A vs B, same lecture and viewport).
 
+## 4e. Gaze visibility in the main app (branch gaze-visibility)
+- Investigated: the crosshair (`#gaze-dot`), the red/green/amber video outline (`.lecture-wrap.off_video`) and the moving-dot calibration all live only in the standalone harness (`gaze/src/harness/`); they were never in the main app, so nothing was lost in a merge. A separate gaze graph never existed. The main app calibrates with the static 15-dot method only; the harness dot was red and eased between targets, the app's was a blue-ringed dot that jumped (restyled in the redesign). The moving-dot method (`calibratePursuit`) measured worse (~150 px vs ~90-100 px held-out RMS, gaze/README) and stayed experimental.
+- Added: a local-only gaze sample stream (`onSample` in `evaluation/player/gaze-runtime.js`, never sent to the backend; eyes closed, face lost or no valid calibration are `lost`, never on/away), `frontend/src/focus/gazeLive.ts` (per-second gaze record, independent of the EEG attention store), `GazeOverlay` (red border around the video when confidently away, neutral dashed border when uncertain or lost, optional crosshair at the estimated position that is dashed when uncertain and hidden when lost), `GazeSection` in the Attention tab (own timeline strip: looking at video / away / uncertain / not measurable, with gaps for camera-off seconds; toggles for crosshair and border).
+- Calibration dot: red again and glides between targets (350 ms); samples are still taken only after the 800 ms settle, so the algorithm is unchanged. No change to the fit.
+- Verified: unit tests (store, sample mapping), a browser test with a stand-in camera reporting scripted frames (border/crosshair/timeline respond, uncertain/lost never shown as away, crosshair within 1 px of the reported position), the calibration geometry test. NOT verified: real-webcam crosshair accuracy and real look-away behaviour inside the lecture player; that needs a person and a camera (see test plan in the PR).
+
 ## 5. Known issues and decisions awaiting the team
 
 - Contracts are PROPOSED. `schemaVersion` must match exactly, and any change bumps it.

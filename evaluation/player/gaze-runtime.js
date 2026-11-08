@@ -2,14 +2,33 @@
 // uses the small, typed public boundary in gaze-runtime.d.ts.
 import { GazeEngine } from '../../gaze/src/engine';
 import { toContractObservation, toContractCalibration, gazeProvenance, ObservationBatcher } from '../../gaze/src/contract';
-import { viewportToScreen } from '../../gaze/src/geometry';
+import { viewportToScreen, screenToViewport } from '../../gaze/src/geometry';
 import { validSavedGaze } from './gaze-memory';
+
+/**
+ * Local-only view of one frame for on-screen feedback (crosshair, border, gaze timeline). It is never sent
+ * anywhere. `state` follows the same validity rule as the contract frame: anything that would not count as a
+ * valid observation (no calibration, face or eyes lost, a reported reason) is `lost`, never `on` or `off`.
+ */
+function toLocalSample(observation) {
+  const g = observation.gaze;
+  const usable = observation.status === 'valid' && !observation.reasons.length && !observation.face.eyes_closed
+    && observation.calibration.status === 'valid' && Number.isFinite(g.screen_x_px) && Number.isFinite(g.screen_y_px) && g.region;
+  const state = !usable ? 'lost' : g.region === 'on_video' ? 'on' : g.region === 'off_video' ? 'off' : 'uncertain';
+  return {
+    tMs: observation.observed_at_ms,
+    state,
+    viewport: usable ? screenToViewport({ x: g.screen_x_px, y: g.screen_y_px }) : null,
+    pInside: usable && Number.isFinite(g.p_inside) ? g.p_inside : null,
+    reason: usable ? null : (observation.reasons[0] ?? (observation.calibration.status !== 'valid' ? 'calibration_invalid' : observation.face.eyes_closed ? 'eyes_closed' : 'unavailable')),
+  };
+}
 
 /**
  * @param {Parameters<import('./gaze-runtime').createGazeCamera>[0]} options
  * @returns {import('./gaze-runtime').GazeCamera}
  */
-export function createGazeCamera({ getVideoElement, onObservation, onObservationBatch, onCalibration, onUnavailable }) {
+export function createGazeCamera({ getVideoElement, onObservation, onObservationBatch, onCalibration, onUnavailable, onSample }) {
   const engine = new GazeEngine({ sessionId: `evaluation-${crypto.randomUUID()}`, getVideoElement });
   const batcher = new ObservationBatcher((batch) => onObservationBatch?.(batch));
   let validating = false;
@@ -24,6 +43,7 @@ export function createGazeCamera({ getVideoElement, onObservation, onObservation
       && Number.isFinite(observation.gaze.screen_x_px) && Number.isFinite(observation.gaze.screen_y_px)) {
       activeCheck.push({ x: observation.gaze.screen_x_px, y: observation.gaze.screen_y_px });
     }
+    if (onSample && !validating) onSample(toLocalSample(observation));
     const frame = toContractObservation(observation);
     if (validating || observation.status !== 'valid' || observation.reasons.length || observation.face.eyes_closed || observation.calibration.status !== 'valid') {
       frame.valid = false;
