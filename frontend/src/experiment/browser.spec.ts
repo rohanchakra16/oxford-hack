@@ -59,6 +59,14 @@ test('offline live page can import raw EEG; invalid replacement cannot keep stal
   const raw = 'timestamp,sample_index,Fz\n' + Array.from({ length: 1000 }, (_, i) => `${i / 250},${i},${Math.sin(2 * Math.PI * 20 * i / 250)}`).join('\n');
   await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'raw.csv', mimeType: 'text/csv', buffer: Buffer.from(raw) });
   await expect(page.getByText(/raw.csv · 4.0 seconds · Spectral test proxy/)).toBeVisible();
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(await makeSyntheticLecture());
+  await expect(page.getByText(/EEG: 100 · Combined test score/)).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
+  await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
+  // A constant raw sinusoid produces a horizontal SVG line with zero bounding-box height.
+  await expect(page.locator('.att-line--simulated path')).toHaveAttribute('d', /L/);
+  await page.locator('video').evaluate((v: HTMLVideoElement) => v.pause());
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
   await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'bad.csv', mimeType: 'text/csv', buffer: Buffer.from('time_s,score\n0,120') });
   await expect(page.getByRole('alert')).toContainText('Attention scores must be on a 0–100 scale');
   await expect(page.getByText(/raw.csv ·/)).not.toBeVisible();
