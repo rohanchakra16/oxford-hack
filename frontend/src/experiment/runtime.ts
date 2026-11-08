@@ -1,6 +1,8 @@
 import type { AttentionTimelineStore } from '../attention';
 import { replayScore, type EegReplay } from './csv';
 
+export const EXPERIMENT_LOW_THRESHOLD = 35;
+
 export interface ExperimentPlayer {
   getState(): { mediaTimeS: number; paused: boolean; seeking: boolean; buffering: boolean; ended: boolean };
   subscribe?(listener: () => void): () => void;
@@ -65,9 +67,9 @@ export class ExperimentReplay {
     this.last = time;
     this.store.record({ sessionId: this.session, videoId: this.videoId, segmentId: String(this.segment),
       evidence: null, mediaS: time, metric: 'experimental_csv_combined', value: combined, scale: 'score_0_100',
-      valid: combined !== null, origin: 'simulated', threshold: 40, thresholdVersion: 'csv-test-v1',
+      valid: combined !== null, origin: 'simulated', threshold: EXPERIMENT_LOW_THRESHOLD, thresholdVersion: 'csv-test-v2',
       provenance: 'Local EEG CSV test · 80% EEG + 20% randomized gaze · not a validated model' });
-    if (combined === null || combined > 40) { this.lowSince = null; return; }
+    if (combined === null || combined > EXPERIMENT_LOW_THRESHOLD) { this.lowSince = null; return; }
     this.lowSince ??= time;
     if (time - this.lowSince >= 8 && time - this.lastMarker >= 30) {
       this.store.addMarker({ id: `${this.session}:${this.segment}:${time}`, startS: this.lowSince, endS: time,

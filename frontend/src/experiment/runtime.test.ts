@@ -5,7 +5,7 @@ import { parseEegCsv } from './csv';
 
 afterEach(() => vi.useRealTimers());
 
-function fixture(score = 20) {
+function fixture(score = 10) {
   vi.useFakeTimers();
   const store = new AttentionTimelineStore({ storage: null }); store.open('lecture', 100);
   const state = { mediaTimeS: 0, paused: false, seeking: false, buffering: false, ended: false };
@@ -34,10 +34,24 @@ describe('experimental playback runtime', () => {
   it('records simulated combined scores and emits bounded low-score review dots', () => {
     const f = fixture(); f.advance(8);
     expect(f.store.getSnapshot().segments[0]!.origin).toBe('simulated');
-    expect(f.store.getSnapshot().segments[0]!.points[0]!.score).toBe(36);
+    expect(f.store.getSnapshot().segments[0]!.points[0]!.score).toBe(28);
     expect(f.store.getSnapshot().markers).toHaveLength(1);
     f.advance(29); expect(f.store.getSnapshot().markers).toHaveLength(1);
     f.advance(1); expect(f.store.getSnapshot().markers).toHaveLength(2);
+    f.runtime.stop();
+  });
+
+  it.each([
+    [18.75, 35, true],
+    [20, 36, false],
+    [30, 44, false],
+  ])('aligns low shading and review triggering for EEG %s (combined %s)', (eeg, combined, low) => {
+    const f = fixture(eeg); f.advance(8);
+    const snapshot = f.store.getSnapshot();
+    expect(snapshot.threshold).toBe(35);
+    expect(snapshot.thresholdVersion).toBe('csv-test-v2');
+    expect(snapshot.segments[0]!.points[0]).toMatchObject({ score: combined, low });
+    expect(snapshot.markers).toHaveLength(low ? 1 : 0);
     f.runtime.stop();
   });
 

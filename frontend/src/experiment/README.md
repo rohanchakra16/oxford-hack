@@ -25,7 +25,7 @@ zero; no wall-clock timestamp is treated as a lecture position.
 Mock normalized gaze coordinates are regenerated every ten wall-clock seconds
 while the mode has a CSV and lecture, including while video is paused. The center
 70% rectangle is the mock video area. No webcam is started. Test fusion is
-`0.8 × EEG + 20` on-video, or `0.8 × EEG` away. Scores <=40 for eight continuous
+`0.8 × EEG + 20` on-video, or `0.8 × EEG` away. Scores <=35 for eight continuous
 playing seconds add a simulated graph dot, with a thirty-media-second cooldown.
 Pause, buffering, seeking, invalid data and jumps interrupt dwell.
 
