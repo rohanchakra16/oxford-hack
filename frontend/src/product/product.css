@@ -1015,3 +1015,52 @@ button:disabled {
     flex-direction: column;
   }
 }
+
+/* ---------- attention UI (#55) + player view modes ---------- */
+/* Normally invisible to layout; the minimised layout promotes it to the main study column. */
+.study-stack {
+  display: contents;
+}
+
+@media (min-width: 981px) {
+  /* Minimised: the same mounted player moves above the sidebar; summary + transcript take the main column. */
+  .content-grid--minimised {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-areas:
+      'study player'
+      'study side';
+    row-gap: 20px;
+  }
+  .content-grid--minimised .main-column {
+    display: contents;
+  }
+  .content-grid--minimised .player-card {
+    grid-area: player;
+    padding: 12px;
+  }
+  .content-grid--minimised .player-card__footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .content-grid--minimised .study-stack {
+    grid-area: study;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    min-width: 0;
+  }
+  .content-grid--minimised .side-column {
+    grid-area: side;
+  }
+}
+
+/* Maximised / fullscreen: the product's 72vh stage cap and light-on-white select text don't apply. */
+.lp--maximised .lp-stage,
+.lp--fullscreen .lp-stage {
+  max-height: none;
+}
+
+.lp--maximised .lp-controls select,
+.lp--fullscreen .lp-controls select {
+  color: var(--ui-ink);
+}

@@ -83,6 +83,38 @@ Mount points (for `frontend/src/product/App.tsx`, Rohan's):
   ends the session. `dev/main.tsx` + `dev/dev.css` show the pattern.
 - Styles use the `att-` prefix and `var(--ui-*)` tokens with fallbacks. There is no separate design system.
 
+## Mounted in the main app (`frontend/src/product/App.tsx`)
+
+Mounted after @rohanchakra16's go-ahead (board #1). What the main page now does:
+
+| Where | What |
+|---|---|
+| Player overlay slot | `AttentionInfoIndicator`. Works in normal, minimised, maximised and fullscreen. |
+| Top of the sidebar | `AttentionGraph variant="compact"`. |
+| Under the player (main column) | `AttentionSummary`. Opens automatically when the lecture ends; the "Attention summary" button next to "Mark moment" toggles it (reads "(saved)" for a completed lecture). |
+| Player controls | Minimise / Maximise / Restore / Fullscreen. `viewMode` is held in App state. |
+
+Data wiring (no new connection, store or wire event):
+
+- **Markers** mirror `activeBookmarks`, the list the review cards already show (server bookmarks + focus moments), for the
+  open lecture only.
+- **Scores**: only off-live focus mode records points, from `useFocusReview`'s evaluation snapshot via
+  `observationFromEvaluation`. In **live mode** (including `npm run dev -- --rehearsal`) the graph shows markers plus
+  "Live score unavailable", until the score contract with @annieqqa is agreed.
+- **Seeks** from the graph, ⓘ and summary: if the marker is a known bookmark, it goes through App's existing
+  `replay()` (sentence rule, Move earlier count, feedback event, replay error banner). Low regions and plain times use
+  `player.seek`.
+- **Minimised layout**: the player is never remounted. `.content-grid--minimised` uses grid areas: the player moves above
+  the sidebar, and the summary + transcript (`.study-stack`, `display: contents` otherwise) take the main column.
+  Below 981 px the existing single-column layout is unchanged.
+- Two product-style fixes for maximised/fullscreen: the 72vh stage cap is lifted, and the speed selector text is
+  readable.
+
+Browser test: `frontend/e2e/infra/attention.spec.ts` (synthetic adapter + real backend): sidebar graph and overlay slot
+mounted, the ⓘ appears on a suggestion without pausing, minimise keeps the same `<video>` element and keeps playing,
+maximise + Esc, a graph marker replays, the summary opens at the end, and live mode shows "Live score unavailable".
+Screenshots are written to `frontend/test-results/attention-*.png` (git-ignored).
+
 ## Files
 
 | File | Purpose |
@@ -148,4 +180,3 @@ one could not be clicked. Fixed with marker lanes.
   `frontend/src/focus/*`, which wait on @Seikaro's handoff (#1). A design exists, and Rohan's requirements
   for it are versioned localStorage, explicit Save/Reset, rejecting malformed or incompatible data, a short
   validation before reuse, and no frames or EEG stored.
-- Not wired into `frontend/src/product/App.tsx`. That is Rohan's, as agreed.
