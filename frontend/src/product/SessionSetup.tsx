@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { LoadedLecture, PlayerHandle } from '../player';
 import type { ReviewClientSnapshot } from '../integration';
 import { FocusSetup } from '../focus/FocusSetup';
@@ -17,6 +17,7 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
   devices: ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const [calibratingCamera, setCalibratingCamera] = useState(false);
   const connected = snapshot.connection.state === 'connected';
   const profile = attention.state?.profile;
   useEffect(() => {
@@ -25,7 +26,7 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
   }, [open]);
   const close = () => {
     // A gaze target must stay visible until its sequence finishes or is cancelled.
-    if (dialog.current?.querySelector('.calibration-overlay')) return;
+    if (calibratingCamera) return;
     onClose();
   };
 
@@ -34,7 +35,7 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
     <div className="session-setup__shell">
       <header className="session-setup__header">
         <span className="session-setup__eyebrow">SESSION SETUP</span>
-        <button className="button button--outline button--small" onClick={close}>Back to lecture <span aria-hidden="true">↗</span></button>
+        <button className="button button--outline button--small" disabled={calibratingCamera} onClick={close}>Back to lecture <span aria-hidden="true">↗</span></button>
       </header>
       <div className="session-setup__intro">
         <h1 id="session-setup-title">A little setup. A clearer lecture.</h1>
@@ -62,12 +63,12 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
           <h2 id="calibration-title">Make it yours</h2>
           <p className="session-setup__description">Use the same local profile each time. Camera checks stay here; EEG calibration can continue while you watch.</p>
           {snapshot.kind === 'live' && <PersonalCalibration attention={attention} enabled={Boolean(snapshot.session)} />}
-          <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} /></div>
+          <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} onCalibrationBusyChange={setCalibratingCamera} /></div>
         </section>
       </div>
       <footer className="session-setup__footer">
         <p>Saved on this computer: profile and calibration settings. Camera frames and raw EEG are not stored by setup.</p>
-        <button className="button button--primary" onClick={close}>Continue to lecture</button>
+        <button className="button button--primary" disabled={calibratingCamera} onClick={close}>Continue to lecture</button>
       </footer>
     </div>
   </dialog>;

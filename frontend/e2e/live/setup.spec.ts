@@ -65,3 +65,27 @@ test('new lectures and reloads automatically load the remembered profile without
   await expect.poll(() => loads.filter((name) => name === 'Alice').length).toBeGreaterThan(1);
   await expect(page.getByRole('button', { name: 'Recalibrate', exact: true })).toBeVisible();
 });
+
+test('camera loading can be cancelled before dots appear, without hiding an active calibration', async ({ page }) => {
+  const lecture = await makeSyntheticLecture();
+  await page.route('**/gaze-runtime*', (route) => route.fulfill({ contentType: 'application/javascript', body: `
+    export function createGazeCamera() { return {
+      start: () => new Promise((resolve) => { window.releaseCameraStart = resolve; }),
+      calibrate: async () => { throw new Error('Cancelled camera must never calibrate'); },
+      getCalibration: () => null,
+      stop: () => { document.documentElement.dataset.cameraStopped = 'true'; }
+    }; }
+  ` }));
+  await page.goto(`${MAIN_URL}/?setup=1#pair=${token()}`);
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.getByRole('button', { name: 'Calibrate EEG + gaze', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Continue to lecture', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Back to lecture' })).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => typeof (window as unknown as { releaseCameraStart?: () => void }).releaseCameraStart)).toBe('function');
+  await page.getByRole('button', { name: 'Stop camera', exact: true }).click();
+  await page.evaluate(() => (window as unknown as { releaseCameraStart: () => void }).releaseCameraStart());
+  await expect(page.locator('html')).toHaveAttribute('data-camera-stopped', 'true');
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
+  await expect(page.locator('dialog.session-setup')).not.toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Gaze calibration' })).not.toBeVisible();
+});
