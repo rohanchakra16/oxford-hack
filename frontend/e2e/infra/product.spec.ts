@@ -39,6 +39,8 @@ test('product app loads, is labelled as a simulation, and states what suggestion
   await page.goto(`${FRONTEND_URL}/?adapter=synthetic`);
   await expect(page.getByText('Simulation mode')).toBeVisible();
   await expect(page.getByText(/not real attention measurements/i)).toBeVisible();
+  await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.getByRole('tab', { name: /^Moments/ }).click();
   await expect(page.getByText(/suggestions to review, not judgments about your attention/i)).toBeVisible();
   await expect(page.getByText('No review moments yet')).toBeVisible();
 });
@@ -52,6 +54,7 @@ test('transcript sentences follow playback and clicking one seeks to its start',
 test('a suggestion replays from its sentence start, bounded to that sentence; Move earlier steps back one sentence', async ({ page }) => {
   test.setTimeout(90_000);
   await openLecture(page, `${FRONTEND_URL}/?adapter=synthetic`);
+  await page.getByRole('tab', { name: /^Moments/ }).click();
   await page.locator('video').evaluate((v: HTMLVideoElement) => { v.currentTime = 6; v.play(); });
   const card = page.locator('article.bookmark-card').first();
   await expect(card).toBeVisible({ timeout: 45_000 });
@@ -109,6 +112,7 @@ test('live adapter: one telemetry path and one session reach the real backend', 
 test('a replay the browser refuses to play shows an error instead of failing silently', async ({ page }) => {
   test.setTimeout(90_000);
   await openLecture(page, `${FRONTEND_URL}/?adapter=synthetic`);
+  await page.getByRole('tab', { name: /^Moments/ }).click();
   await page.locator('video').evaluate((v: HTMLVideoElement) => { v.currentTime = 6; v.play(); });
   const card = page.locator('article.bookmark-card').first();
   await expect(card).toBeVisible({ timeout: 45_000 });

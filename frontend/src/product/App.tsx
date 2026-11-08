@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import {
   createReviewClient,
   useReviewConnection,
@@ -12,12 +12,31 @@ import { AttentionTimelineStore, AttentionGraph, AttentionSummary, AttentionInfo
 import { usePersonalAttention } from '../focus/usePersonalAttention';
 import { Wordmark } from './Wordmark';
 import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
-import { FlagIcon } from './icons';
+import { AlertIcon, ChevronRightIcon, CloseIcon, EyeIcon, FilmIcon, FlagIcon, ReplayIcon, SettingsIcon, ActivityIcon, ThumbsDownIcon, ThumbsUpIcon, UndoIcon, CheckIcon } from '../ui/icons';
 import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
 import { useExperiment } from '../experiment/useExperiment';
 import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
+import './product.css'; // last: must load after the player, transcript and focus styles it refines
+import './brutal.css'; // the chosen visual direction (neo-brutalist) layers over the structural styles in product.css
+import '@fontsource-variable/dm-sans';
+import '@fontsource-variable/jetbrains-mono';
+
+/** A few playful shapes for the empty import screen of variation B. Decorative only. */
+function Decor() {
+  const star = 'M50 4 L61 36 L96 38 L68 58 L78 92 L50 72 L22 92 L32 58 L4 38 L39 36 Z';
+  const burst = 'M50 2 L58 20 L78 8 L74 30 L96 30 L82 46 L98 62 L76 62 L80 84 L60 74 L50 96 L40 74 L20 84 L24 62 L2 62 L18 46 L4 30 L26 30 L22 8 L42 20 Z';
+  const flower = 'M50 8 C70 8 74 30 62 38 C86 34 96 56 80 68 C92 84 74 98 58 86 C54 100 38 100 36 86 C20 98 4 80 18 66 C2 54 14 32 38 38 C26 28 30 8 50 8 Z';
+  const pos: Array<[string, string, string, string, string]> = [
+    [star, '4%', '10%', '84px', 'rotate(-12deg)'], [flower, '86%', '8%', '96px', 'rotate(8deg)'], [burst, '7%', '70%', '78px', 'rotate(10deg)'],
+    [star, '88%', '66%', '88px', 'rotate(18deg)'], [flower, '16%', '40%', '56px', 'rotate(-8deg)'], [burst, '78%', '38%', '52px', 'rotate(-14deg)'],
+  ];
+  return <div className="decor" aria-hidden="true">{pos.map(([d, left, top, size, rot], i) =>
+    <svg key={i} viewBox="0 0 100 100" style={{ left, top, ['--s' as string]: size, transform: rot }}><path d={d} /></svg>)}</div>;
+}
+
+type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
 /** Product moments carry an optional end instead of wire evidence; give the excerpt builder a range. */
 function questionRange(bookmark: ReviewBookmark): BookmarkRange {
@@ -26,9 +45,6 @@ function questionRange(bookmark: ReviewBookmark): BookmarkRange {
     evidenceMedia: bookmark.endMediaS !== undefined ? { startMediaS: bookmark.suggestedMediaS, endMediaS: bookmark.endMediaS } : null,
   };
 }
-import './product.css'; // last: must load after the player, transcript and focus styles it refines
-
-type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
 const NOOP_SUBSCRIBE = () => () => {};
 const NO_SENTENCES: readonly Sentence[] = [];
@@ -64,6 +80,16 @@ function passageFor(sentences: readonly Sentence[], timeS: number, earlier: numb
   return { index, startS: start, endS: sentences[containing]!.endS, text: sentence.text };
 }
 
+type PanelTab = 'transcript' | 'moments' | 'attention';
+
+const SENSOR_TONE = { ok: 'good', lost: 'warn', unavailable: 'muted' } as const;
+function sensorSummary(state: SensorState['state'] | undefined, kind: 'eeg' | 'gaze'): { label: string; tone: 'good' | 'warn' | 'muted' } {
+  if (!state) return { label: 'Waiting', tone: 'muted' };
+  if (state === 'ok') return { label: kind === 'eeg' ? 'Receiving' : 'Tracking', tone: 'good' };
+  if (state === 'unavailable') return { label: 'Not set up', tone: 'muted' };
+  return { label: statusLabel(state), tone: SENSOR_TONE[state as keyof typeof SENSOR_TONE] ?? 'muted' };
+}
+
 function BookmarkCard({
   bookmark,
   sentences,
@@ -91,77 +117,87 @@ function BookmarkCard({
 }) {
   const passage = passageFor(sentences, bookmark.suggestedMediaS, earlierCount);
   const [rated, setRated] = useState<'useful' | 'not_useful' | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!note) return;
+    const timer = setTimeout(() => setNote(null), 3500);
+    return () => clearTimeout(timer);
+  }, [note]);
+  const at = formatTime(bookmark.suggestedMediaS);
+  const replayFrom = formatTime(passage ? passage.startS : bookmark.suggestedMediaS);
 
   return (
-    <article className={`bookmark-card${dismissed ? ' bookmark-card--dismissed' : ''}`}>
-      <div className="bookmark-card__content">
-        <div className="bookmark-card__heading">
-          <time className="time-chip" dateTime={`PT${bookmark.suggestedMediaS}S`}>
-            {formatTime(bookmark.suggestedMediaS)}
-          </time>
-          <span className="bookmark-card__source">{sourceLabel(bookmark.source)}</span>
-        </div>
-        <h3>{passage?.text ?? 'Review this moment'}</h3>
-        <p className="bookmark-card__note">
-          Suggested replay · {passage ? formatTime(passage.startS) : formatTime(bookmark.suggestedMediaS)}
-          {earlierCount > 0 && <span> · moved earlier {earlierCount} {earlierCount === 1 ? 'passage' : 'passages'}</span>}
+    <article className={`bookmark-card moment${dismissed ? ' bookmark-card--dismissed' : ''}`}>
+      <time className="moment__time" dateTime={`PT${bookmark.suggestedMediaS}S`}>{at}</time>
+      <div className="moment__body">
+        <p className="moment__meta">
+          <span className="chip">{sourceLabel(bookmark.source)}</span>
+          {earlierCount > 0 && <span>Moved earlier {earlierCount}×</span>}
+          {passage && earlierCount === 0 && <span>Replays from {replayFrom}</span>}
         </p>
+        <h3 className="moment__text">{passage?.text ?? 'Review this moment'}</h3>
         {dismissed ? (
-          <p className="dismissed-note" role="status">Dismissed for this view</p>
+          <p className="moment__note" role="status">Dismissed for this view</p>
         ) : (
-          <div className="bookmark-actions">
-            <button className="button button--primary button--small" type="button" onClick={() => onReplay(bookmark)}>
-              Replay
-            </button>
-            {passage && (
-              <button
-                className="button button--quiet button--small"
-                type="button"
-                onClick={() => onEarlier(bookmark)}
-                disabled={passage.index === 0}
-                aria-label={`Move replay earlier for ${formatTime(bookmark.suggestedMediaS)}`}
-              >
-                Move earlier
+          <>
+            <div className="moment__actions">
+              <button className="btn btn--primary btn--sm" type="button" onClick={() => { onReplay(bookmark); setNote(`Replaying from ${replayFrom}`); }}>
+                <ReplayIcon /> Replay
               </button>
-            )}
-            <button
-              className="button button--quiet button--small"
-              type="button"
-              onClick={() => onDismiss(bookmark)}
-            >
-              Dismiss
-            </button>
-            <div className="feedback-actions" role="group" aria-label="Was this suggestion helpful?">
-              {rated ? (
-                <span className="feedback-thanks" role="status">Thanks, noted.</span>
-              ) : (
-                <>
-                  <button className="button button--quiet button--small" type="button" aria-label="Mark suggestion useful" onClick={() => { setRated('useful'); onRate(bookmark, true); }}>
-                    Helpful
+              <div className="moment__tools">
+                {passage && (
+                  <button className="btn btn--icon" type="button" onClick={() => { onEarlier(bookmark); setNote('Replay now starts one passage earlier'); }}
+                    disabled={passage.index === 0} aria-label={`Move replay earlier for ${at}`} title="Start one passage earlier">
+                    <UndoIcon />
                   </button>
-                  <button className="button button--quiet button--small" type="button" aria-label="Mark suggestion not useful" onClick={() => { setRated('not_useful'); onRate(bookmark, false); }}>
-                    Not helpful
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-        {!dismissed && questionsAvailable && (
-          <div className="bookmark-recall">
-            {!question && (
-              <>
-                <button className="button button--quiet button--small" type="button" onClick={() => onRequestQuestion(bookmark)} data-testid="bookmark-question-request">
-                  Test your recall
+                )}
+                <button className="btn btn--icon" type="button" onClick={() => onDismiss(bookmark)} aria-label="Dismiss" title="Dismiss">
+                  <CloseIcon />
                 </button>
-                <p className="bookmark-card__note"><small>Uses your selected AI provider and the lecture context you approved below.</small></p>
-              </>
+                <span className="moment__rule" aria-hidden="true" />
+                {rated ? null : (
+                  <span role="group" aria-label="Was this suggestion helpful?" className="moment__rate">
+                    <button className="btn btn--icon" type="button" aria-label="Mark suggestion useful" title="Helpful" onClick={() => { setRated('useful'); onRate(bookmark, true); }}>
+                      <ThumbsUpIcon />
+                    </button>
+                    <button className="btn btn--icon" type="button" aria-label="Mark suggestion not useful" title="Not helpful" onClick={() => { setRated('not_useful'); onRate(bookmark, false); }}>
+                      <ThumbsDownIcon />
+                    </button>
+                  </span>
+                )}
+              </div>
+            </div>
+            {(rated || note) && (
+              <p className="moment__note" role="status">
+                <CheckIcon /> {rated ? 'Thanks, noted.' : note}
+              </p>
             )}
-            <BookmarkQuestion entry={question} onRetry={() => onRequestQuestion(bookmark)} />
-          </div>
+            {questionsAvailable && (
+              <div className="bookmark-recall">
+                {!question && (
+                  <>
+                    <button className="btn btn--soft btn--sm" type="button" onClick={() => onRequestQuestion(bookmark)} data-testid="bookmark-question-request">
+                      Test your recall
+                    </button>
+                    <p className="bookmark-card__note"><small>Uses your selected AI provider and the lecture context you approved below.</small></p>
+                  </>
+                )}
+                <BookmarkQuestion entry={question} onRetry={() => onRequestQuestion(bookmark)} />
+              </div>
+            )}
+          </>
         )}
       </div>
     </article>
+  );
+}
+
+function SensorRow({ icon, name, summary }: { icon: ReactNode; name: string; summary: { label: string; tone: string } }) {
+  return (
+    <div className="device-row">
+      <span className="device-row__name">{icon}{name}</span>
+      <span className={`device-state device-state--${summary.tone}`}><span className="status-dot" />{summary.label}</span>
+    </div>
   );
 }
 
@@ -177,12 +213,11 @@ function DeviceStatus({ clientKind, sensors }: { clientKind: string; sensors: Re
       </div>
       <div className="device-list">
         {(['eeg', 'gaze'] as const).map((name) => {
-          const sensor = sensors?.[name];
-          const state = sensor?.state;
+          const state = sensors?.[name]?.state;
           const tone = state === 'ok' ? 'good' : state === 'lost' || state === 'unavailable' ? 'muted' : 'waiting';
           return (
             <div className="device-row" key={name}>
-              <span className="device-row__name">{sensorLabels[name]}</span>
+              <span className="device-row__name">{name === 'eeg' ? <ActivityIcon /> : <EyeIcon />}{sensorLabels[name]}</span>
               <span className={`device-state device-state--${tone}`}>
                 <span className="status-dot" />
                 {statusLabel(state)}
@@ -202,7 +237,9 @@ function DeviceStatus({ clientKind, sensors }: { clientKind: string; sensors: Re
 
 export default function App() {
   const [lectureFileTarget, setLectureFileTarget] = useState<HTMLDivElement | null>(null);
+  const [importTarget, setImportTarget] = useState<HTMLDivElement | null>(null);
   const [transcriptFileTarget, setTranscriptFileTarget] = useState<HTMLDivElement | null>(null);
+  const [panelTab, setPanelTab] = useState<PanelTab>('moments');
   const [client] = useState(() => createReviewClient());
   useReviewConnection(client);
   const snapshot = useReviewSnapshot(client);
@@ -276,11 +313,13 @@ export default function App() {
     const observation = observationFromEvaluation(focus.snapshot, player.getState());
     if (observation) attentionStore.record({ ...observation, origin: 'simulated' });
   }, [focus.snapshot, client, player, attentionStore, experiment.enabled]);
-  useEffect(() => { if (ended) setShowSummary(true); }, [ended]);
+  useEffect(() => { if (ended) { setShowSummary(true); setPanelTab('attention'); } }, [ended]);
+  useEffect(() => { if (transcript) setPanelTab('transcript'); }, [transcript]);
   useEffect(() => { setShowSummary(false); }, [lecture?.videoId]);
 
   const onLectureChange = (next: LoadedLecture | null) => {
     setLecture(next);
+    setPanelTab('moments');
     setDismissed(new Set());
     setEarlierCounts({});
     setReminders([]);
@@ -339,169 +378,216 @@ export default function App() {
     : connection.state === 'connecting' || connection.state === 'reconnecting'
       ? 'pending'
       : 'attention';
+  const connectionLabel = connection.state === 'connected'
+    ? snapshot.kind === 'synthetic' ? 'Simulation ready' : 'Session connected'
+    : connection.state === 'connecting' || connection.state === 'reconnecting'
+      ? 'Connecting'
+      : connection.state === 'pairing_required'
+        ? 'Pairing needed'
+        : connection.state === 'incompatible'
+          ? 'Version mismatch'
+          : snapshot.kind === 'synthetic' ? 'Simulation stopped' : 'Not connected';
+  const eegSummary = sensorSummary(snapshot.sensors?.eeg?.state, 'eeg');
+  const gazeSummary = sensorSummary(snapshot.sensors?.gaze?.state, 'gaze');
+  const trackingTone = eegSummary.tone === 'good' && gazeSummary.tone === 'good' ? 'good' : eegSummary.tone === 'good' || gazeSummary.tone === 'good' ? 'part' : 'off';
+  const testEeg = snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG');
+  const complete = ended || focus.snapshot?.ended;
+  const design = 'brutal';
+  const tabs: { id: PanelTab; label: string; count?: number }[] = [
+    { id: 'transcript', label: 'Transcript' },
+    { id: 'moments', label: 'Moments', count: activeBookmarks.length },
+    { id: 'attention', label: 'Attention' },
+  ];
+
+  const headsUp = !experiment.enabled && (reminders.length > 0 || (focus.notice && !complete)) && (
+    <section className="headsup" aria-label="Review reminders" data-testid="reminder-stack">
+      {reminders.map((bookmark) => (
+        <article className="headsup__item glass" key={bookmark.bookmarkId} data-testid="review-reminder" role="status">
+          <span className="headsup__mark" aria-hidden="true"><FlagIcon /></span>
+          <div className="headsup__text">
+            <strong>Review moment saved at {formatTime(bookmark.suggestedMediaS)}</strong>
+            <span>{bookmark.runKind === 'simulated' ? 'Simulated reminder.' : bookmark.source === 'experimental_combined' ? 'Your EEG and calibrated gaze suggested it.' : 'Your EEG signal suggested it.'}</span>
+          </div>
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => replay(bookmark)}>Replay</button>
+          <button type="button" className="btn btn--glass-icon" aria-label={`Close reminder at ${formatTime(bookmark.suggestedMediaS)}`}
+            onClick={() => setReminders((saved) => saved.filter((b) => b.bookmarkId !== bookmark.bookmarkId))}><CloseIcon /></button>
+        </article>
+      ))}
+      {focus.notice && !complete && (
+        <article className="headsup__item glass focus-tools" role="status" aria-label="Focus heads-up">
+          <span className="headsup__mark" aria-hidden="true"><FlagIcon /></span>
+          <div className="headsup__text">
+            <strong>Heads-up: review moment saved</strong>
+            <span>You may want to revisit {formatTime(focus.notice.mediaRange.startMediaS)} when you’re ready.</span>
+          </div>
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => { const bookmark = focus.moments.find((b) => b.suggestedMediaS === focus.notice!.mediaRange.startMediaS); if (bookmark) replay(bookmark); }}>Replay saved moment</button>
+          <button type="button" className="btn btn--glass-icon" aria-label="Close heads-up" onClick={focus.closeNotice}><CloseIcon /></button>
+        </article>
+      )}
+    </section>
+  );
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
+    <div className={`app-shell app-shell--${lecture ? 'loaded' : 'empty'}`} data-design={design}>
+      {design && !lecture && <Decor />}
+      <header className="topbar glass-bar">
         <a className="brand" href="/" aria-label="ReMind home">
           <Wordmark />
         </a>
         <div className="topbar__right">
           <span className={`connection-pill connection-pill--${connectionTone}`} role="status">
             <span className="status-dot" />
-            {connection.state === 'connected'
-              ? snapshot.kind === 'synthetic' ? 'Simulation ready' : 'Session connected'
-              : connection.state === 'connecting' || connection.state === 'reconnecting'
-                ? 'Connecting'
-                : connection.state === 'pairing_required'
-                  ? 'Pairing needed'
-                  : connection.state === 'incompatible'
-                    ? 'Version mismatch'
-                    : snapshot.kind === 'synthetic' ? 'Simulation stopped' : 'Not connected'}
+            {connectionLabel}
           </span>
-          <button className="button button--outline button--small setup-trigger" onClick={() => setSetupOpen(true)}>Session setup</button>
+          <button className="btn btn--soft setup-trigger" type="button" onClick={() => setSetupOpen(true)}>
+            <SettingsIcon />
+            <span className="setup-trigger__label">Session setup</span>
+            <span className={`tracking-dot tracking-dot--${trackingTone}`} aria-hidden="true" />
+          </button>
         </div>
       </header>
 
-      <main className="workspace">
-        <section className="welcome-row">
-          <div>
-            <h1>Find your way back to the lecture.</h1>
-            <p className="welcome-copy">
-              Watch at your pace. Mark a moment, then replay the passage when you&apos;re ready. Your video stays in this browser.
-            </p>
-          </div>
-        </section>
+      <h1 className="sr-only">ReMind lecture review</h1>
 
-        {experiment.enabled && <div className="mode-banner" role="status" data-testid="experiment-banner">
-          <span className="mode-banner__icon" aria-hidden="true" />
-          <div><strong>Experimental mode</strong><span>{experiment.source ? `EEG CSV: ${experiment.source.name} · randomized gaze every 10 seconds.` : 'Import an EEG CSV in Session setup → Calibration → Experimental mode.'} Test scores and review dots are simulated.</span></div>
-        </div>}
-
-        {!experiment.enabled && snapshot.kind === 'synthetic' && (
-          <div className="mode-banner" role="status">
-            <span className="mode-banner__icon" aria-hidden="true" />
-            <div>
-              <strong>Simulation mode</strong>
-              <span>Example suggestions and device states are simulated. They are not real attention measurements.</span>
+      <main className="workspace" data-view={viewMode} data-state={lecture ? 'loaded' : 'empty'}>
+        <div className="notices">
+          {experiment.enabled && (
+            <div className="notice notice--info" role="status" data-testid="experiment-banner">
+              <AlertIcon />
+              <p><strong>Experimental mode.</strong> {experiment.source ? `EEG CSV: ${experiment.source.name} · randomized gaze every 10 seconds.` : 'Import an EEG CSV in Session setup → Calibration → Experimental mode.'} Test scores and review dots are simulated.</p>
             </div>
-          </div>
-        )}
-
-        {!experiment.enabled && snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG') && (
-          <div className="mode-banner" role="status" data-testid="test-eeg-banner">
-            <span className="mode-banner__icon" aria-hidden="true" />
-            <div>
-              <strong>Test EEG + real webcam</strong>
-              <span>
-                The EEG scores are scripted for rehearsal. No headset is connected, so nothing here reflects your
-                brain activity. Gaze, if you enable it, comes from your own camera.
-              </span>
+          )}
+          {!experiment.enabled && snapshot.kind === 'synthetic' && (
+            <div className="notice notice--info" role="status">
+              <AlertIcon />
+              <p><strong>Simulation mode.</strong> Suggestions and device states are simulated, not real attention measurements.</p>
             </div>
-          </div>
-        )}
-
-        {!experiment.enabled && connection.state !== 'connected' && connection.state !== 'idle' && (
-          <div className={`connection-banner connection-banner--${connectionTone}`} role="status">
-            <strong>
-              {connection.state === 'pairing_required' ? 'Connect to your session' :
-                connection.state === 'incompatible' ? 'Update needed' :
-                  connection.state === 'reconnecting' ? 'Connection interrupted' :
-                    connection.state === 'closed' ? 'Session disconnected' : 'Connecting to session'}
-            </strong>
-            <span>{connection.detail}</span>
-          </div>
-        )}
-
-        {replayError && (
-          <div className="error-banner" role="alert" data-testid="replay-error">
-            <strong>Replay</strong>
-            <span>{replayError}</span>
-          </div>
-        )}
-
-        {snapshot.errors.length > 0 && (
-          <div className="error-banner" role="alert">
-            <strong>Session message</strong>
-            <span>{snapshot.errors[snapshot.errors.length - 1]?.message}</span>
-          </div>
-        )}
-
-        <div className="media-file-toolbar" role="group" aria-label="Lecture files">
-          <div ref={setLectureFileTarget} />
-          <div ref={setTranscriptFileTarget} />
+          )}
+          {!experiment.enabled && testEeg && (
+            <div className="notice notice--info" role="status" data-testid="test-eeg-banner">
+              <AlertIcon />
+              <p>
+                <strong>Test EEG + real webcam.</strong> The EEG scores are scripted for rehearsal. No headset is connected, so
+                nothing here reflects your brain activity. Gaze, if you enable it, comes from your own camera.
+              </p>
+            </div>
+          )}
+          {!experiment.enabled && connection.state !== 'connected' && connection.state !== 'idle' && (
+            <div className={`notice notice--${connectionTone === 'attention' ? 'warn' : 'info'}`} role="status">
+              <AlertIcon />
+              <p>
+                <strong>
+                  {connection.state === 'pairing_required' ? 'Connect to your session.' :
+                    connection.state === 'incompatible' ? 'Update needed.' :
+                      connection.state === 'reconnecting' ? 'Connection interrupted.' :
+                        connection.state === 'closed' ? 'Session disconnected.' : 'Connecting to session.'}
+                </strong>{' '}
+                {connection.detail}
+              </p>
+            </div>
+          )}
+          {replayError && (
+            <div className="notice notice--warn" role="alert" data-testid="replay-error">
+              <AlertIcon />
+              <p><strong>Replay.</strong> {replayError}</p>
+            </div>
+          )}
+          {snapshot.errors.length > 0 && (
+            <div className="notice notice--warn" role="alert">
+              <AlertIcon />
+              <p><strong>Session message.</strong> {snapshot.errors[snapshot.errors.length - 1]?.message}</p>
+            </div>
+          )}
         </div>
 
-        <div className="content-grid">
-          <div className="main-column">
-            <section className="player-card" aria-label="Lecture video">
-              <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange}
-                filePickerTarget={lectureFileTarget}
-                viewMode={viewMode} onViewModeChange={setViewMode}
-                overlay={<AttentionInfoIndicator store={attentionStore} onSeek={seekAttention} />} />
-              {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="focus-bookmark-flags">
-                {activeBookmarks.map((bookmark) => <button className="button button--quiet button--small" key={bookmark.bookmarkId} onClick={() => replay(bookmark)} aria-label={`Replay bookmark at ${formatTime(bookmark.suggestedMediaS)}`}>
-                  <FlagIcon />{formatTime(bookmark.suggestedMediaS)}
-                </button>)}
-              </nav>}
-              <div className="player-card__footer">
-                <div className="lecture-file">
-                                    <div>
-                    <strong title={lecture?.fileName}>{lecture?.fileName ?? 'No lecture open'}</strong>
-                    <span>{duration ? `${formatTime(duration)} lecture` : 'Local video, never uploaded'}</span>
+        <section className="stage-column" aria-label="Lecture video">
+          <div className="stage-toolbar" hidden={!lecture}>
+            <div className="stage-title">
+              <strong title={lecture?.fileName}>{lecture?.fileName}</strong>
+              <span>{duration ? `${formatTime(duration)} · local video, never uploaded` : 'Local video, never uploaded'}</span>
+            </div>
+            <div className="stage-actions">
+              <button
+                className="btn btn--soft"
+                type="button"
+                disabled={!snapshot.session || !lecture}
+                title={snapshot.session ? 'Add a review marker at the current time' : 'Waiting for an active session'}
+                onClick={() => client.markBookmark(currentTime)}
+                aria-label={`Mark this moment at ${formatTime(currentTime)}`}
+              >
+                <FlagIcon /> Mark moment
+              </button>
+              <div ref={setLectureFileTarget} className="file-slot" role="group" aria-label="Lecture file" />
+            </div>
+          </div>
+
+          <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange}
+            filePickerTarget={lecture ? lectureFileTarget : importTarget}
+            viewMode={viewMode} onViewModeChange={setViewMode}
+            emptyState={(
+              <div className="import">
+                <span className="import__icon" aria-hidden="true"><FilmIcon /></span>
+                <h2>Open a lecture</h2>
+                <p>Choose a video from this device. It plays right here and is never uploaded.</p>
+                <div ref={setImportTarget} className="import__action" />
+                <span className="import__hint">or drop a video anywhere on this card · MP4, WebM or MOV</span>
+                <div className="import__tracking">
+                  <div className="import__tracking-rows">
+                    <SensorRow icon={<EyeIcon />} name="Eye tracking" summary={gazeSummary} />
+                    <SensorRow icon={<ActivityIcon />} name="EEG" summary={eegSummary} />
                   </div>
-                </div>
-                <div className="player-tools">
-                  <button
-                    className="button button--outline button--small"
-                    type="button"
-                    disabled={!snapshot.session || !lecture}
-                    title={snapshot.session ? 'Add a review marker at the current time' : 'Waiting for an active session'}
-                    onClick={() => client.markBookmark(currentTime)}
-                    aria-label={`Mark this moment at ${formatTime(currentTime)}`}
-                  >
-                    <FlagIcon /> Mark moment
+                  <button className="btn btn--quiet btn--sm" type="button" onClick={() => setSetupOpen(true)}>
+                    Set up <ChevronRightIcon />
                   </button>
                 </div>
               </div>
-            </section>
+            )}
+            overlay={<>
+              <AttentionInfoIndicator store={attentionStore} onSeek={seekAttention} />
+              {headsUp}
+            </>} />
 
-            {showSummary && <AttentionSummary store={attentionStore} playback={player} onSeek={seekGraph} onClose={() => setShowSummary(false)} />}
+          {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="moment-rail">
+            <h2 className="moment-rail__label">{complete ? 'End-of-lecture bookmarks' : 'Saved moments'}</h2>
+            {activeBookmarks.map((bookmark) => <button className="btn btn--flag btn--sm" key={bookmark.bookmarkId} onClick={() => replay(bookmark)} aria-label={`Replay bookmark at ${formatTime(bookmark.suggestedMediaS)}`}>
+              <FlagIcon />{formatTime(bookmark.suggestedMediaS)}
+            </button>)}
+          </nav>}
+        </section>
 
-            <section className="transcript-card" aria-labelledby="transcript-title">
-              <div className="section-heading">
-                <h2 id="transcript-title">Transcript</h2>
-              </div>
+        {lecture && (
+          <aside className="side-panel" aria-label="Transcript, moments and attention">
+            <div className="tabs" role="tablist" aria-label="Lecture panel">
+              {tabs.map((tab) => (
+                <button key={tab.id} role="tab" type="button" id={`tab-${tab.id}`} aria-selected={panelTab === tab.id} aria-controls={`panel-${tab.id}`}
+                  tabIndex={panelTab === tab.id ? 0 : -1} className="tab" onClick={() => setPanelTab(tab.id)}
+                  onKeyDown={(event) => {
+                    const index = tabs.findIndex((t) => t.id === tab.id);
+                    const next = event.key === 'ArrowRight' ? tabs[(index + 1) % tabs.length] : event.key === 'ArrowLeft' ? tabs[(index + tabs.length - 1) % tabs.length] : null;
+                    if (next) { event.preventDefault(); setPanelTab(next.id); document.getElementById(`tab-${next.id}`)?.focus(); }
+                  }}>
+                  {tab.label}
+                  {tab.count !== undefined && tab.count > 0 && <span className="count-badge" data-testid={tab.id === 'moments' ? 'bookmark-count-badge' : undefined}>{tab.count}</span>}
+                </button>
+              ))}
+            </div>
+
+            <div className="tabpanel" role="tabpanel" id="panel-transcript" aria-labelledby="tab-transcript" hidden={panelTab !== 'transcript'}>
+              <div ref={setTranscriptFileTarget} className="file-slot file-slot--panel" role="group" aria-label="Transcript file" />
               {/* key: a new lecture starts without the previous lecture's transcript */}
               <TranscriptPanel key={lecture?.videoId ?? 'none'} player={player} onTranscriptChange={setTranscript} filePickerTarget={transcriptFileTarget} />
-            </section>
-          </div>
+            </div>
 
-          <aside className="side-column" aria-label="Session and review">
-            <AttentionGraph key={experiment.enabled ? 'experiment' : 'normal'} store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />
-            <button className="button button--outline button--small" disabled={!timeline.videoId} onClick={() => setShowSummary((value) => !value)}>{showSummary ? 'Hide attention summary' : timeline.completed ? 'Attention summary (saved)' : 'Attention summary'}</button>
-            {!experiment.enabled && client.kind === 'synthetic' && <AttentionDemoPanel store={attentionStore} playback={player} />}
-            {!experiment.enabled && reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
-              <h2>Heads-up <span className="count-badge">{reminders.length}</span></h2>
-              <div className="reminder-stack__items">
-                {reminders.map((bookmark) => <article className="reminder-notice" key={bookmark.bookmarkId} data-testid="review-reminder" role="status">
-                  <strong>Review moment saved at {formatTime(bookmark.suggestedMediaS)}</strong>
-                  <p>{bookmark.runKind === 'simulated' ? 'Simulated reminder.' : bookmark.source === 'experimental_combined' ? 'Your EEG and calibrated gaze suggested this moment.' : 'Your EEG signal suggested this moment.'} Watch on, or revisit it when you’re ready.</p>
-                  <button type="button" className="button button--primary button--small" onClick={() => replay(bookmark)}>Replay</button>
-                  <button type="button" className="button button--quiet button--small" aria-label={`Close reminder at ${formatTime(bookmark.suggestedMediaS)}`} onClick={() => setReminders((saved) => saved.filter((b) => b.bookmarkId !== bookmark.bookmarkId))}>Close</button>
-                </article>)}
-              </div>
-            </section>}
-
-            <section className="review-panel" aria-labelledby="review-title">
-              <div className="section-heading">
-                <h2 id="review-title">{ended || focus.snapshot?.ended ? 'End-of-lecture bookmarks' : 'Review moments'} <span className="count-badge" data-testid="bookmark-count-badge">{activeBookmarks.length}</span></h2>
-              </div>
-              <p className="review-intro">
-                Moments are suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.
+            <div className="tabpanel" role="tabpanel" id="panel-moments" aria-labelledby="tab-moments" hidden={panelTab !== 'moments'}>
+              <p className="panel-lede">
+                {complete ? 'Lecture complete. Choose a moment to revisit it.' : 'Suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.'}
               </p>
-              {client.kind === 'live' && <QuestionProviderControls {...questions.controls} />}
-              {(ended || focus.snapshot?.ended) && <p role="status">Lecture complete. Choose a saved flag to revisit a moment.</p>}
+              {client.kind === 'live' && (
+                <details className="info-disclosure recall-setup">
+                  <summary>Recall questions · AI provider</summary>
+                  <QuestionProviderControls {...questions.controls} />
+                </details>
+              )}
               {!experiment.enabled && snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
                 <div className="manual-only-note" role="status">
                   Automatic suggestions are paused. Add a marker whenever you want to revisit a moment.
@@ -528,22 +614,29 @@ export default function App() {
                 </div>
               ) : (
                 <div className="review-empty">
+                  <span className="review-empty__icon" aria-hidden="true"><FlagIcon /></span>
                   <strong>No review moments yet</strong>
-                  <p>Start the lecture to receive suggestions, or add a marker at any moment.</p>
-                  {!lecture && <span className="review-empty__hint">Your moments will appear here.</span>}
+                  <p>Mark a moment while you watch, or let a suggestion appear.</p>
                 </div>
               )}
-            </section>
+              {snapshot.session?.config.detector?.detectorId.startsWith('experimental-live-eeg') && (
+                <details className="info-disclosure">
+                  <summary>About EEG reminders</summary>
+                  <p>Experimental. Calibrate your personal baseline before watching. Reminders follow 8 seconds of sustained low model estimates after smoothing, with a 30-second cooldown. Model estimates are not validated attention measurements.</p>
+                </details>
+              )}
+            </div>
 
-            {!experiment.enabled && focus.notice && !ended && !focus.snapshot?.ended && <section className="focus-tools" role="status" aria-label="Focus heads-up">
-              <strong>Heads-up: review moment saved</strong>
-              <p>You may want to revisit {formatTime(focus.notice.mediaRange.startMediaS)} when you’re ready.</p>
-              <button onClick={() => { const bookmark = focus.moments.find((b) => b.suggestedMediaS === focus.notice!.mediaRange.startMediaS); if (bookmark) replay(bookmark); }}>Replay saved moment</button>
-              <button onClick={focus.closeNotice}>Close heads-up</button>
-            </section>}
-
+            <div className="tabpanel" role="tabpanel" id="panel-attention" aria-labelledby="tab-attention" hidden={panelTab !== 'attention'}>
+              <AttentionGraph key={experiment.enabled ? 'experiment' : 'normal'} store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />
+              <button className="btn btn--soft btn--block" type="button" disabled={!timeline.videoId} onClick={() => setShowSummary((value) => !value)}>
+                {showSummary ? 'Hide attention summary' : timeline.completed ? 'Attention summary (saved)' : 'Attention summary'}
+              </button>
+              {showSummary && <AttentionSummary store={attentionStore} playback={player} onSeek={seekGraph} onClose={() => setShowSummary(false)} />}
+              {!experiment.enabled && client.kind === 'synthetic' && <AttentionDemoPanel store={attentionStore} playback={player} />}
+            </div>
           </aside>
-        </div>
+        )}
       </main>
 
       <SessionSetup open={setupOpen} onClose={() => setSetupOpen(false)} snapshot={snapshot} lecture={lecture}
@@ -551,8 +644,7 @@ export default function App() {
         devices={<DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />} />
 
       <footer className="page-footer">
-        <span>ReMind</span>
-        <span>Learning, at your pace. Experimental signals are not validated attention measurements.</span>
+        <span>Experimental EEG and gaze signals are not validated attention measurements.</span>
       </footer>
     </div>
   );

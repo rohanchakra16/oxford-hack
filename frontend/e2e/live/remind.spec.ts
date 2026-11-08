@@ -9,6 +9,7 @@ test('ReMind main page shows interactive orange review points and persists the f
   await expect(page).toHaveTitle(/ReMind/);
   await expect(page.getByRole('link', { name: 'ReMind home' })).toBeVisible();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.getByRole('tab', { name: /^Attention/ }).click();
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
   await page.getByRole('button', { name: 'Start simulated data', exact: true }).click();
   await page.getByRole('button', { name: 'Simulate attention drop', exact: true }).click();
@@ -28,6 +29,7 @@ test('ReMind main page shows interactive orange review points and persists the f
   await expect(page.getByText('Lecture complete', { exact: true })).toBeVisible();
   await page.reload();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.getByRole('tab', { name: /^Attention/ }).click();
   await page.getByRole('button', { name: 'Attention summary (saved)', exact: true }).click();
   await expect(page.getByTestId('attention-summary').locator('.att-marker--review')).not.toHaveCount(0);
 });

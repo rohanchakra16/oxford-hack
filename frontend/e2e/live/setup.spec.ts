@@ -14,7 +14,7 @@ test('setup stays outside the viewing screen and closing it keeps the same playe
   await page.getByRole('button', { name: 'Session setup', exact: true }).click();
   const setup = page.locator('dialog.session-setup');
   await expect(setup).toBeVisible();
-  await expect(setup.getByRole('heading', { name: 'Before you begin' })).toBeVisible();
+  await expect(setup.getByRole('heading', { name: 'Connection' })).toBeVisible();
   await expect(setup.getByRole('heading', { name: 'Personal calibration', exact: true })).toBeVisible();
   await expect(setup.getByRole('button', { name: 'Calibrate attention', exact: true })).toBeDisabled();
   await page.screenshot({ path: 'test-results/setup/desktop-setup.png' });
@@ -58,7 +58,7 @@ test('new lectures and reloads automatically load the remembered profile without
   await name.fill('Alice');
   await name.press('Tab');
   await expect.poll(() => loads.includes('Alice')).toBe(true);
-  await expect(page.getByText('A compatible saved baseline is loaded. No repeat EEG calibration needed.')).toBeVisible();
+  await expect(page.getByText('Saved baseline loaded.', { exact: true })).toBeVisible();
   await page.reload();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
   await expect(page.getByRole('textbox', { name: 'Profile name' })).toHaveValue('Alice');
@@ -78,7 +78,7 @@ test('camera loading can be cancelled before dots appear, without hiding an acti
   ` }));
   await page.goto(`${MAIN_URL}/?setup=1#pair=${token()}`);
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
-  await page.getByRole('button', { name: 'Calibrate EEG + gaze', exact: true }).click();
+  await page.getByRole('button', { name: 'Calibrate gaze', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Continue to lecture', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Back to lecture' })).toBeDisabled();
   await expect.poll(() => page.evaluate(() => typeof (window as unknown as { releaseCameraStart?: () => void }).releaseCameraStart)).toBe('function');

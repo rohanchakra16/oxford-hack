@@ -69,7 +69,7 @@ test('combined EEG and gaze calibrate before a sustained threshold crossing save
   });
   await page.goto('/');
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
-  await expect(page.getByRole('button', { name: 'Calibrate EEG + gaze' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Calibrate gaze' })).toBeEnabled();
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
   await expect(page.getByTestId('fusion-status')).toContainText(/Baseline ready|Combining baseline-adjusted/, { timeout: 15_000 });
   await expect(page.getByTestId('bookmark-count')).toHaveText('0');
@@ -122,7 +122,7 @@ test('calibration can be cancelled without pausing the player or keeping the cam
   await page.goto('/');
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
-  await page.getByRole('button', { name: 'Calibrate EEG + gaze' }).click();
+  await page.getByRole('button', { name: 'Calibrate gaze' }).click();
   await expect(page.getByRole('dialog', { name: 'Gaze calibration' })).toBeVisible();
   expect(await page.locator('video').evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
   await page.keyboard.press('Escape');

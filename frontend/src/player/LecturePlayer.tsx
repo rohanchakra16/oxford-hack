@@ -70,6 +70,8 @@ export interface LecturePlayerProps {
    * does not take pointer events; children opt in with `pointer-events: auto`.
    */
   overlay?: ReactNode;
+  /** Replaces the default "no lecture" message while no lecture is open (the composition's import state). */
+  emptyState?: ReactNode;
 }
 
 const DEFAULT_SESSION: Pick<StartSessionOptions, 'runKind' | 'sensors'> = {
@@ -109,6 +111,7 @@ export function LecturePlayer({
   onViewModeChange,
   onFullscreenChange,
   overlay,
+  emptyState,
 }: LecturePlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -247,6 +250,7 @@ export function LecturePlayer({
     onLectureChangeRef.current?.({ videoId, fileName: file.name });
   }
 
+  const [dragging, setDragging] = useState(false);
   const ready = load.kind === 'ready' && status !== null;
   const playing = ready && !status.paused && !status.ended;
 
@@ -301,10 +305,19 @@ export function LecturePlayer({
   return (
     <section
       ref={rootRef}
-      className={`lp lp--${mode} lp--modern${fullscreen ? ' lp--fullscreen' : ''}${chromeVisible ? '' : ' lp--controls-hidden'}`}
+      className={`lp lp--${mode} lp--modern${fullscreen ? ' lp--fullscreen' : ''}${chromeVisible ? '' : ' lp--controls-hidden'}${lecture ? ' lp--loaded' : ' lp--empty'}${dragging ? ' lp--dragging' : ''}`}
       aria-label="Lecture player"
       data-view-mode={mode}
       data-fullscreen={fullscreen || undefined}
+      onDragOver={(e) => { if (Array.from(e.dataTransfer.types).includes('Files')) { e.preventDefault(); setDragging(true); } }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false); }}
+      onDrop={(e) => {
+        if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) void openFile(file);
+      }}
       onPointerMove={revealControls}
       onPointerDown={revealControls}
       onFocusCapture={revealControls}
@@ -335,7 +348,7 @@ export function LecturePlayer({
           }}
         />
         {load.kind === 'empty' && (
-          <p className="lp-message">No lecture open. Choose a video file from this device; it is not uploaded.</p>
+          emptyState ?? <p className="lp-message">No lecture open. Choose a video file from this device; it is not uploaded.</p>
         )}
         {load.kind === 'loading' && (
           <p className="lp-message lp-overlay" role="status">

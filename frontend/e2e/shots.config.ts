@@ -10,7 +10,7 @@ export default defineConfig({
   outputDir: '../test-results/shots',
   reporter: [['list'], ['html', { outputFolder: '../playwright-report/shots', open: 'never' }]],
   use: { baseURL: SHOTS_URL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] }, permissions: ['camera'] } }],
   webServer: [
     { command: `"${process.env.EVALUATION_PYTHON ?? 'python'}" -m oxford_hack.cli serve --port 28844 --allowed-origin ${SHOTS_URL} --frontend-url ${SHOTS_URL} --launch-token-file frontend/test-results/shots-token --no-simulated --live-eeg-reminders --eeg-source integration.rehearsal.scripted_eeg:make_source --log-level warning`,
       cwd: root, env: { PYTHONPATH: [root, `${root}/platform/src`].join(delimiter), OXFORD_REHEARSAL_EEG: '1' },

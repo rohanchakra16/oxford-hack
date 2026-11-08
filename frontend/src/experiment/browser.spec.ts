@@ -31,8 +31,10 @@ test('CSV experiment stays in calibration, follows playback and stops cleanly', 
   await expect(setup).not.toBeVisible();
   await expect(page.getByTestId('experiment-banner')).toContainText('scores.csv');
   await video.evaluate((v: HTMLVideoElement) => v.play());
+  await page.getByRole('tab', { name: /^Attention/ }).click();
   await expect(page.locator('.att-line--simulated')).toBeVisible({ timeout: 5000 });
   await expect(page.locator('.att-marker--review')).toHaveCount(1, { timeout: 15_000 });
+  await page.getByRole('tab', { name: /^Moments/ }).click();
   await expect(page.locator('article.bookmark-card')).toHaveCount(1);
   await video.evaluate((v: HTMLVideoElement) => { v.pause(); v.currentTime = 31; });
   await page.getByRole('button', { name: 'Session setup', exact: true }).click();
