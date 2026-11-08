@@ -6,6 +6,18 @@ import { GazeWindowBuffer } from './gaze';
 import type { ReviewClient } from '../../frontend/src/integration';
 import type { GazeCalibration as Calibration } from '../../frontend/src/contracts/generated/types';
 
+
+/** Turns whatever the camera layer rejected with into one actionable sentence. */
+function explainCameraFailure(error: unknown): string {
+  const e = error as { name?: string; code?: string; message?: string } | string | null | undefined;
+  const text = typeof e === 'string' ? e : `${e?.name ?? ''} ${e?.code ?? ''} ${e?.message ?? ''}`;
+  if (/NotAllowed|PermissionDenied|denied|blocked|dismissed/i.test(text)) return 'Camera access was blocked. Allow the camera for this site in your browser’s address bar, then calibrate again.';
+  if (/NotFound|DevicesNotFound|no camera|not found/i.test(text)) return 'No camera was found. Connect one, then calibrate again.';
+  if (/NotReadable|TrackStart|in use|busy/i.test(text)) return 'The camera is in use by another app. Close it, then calibrate again.';
+  const detail = typeof e === 'string' ? e : e?.message;
+  return `${detail ? `${detail} ` : ''}The camera could not start. Allow camera access for this site, make sure no other app is using it, then calibrate again.`;
+}
+
 export function GazeCalibration({ player, buffer, onStarted, client, participant = 'local', onBusyChange }: { player: PlayerHandle | null; buffer: GazeWindowBuffer; onStarted?: () => void; client?: ReviewClient; participant?: string; onBusyChange?: (busy: boolean) => void }) {
   const engine = useRef<GazeCamera | null>(null);
   const abort = useRef(new AbortController());
@@ -15,6 +27,8 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
     calibration.current = null;
   };
   const [busy, setBusy] = useState(false);
+  /** Where the camera setup is: drives the step indicator only; behaviour is unchanged. */
+  const [phase, setPhase] = useState<'idle' | 'permission' | 'calibrating' | 'ready' | 'unavailable'>('idle');
   const [saved, setSaved] = useState(() => readGazeMemory(participant));
   const [status, setStatus] = useState(() => readGazeMemory(participant)
     ? 'Saved camera setup found. A brief dot check verifies it with your current camera and seating.'
@@ -34,7 +48,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
     onStarted?.();
     const controller = new AbortController();
     abort.current = controller;
-    setBusy(true); setStatus('Starting the camera…'); buffer.clear();
+    setBusy(true); setPhase('permission'); setStatus('Starting the camera…'); buffer.clear();
     onBusyChange?.(true);
     try {
       const { createGazeCamera } = await import('./gaze-runtime');
@@ -52,12 +66,13 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
             if (engine.current !== gaze || abort.current.signal.aborted) return;
             buffer.clear(event.status === 'valid' ? event.id : null);
             if (event.contract) { calibration.current = event.contract; client?.sendGazeCalibration(event.contract); }
+            setPhase(event.status === 'valid' ? 'ready' : event.status === 'in_progress' ? 'calibrating' : 'unavailable');
             setStatus(event.status === 'valid'
               ? 'Camera calibrated. Your EEG baseline is managed in Personal calibration above.'
               : event.status === 'in_progress' ? 'Follow each calibration dot with your eyes.' : 'Calibration unavailable. Recalibrate to continue.');
           },
           onUnavailable: (message) => {
-            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); invalidate(); setStatus(`Camera unavailable: ${message}`); }
+            if (engine.current === gaze && !abort.current.signal.aborted) { buffer.clear(); invalidate(); setPhase('unavailable'); setStatus(explainCameraFailure(message)); }
           },
         });
         engine.current = gaze;
@@ -65,6 +80,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
       const camera = engine.current;
       await camera.start();
       if (controller.signal.aborted) { camera.stop(); return; }
+      setPhase('calibrating');
       const ui = {
         show: (point: { x: number; y: number }, step: number, total: number) => setTarget({ ...point, step: step + 1, total }),
         hide: () => setTarget(null),
@@ -76,6 +92,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
       if (current) {
         if (saveGazeMemory(participant, current)) {
           setSaved(current);
+          setPhase('ready');
           setStatus(reuse ? 'Saved camera setup verified. Tracking is ready.' : 'Camera calibrated and saved for future lectures.');
         } else setStatus('Camera ready for this session. Browser storage is unavailable; settings could not be saved.');
       }
@@ -83,7 +100,8 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
       if (!controller.signal.aborted) {
         buffer.clear(); engine.current?.stop(); engine.current = null;
         invalidate();
-        setStatus(`Calibration unavailable: ${(error as Error).message}. Check camera permission and the gaze assets setup.`);
+        setPhase('unavailable');
+        setStatus(explainCameraFailure(error));
       }
     } finally {
       if (!controller.signal.aborted) { setBusy(false); onBusyChange?.(false); setTarget(null); }
@@ -94,15 +112,19 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
     abort.current.abort(); engine.current?.stop(); engine.current = null;
     invalidate();
     onBusyChange?.(false);
-    buffer.clear(); setTarget(null); setBusy(false); setStatus('Camera stopped. Combined bookmarks are paused until recalibration.');
+    buffer.clear(); setTarget(null); setBusy(false); setPhase('idle'); setStatus('Camera stopped. Combined bookmarks are paused until recalibration.');
   };
 
-  return <section className="panel" aria-label="EEG and gaze calibration">
+  return <section className="panel gaze-setup" aria-label="Camera and gaze setup" data-phase={phase}>
     <h2>Camera &amp; gaze</h2>
-    <p>Follow the dots while sitting comfortably. Saved settings need a short camera check on each run. Webcam processing stays in your browser.</p>
+    <ol className="gaze-steps" aria-label="Camera setup steps">
+      <li data-step="permission">Allow camera</li>
+      <li data-step="calibrating">Follow the dots</li>
+      <li data-step="ready">{phase === 'unavailable' ? 'Unavailable' : 'Ready'}</li>
+    </ol>
     <p role="status" data-testid="gaze-status">{status}</p>
     {saved && <button disabled={!player?.getLecture() || busy} onClick={() => void calibrate(true)}>Use saved camera setup</button>}
-    <button disabled={!player?.getLecture() || busy} onClick={() => void calibrate()}>Calibrate EEG + gaze</button>
+    <button disabled={!player?.getLecture() || busy} onClick={() => void calibrate()}>Calibrate gaze</button>
     <button disabled={!busy && !engine.current} onClick={stop}>Stop camera</button>
     {saved && <button disabled={busy} onClick={() => { stop(); resetGazeMemory(participant); setSaved(null); setStatus('Saved camera setup removed for this profile. Calibrate to start again.'); }}>Reset saved camera setup</button>}
     {target && <div className="calibration-overlay" role="dialog" aria-modal="true" aria-label="Gaze calibration" onKeyDown={(event) => { if (event.key === 'Escape') stop(); if (event.key === 'Tab') event.preventDefault(); }}>
