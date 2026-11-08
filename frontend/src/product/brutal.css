@@ -170,3 +170,11 @@
 .app-shell[data-design='brutal'] .bookmark-question-provider select { border: 2px solid var(--b-ink); border-radius: 6px; }
 .app-shell[data-design='brutal'] .bookmark-question { border: 2px solid var(--b-ink); border-radius: 6px; background: var(--b-wash); }
 .app-shell[data-design='brutal'] .bookmark-recall { border-top: 1px solid var(--ui-line); }
+
+/* Session setup modal in the chosen design: solid paper, black border, offset shadow, square-ish cards. */
+.app-shell[data-design='brutal'] .session-setup { border: 2px solid var(--b-ink); border-radius: 8px; background: var(--b-paper); box-shadow: 8px 8px 0 var(--b-ink); font-family: inherit; }
+.app-shell[data-design='brutal'] .session-setup::backdrop { background: rgb(28 41 60 / 45%); backdrop-filter: none; }
+.app-shell[data-design='brutal'] .session-setup__card { border: 2px solid var(--b-ink); border-radius: 6px; background: var(--b-wash); }
+.app-shell[data-design='brutal'] .session-setup__header h1 { font-weight: 700; letter-spacing: -0.02em; }
+.app-shell[data-design='brutal'] .setup-help { border-top: 2px solid var(--b-ink); }
+.app-shell[data-design='brutal'] .setup-check--ready { background: var(--b-green); color: var(--b-ink); border: 2px solid var(--b-ink); }
