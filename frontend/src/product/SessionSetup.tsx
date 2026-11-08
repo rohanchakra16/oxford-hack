@@ -5,8 +5,10 @@ import { FocusSetup } from '../focus/FocusSetup';
 import { PersonalCalibration, type usePersonalAttention } from '../focus/usePersonalAttention';
 import type { useFocusReview } from '../focus/useFocusReview';
 import './sessionSetup.css';
+import { ExperimentControls } from '../experiment/ExperimentControls';
+import type { useExperiment } from '../experiment/useExperiment';
 
-export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, attention, devices }: {
+export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, attention, devices, experiment }: {
   open: boolean;
   onClose(): void;
   snapshot: ReviewClientSnapshot;
@@ -15,6 +17,7 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
   focus: ReturnType<typeof useFocusReview>;
   attention: ReturnType<typeof usePersonalAttention>;
   devices: ReactNode;
+  experiment: ReturnType<typeof useExperiment>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [calibratingCamera, setCalibratingCamera] = useState(false);
@@ -62,8 +65,11 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
           <span className="session-setup__step">02 / CALIBRATION</span>
           <h2 id="calibration-title">Make it yours</h2>
           <p className="session-setup__description">Use the same local profile each time. Camera checks stay here; EEG calibration can continue while you watch.</p>
-          {snapshot.kind === 'live' && <PersonalCalibration attention={attention} enabled={Boolean(snapshot.session)} />}
-          <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} onCalibrationBusyChange={setCalibratingCamera} /></div>
+          {!experiment.enabled && <>
+            {snapshot.kind === 'live' && <PersonalCalibration attention={attention} enabled={Boolean(snapshot.session)} />}
+            <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} onCalibrationBusyChange={setCalibratingCamera} /></div>
+          </>}
+          <ExperimentControls experiment={experiment} />
         </section>
       </div>
       <footer className="session-setup__footer">
