@@ -634,7 +634,7 @@ export default function App() {
             </div>
 
             <div className="tabpanel" role="tabpanel" id="panel-attention" aria-labelledby="tab-attention" hidden={panelTab !== 'attention'}>
-              <AttentionGraph key={experiment.enabled ? 'experiment' : 'normal'} store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />
+              {!showSummary && <AttentionGraph key={experiment.enabled ? 'experiment' : 'normal'} store={attentionStore} playback={player} variant="compact" refreshMs={1000} onSeek={seekGraph} />}
               <button className="btn btn--soft btn--block" type="button" disabled={!timeline.videoId} onClick={() => setShowSummary((value) => !value)}>
                 {showSummary ? 'Hide attention summary' : timeline.completed ? 'Attention summary (saved)' : 'Attention summary'}
               </button>
