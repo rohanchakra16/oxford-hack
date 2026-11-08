@@ -1015,3 +1015,14 @@ button:disabled {
     flex-direction: column;
   }
 }
+
+/* ReMind wordmark and integrated attention workspace. */
+.remind-wordmark { display: inline-flex; align-items: center; gap: 1px; font-size: 1.6rem; font-weight: 750; letter-spacing: -.06em; line-height: 1; }
+.remind-wordmark svg { flex: none; margin: 0 -1px; }
+.side-column > .att-graph { min-width: 0; width: 100%; box-sizing: border-box; }
+.personal-calibration input { width: 100%; box-sizing: border-box; margin-top: .3rem; padding: .5rem; border: 1px solid var(--ui-border, #cbd5e1); border-radius: 8px; background: var(--ui-surface, white); color: inherit; }
+.personal-calibration progress { width: 100%; accent-color: #ed8a2e; }
+.att-marker--review .att-marker__head { fill: #ff941f; stroke: #9e4504; stroke-width: 1.5; filter: drop-shadow(0 0 3px #ffb343); }
+.att-marker--selected .att-marker__head, .att-marker:focus .att-marker__head { stroke: #fff; stroke-width: 3; filter: drop-shadow(0 0 4px #e77f15); }
+.att-marker--review .att-marker__hit { pointer-events: all; }
+.main-column > .att-summary { margin-top: 1rem; }

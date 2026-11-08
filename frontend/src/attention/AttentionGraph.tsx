@@ -60,6 +60,7 @@ export function AttentionGraph({ store, playback, onSeek, variant = 'compact', r
   const width = useWidth(wrapRef, variant === 'compact' ? 320 : 720);
   const height = variant === 'compact' ? 150 : 260;
   const [hover, setHover] = useState<Hover | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const measured = useMemo(() => latestSeries(snapshot, 'measured'), [snapshot.segments]); // eslint-disable-line react-hooks/exhaustive-deps
   const simulated = useMemo(() => latestSeries(snapshot, 'simulated'), [snapshot.segments]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -88,7 +89,10 @@ export function AttentionGraph({ store, playback, onSeek, variant = 'compact', r
     setHover({ kind: 'time', t: point?.t ?? t, point, x, y: point?.score != null ? sy(point.score) : PAD.top + plotH / 2 });
   };
 
-  const seek = (t: number, target: SeekTarget) => onSeek?.(Math.max(0, t), target);
+  const seek = (t: number, target: SeekTarget) => {
+    setSelected(target.kind === 'marker' ? target.marker.id : null);
+    onSeek?.(Math.max(0, t), target);
+  };
   const keySeek = (t: number, target: SeekTarget) => (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -187,26 +191,29 @@ export function AttentionGraph({ store, playback, onSeek, variant = 'compact', r
           {snapshot.markers.map((m) => {
             const x = sx(m.startS);
             const dy = (lanes.get(m.id) ?? 0) * MARKER_LANE_PX;
+            const lineScore = nearest(m.origin === 'measured' ? measured : simulated, m.startS, 10)?.score ?? m.score;
+            const markerY = m.kind === 'review' && lineScore != null ? sy(lineScore) : PAD.top - 8;
             const target: SeekTarget = { kind: 'marker', marker: m };
             const name = `${m.label} at ${formatMediaTime(m.startS)}. Go to moment.`;
             return (
               <g
                 key={m.id}
-                className={`att-marker att-marker--${m.kind}${m.origin === 'simulated' ? ' att-marker--simulated' : ''}`}
-                transform={`translate(${x} ${PAD.top - 8})`}
+                className={`att-marker att-marker--${m.kind}${selected === m.id ? ' att-marker--selected' : ''}${m.origin === 'simulated' ? ' att-marker--simulated' : ''}`}
+                transform={`translate(${x} ${markerY})`}
                 role="button"
                 tabIndex={0}
                 aria-label={name}
+                aria-pressed={selected === m.id}
                 onClick={() => seek(m.startS, target)}
                 onKeyDown={keySeek(m.startS, target)}
                 onPointerEnter={() => setHover({ kind: 'marker', marker: m, x, y: PAD.top + dy })}
                 onFocus={() => setHover({ kind: 'marker', marker: m, x, y: PAD.top + dy })}
                 onBlur={() => setHover(null)}
               >
-                <line className="att-marker__stem" x1={0} x2={0} y1={6} y2={plotH + 8} />
-                <g transform={`translate(0 ${dy})`}>
+                {m.kind === 'bookmark' && <line className="att-marker__stem" x1={0} x2={0} y1={6} y2={plotH + 8} />}
+                <g transform={`translate(0 ${m.kind === 'review' ? 0 : dy})`}>
                   {/* only the head is a hit target, so markers at nearly the same time stay individually clickable */}
-                  <rect className="att-marker__hit" x={-7} y={-7} width={14} height={14} />
+                  <rect className="att-marker__hit" x={-12} y={-12} width={24} height={24} />
                   {m.kind === 'bookmark' ? (
                     <path className="att-marker__head" d="M0 -5 L5 0 L0 5 L-5 0 Z" />
                   ) : (
