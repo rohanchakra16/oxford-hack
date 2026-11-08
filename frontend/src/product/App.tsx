@@ -19,11 +19,9 @@ import { SessionSetup } from './SessionSetup';
 import { useExperiment } from '../experiment/useExperiment';
 import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
-import './brutal.css'; // variation B, applied only with ?design=brutal
-if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('design') === 'brutal') {
-  void import('@fontsource-variable/dm-sans');
-  void import('@fontsource-variable/jetbrains-mono');
-}
+import './brutal.css'; // the chosen visual direction (neo-brutalist) layers over the structural styles in product.css
+import '@fontsource-variable/dm-sans';
+import '@fontsource-variable/jetbrains-mono';
 
 /** A few playful shapes for the empty import screen of variation B. Decorative only. */
 function Decor() {
@@ -394,7 +392,7 @@ export default function App() {
   const trackingTone = eegSummary.tone === 'good' && gazeSummary.tone === 'good' ? 'good' : eegSummary.tone === 'good' || gazeSummary.tone === 'good' ? 'part' : 'off';
   const testEeg = snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG');
   const complete = ended || focus.snapshot?.ended;
-  const design = useMemo(() => (new URLSearchParams(window.location.search).get('design') === 'brutal' ? 'brutal' : undefined), []);
+  const design = 'brutal';
   const tabs: { id: PanelTab; label: string; count?: number }[] = [
     { id: 'transcript', label: 'Transcript' },
     { id: 'moments', label: 'Moments', count: activeBookmarks.length },

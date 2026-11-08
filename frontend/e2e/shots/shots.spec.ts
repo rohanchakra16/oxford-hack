@@ -144,14 +144,14 @@ test('screenshots maximised and empty drag', async ({ page }) => {
   await shot(page, 'desktop-9-maximised');
 });
 
-/** Same lecture, viewport and populated review state under both visual treatments (?design=brutal is variation B). */
-for (const design of ['current', 'brutal'] as const) {
+/** Loaded lecture with a populated review state (the chosen design). */
+for (const design of ['brutal'] as const) {
   test(`compare loaded screen: ${design}`, async ({ page }) => {
     test.setTimeout(240_000);
     mkdirSync(out, { recursive: true });
     await page.setViewportSize({ width: 1440, height: 900 });
     const token = readFileSync('frontend/test-results/shots-token', 'utf8').trim();
-    await page.goto(`${SHOTS_URL}/${design === 'brutal' ? '?design=brutal' : ''}#pair=${token}`);
+    await page.goto(`${SHOTS_URL}/#pair=${token}`);
     await expect(page.getByText('Session connected')).toBeVisible();
     await shot(page, `compare-${design}-empty`);
     await load(page, true);
