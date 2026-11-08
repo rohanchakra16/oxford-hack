@@ -86,6 +86,20 @@ def test_short_excerpt_skips_request():
     assert t.calls == []
 
 
+def test_overlong_excerpt_is_refused_without_cutting_or_spending_a_request():
+    t = FakeTransport()
+    with pytest.raises(QuestionGenerationError) as error:
+        gen(t).generate("x" * 3501)
+    assert error.value.code == "invalid_output"
+    assert not t.calls
+
+
+def test_http_excerpt_hard_limit():
+    c = client_with(gen(FakeTransport()))
+    h = {"origin": ORIGIN, "x-launch-token": "launch"}
+    assert c.post("/api/v0/questions", json={**BODY, "text": "x" * 3501}, headers=h).status_code == 422
+
+
 def test_model_insufficient_context():
     t = FakeTransport(
         reply(

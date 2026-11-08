@@ -17,7 +17,7 @@ const bookmark = (over: Partial<BookmarkRange> = {}): BookmarkRange => ({
 });
 
 describe('excerptForBookmark', () => {
-  it('uses the evidence interval plus lead context and never later content', () => {
+  it('uses lead context and completes a sentence crossing the evidence end', () => {
     const e = excerptForBookmark(SENTENCES, bookmark())!;
     expect(e.text).toBe('Ohm’s law links voltage, current and resistance. At a fixed voltage, current falls as resistance rises. Next we look at power.');
     expect(e.text).not.toContain('Power is voltage times current');
@@ -29,11 +29,34 @@ describe('excerptForBookmark', () => {
     expect(e.text).not.toContain('Next we look');
   });
   it('drops the earliest context first to fit the size cap', () => {
-    const e = excerptForBookmark(SENTENCES, bookmark(), { maxChars: 80 })!;
+    const e = excerptForBookmark(SENTENCES, bookmark(), { maxChars: 80, hardMaxChars: 80 })!;
     expect(e.text).toBe('At a fixed voltage, current falls as resistance rises. Next we look at power.');
   });
   it('returns null with no overlapping speech', () => {
     expect(excerptForBookmark(SENTENCES, bookmark({ evidenceMedia: { startMediaS: 200, endMediaS: 210 } }))).toBeNull();
+  });
+  const textOfLength = (length: number) => `${'x'.repeat(length - 1)}.`;
+  it('allows complete sentences past 3000, up to the 3500 hard limit', () => {
+    const sentences = [s(0, 0, 10, textOfLength(400)), s(1, 10, 20, textOfLength(1400)), s(2, 20, 30, textOfLength(1400))];
+    const e = excerptForBookmark(sentences, bookmark({ evidenceMedia: { startMediaS: 0, endMediaS: 30 } }))!;
+    expect(e.text).toBe(sentences.map((sentence) => sentence.text).join(' '));
+    expect(e.text.length).toBe(3202);
+    expect([e.startMediaS, e.endMediaS]).toEqual([0, 30]);
+  });
+  it('drops an earlier whole sentence when adding it would exceed 3500', () => {
+    const sentences = [s(0, 0, 10, textOfLength(800)), s(1, 10, 20, textOfLength(1400)), s(2, 20, 30, textOfLength(1400))];
+    const e = excerptForBookmark(sentences, bookmark({ evidenceMedia: { startMediaS: 0, endMediaS: 30 } }))!;
+    expect(e.text).toBe(sentences.slice(1).map((sentence) => sentence.text).join(' '));
+    expect(e.startMediaS).toBe(10);
+  });
+  it('keeps a single 3500-character sentence intact and refuses a longer one', () => {
+    const b = bookmark({ evidenceMedia: { startMediaS: 0, endMediaS: 10 } });
+    expect(excerptForBookmark([s(0, 0, 10, textOfLength(3500))], b)?.text.length).toBe(3500);
+    expect(excerptForBookmark([s(0, 0, 10, textOfLength(3501))], b)).toBeNull();
+  });
+  it('does not jump over an oversized target sentence to ask about earlier context', () => {
+    const b = bookmark({ evidenceMedia: { startMediaS: 10, endMediaS: 20 } });
+    expect(excerptForBookmark([s(0, 0, 10, 'Earlier concept.'), s(1, 10, 20, textOfLength(3501))], b)).toBeNull();
   });
 });
 

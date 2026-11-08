@@ -4,8 +4,8 @@
  *
  * Uses the bookmark's evidence interval (the lecture content it covers), not the time the
  * bookmark arrived, because detection can lag the content. Whole sentences only, a little
- * context before the interval, and nothing after it: the question must not reveal material the
- * student has not reached yet.
+ * context before the interval, and complete sentences at its boundary. A sentence that starts
+ * inside the interval may finish after it; text is never cut just to fit a character budget.
  */
 import type { TranscriptContext } from '../integration';
 import type { Sentence } from '../transcript';
@@ -23,11 +23,12 @@ export interface ExcerptOptions {
   leadS: number;
   /** Interval length assumed for a bookmark without evidence (e.g. manual). */
   manualSpanS: number;
-  /** Upper bound on characters sent; the earliest context is dropped first. */
+  /** Soft target: a final whole sentence may extend this to hardMaxChars. */
   maxChars: number;
+  hardMaxChars: number;
 }
 
-export const DEFAULT_EXCERPT_OPTIONS: ExcerptOptions = { leadS: 20, manualSpanS: 20, maxChars: 3000 };
+export const DEFAULT_EXCERPT_OPTIONS: ExcerptOptions = { leadS: 20, manualSpanS: 20, maxChars: 3000, hardMaxChars: 3500 };
 
 export function bookmarkInterval(bookmark: BookmarkRange, manualSpanS = DEFAULT_EXCERPT_OPTIONS.manualSpanS) {
   if (bookmark.evidenceMedia) return { startS: bookmark.evidenceMedia.startMediaS, endS: bookmark.evidenceMedia.endMediaS };
@@ -44,10 +45,24 @@ export function excerptForBookmark(
   const opts = { ...DEFAULT_EXCERPT_OPTIONS, ...options };
   const { startS, endS } = bookmarkInterval(bookmark, opts.manualSpanS);
   const from = Math.max(0, startS - opts.leadS);
-  // Overlap with [from, endS]; a sentence that starts after the interval is never included.
-  let picked = sentences.filter((s) => s.endS > from && s.startS < endS && s.text.trim());
+  // Complete sentences only, including one that straddles the evidence end. This is
+  // intentional boundary completion, not a strict no-future-content guarantee.
+  const candidates = sentences.filter((s) => s.endS > from && s.startS < endS && s.text.trim());
+  const hard = Math.max(0, Math.min(opts.hardMaxChars, 3500));
+  const soft = Math.max(0, Math.min(opts.maxChars, hard));
+  // Prioritise the end of the flagged interval. Grow backwards to the soft target;
+  // allow the last added sentence to cross it, but never the hard limit.
+  const picked: Sentence[] = [];
+  let length = 0;
+  for (let i = candidates.length - 1; i >= 0; i -= 1) {
+    const sentence = candidates[i]!;
+    const next = length + sentence.text.trim().length + (picked.length ? 1 : 0);
+    if (next > hard) break; // never truncate a sentence or hop across missing content
+    picked.unshift(sentence);
+    length = next;
+    if (length >= soft) break;
+  }
   if (picked.length === 0) return null;
-  while (picked.length > 1 && picked.reduce((n, s) => n + s.text.length + 1, 0) > opts.maxChars) picked = picked.slice(1);
-  const text = picked.map((s) => s.text.trim()).join(' ').slice(-opts.maxChars);
+  const text = picked.map((s) => s.text.trim()).join(' ');
   return { startMediaS: picked[0]!.startS, endMediaS: picked[picked.length - 1]!.endS, text };
 }

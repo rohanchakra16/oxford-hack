@@ -82,7 +82,7 @@ generate the questions for the demo lecture once beforehand while the backend st
 `POST /api/v0/questions` — headers `origin` (allowed list) and `x-launch-token`.
 
 ```json
-{ "bookmarkId": "b1", "videoId": "v1", "startMediaS": 30, "endMediaS": 60, "text": "excerpt, max 4000 chars" }
+{ "bookmarkId": "b1", "videoId": "v1", "startMediaS": 30, "endMediaS": 60, "text": "excerpt, max 3500 chars" }
 ```
 
 | Status | Body |
@@ -118,8 +118,11 @@ the old prompt are not reused.
 - interval = `evidenceMedia` (the content the bookmark covers), not the arrival time; manual bookmarks
   use the 20 s before the mark;
 - whole transcript sentences overlapping `[start − 20 s, end]`;
-- nothing that starts after the interval, so the question cannot reveal content not yet reached;
-- at most 3000 characters, dropping the earliest context first;
+- no sentence starting after the interval; one starting inside it may finish beyond the interval;
+- target 3000 characters, allowing a complete sentence up to a hard 3500-character limit;
+- build backwards from the interval end, dropping earlier whole sentences rather than slicing text;
+- a single target sentence exceeding 3500 characters produces no excerpt; the backend also rejects
+  over-limit input rather than silently truncating it;
 - no overlapping speech → `insufficient_context`, no request.
 
 ## Privacy

@@ -39,7 +39,7 @@ from pydantic.alias_generators import to_camel
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_MODEL = "openrouter/free"
 PROMPT_VERSION = "recall-q-v1"
-MAX_EXCERPT_CHARS = 4000
+MAX_EXCERPT_CHARS = 3500
 MIN_EXCERPT_WORDS = 12
 
 SYSTEM_PROMPT = (
@@ -201,7 +201,11 @@ class OpenRouterQuestionGenerator:
         return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
     def generate(self, excerpt: str) -> GeneratedQuestion:
-        excerpt = excerpt.strip()[:MAX_EXCERPT_CHARS]
+        excerpt = excerpt.strip()
+        if len(excerpt) > MAX_EXCERPT_CHARS:
+            raise QuestionGenerationError(
+                "invalid_output", "The passage exceeds the whole-sentence limit."
+            )
         key = self.cache_key(excerpt)
         with self._lock:
             if (hit := self._cache.get(key)) is not None:

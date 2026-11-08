@@ -3,12 +3,12 @@
 Owner: @aryanmorarji (Person 4). Issue: #72. Full design, setup, privacy notes and handoffs:
 [`inference/QUESTION_GENERATION.md`](../../../inference/QUESTION_GENERATION.md).
 
-Status: **implemented and unit-tested; not mounted in `product/App.tsx`** (product composition is
-@rohanchakra16's redesign).
+Status: integrated as an explicit per-passage request in saved moments on this branch.
+Product composition and styling remain @rohanchakra16's responsibility.
 
 | File | Purpose |
 |---|---|
-| `excerpt.ts` | `excerptForBookmark(sentences, bookmark)`: whole sentences for the bookmark's evidence interval plus 20 s lead, nothing later, max 3000 chars. |
+| `excerpt.ts` | Whole sentences around the evidence interval plus 20 s lead. Soft target 3000 characters, hard limit 3500; prioritises the interval end and drops earlier whole sentences when needed. A sentence crossing the evidence end is completed. A single oversized target sentence is refused rather than truncated. |
 | `client.ts` | `requestQuestion(bookmark, excerpt, { backendUrl, launchToken })` → `ready` / `insufficient_context` / `unavailable` (never throws except on abort). |
 | `store.ts` | Per-bookmark entries: `generating` → `ready` / `insufficient_context` / `unavailable` / `no_transcript`. One request per bookmark, explicit retry, lecture change clears and discards late replies. |
 | `useBookmarkQuestions.ts` | React hook wiring the above to the bookmark list and transcript. |
