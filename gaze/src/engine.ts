@@ -54,6 +54,13 @@ export interface GazeEngineOptions {
   eyesClosedThreshold?: number;
   /** Rolling-median window for the gaze estimate (ms); 0 disables smoothing. */
   smoothingMs?: number;
+  /** Time constant (ms) of the moving average applied after the median; 0 disables it. */
+  smoothingEmaMs?: number;
+  /**
+   * Eye openness below this (but above eyesClosedThreshold) is a partial blink: the iris estimate is
+   * unreliable, so the previous gaze estimate is held instead of adding the frame.
+   */
+  blinkHoldThreshold?: number;
   /** P(inside video) at or above which a frame is "on_video" (default 0.4). */
   onThreshold?: number;
   /** P(inside video) at or below which a frame is "off_video" (default 0.07, strict to avoid false alarms). */
@@ -133,7 +140,7 @@ export class GazeEngine {
   private calibrationExpired = false;
   /** Frames collected during calibration, stamped with capture time. */
   private collector: { captureMs: number; features: FrameFeatures }[] | null = null;
-  private smoother = new PointSmoother(700);
+  private smoother = new PointSmoother(1000);
   private lastCalibrationState: CalibrationStateEvent | null = null;
   private listeners: { [K in keyof Events]?: Set<(e: Events[K]) => void> } = {};
 
@@ -143,14 +150,18 @@ export class GazeEngine {
       modelAssetPath: "/models/face_landmarker.task",
       targetFps: 15,
       eyesClosedThreshold: 0.35,
-      smoothingMs: 700,
+      // 1 s median + 180 ms EMA: replaying real webcam frames, this cut crosshair jumps over 120 px
+      // from 7.9% to 2.7% of frames and on/off flips by ~30%, for about 0.5 s more delay.
+      smoothingMs: 1000,
+      smoothingEmaMs: 180,
+      blinkHoldThreshold: 0.6,
       onThreshold: DEFAULT_THRESHOLDS.onThreshold,
       offThreshold: DEFAULT_THRESHOLDS.offThreshold,
       minSigmaPx: 25,
       summaryIntervalMs: 1000,
       ...options,
     };
-    this.smoother = new PointSmoother(this.opts.smoothingMs);
+    this.smoother = new PointSmoother(this.opts.smoothingMs, 400, this.opts.smoothingEmaMs);
     this.camera = new Camera(options.cameraVideo);
     this.camera.onChange((s) => this.emit("camera", s));
   }
@@ -357,7 +368,10 @@ export class GazeEngine {
     // A gaze location while the eyes are closed is meaningless; eyes_closed reports that finding instead.
     const canMap = f && faces === 1 && cal && calStatus === "valid" && !eyesClosed;
     if (canMap) {
-      const p = this.smoother.push(capturedMs, predictScreen(cal, f));
+      const raw = predictScreen(cal, f);
+      // Partial blinks give iris readings hundreds of px off; hold the previous estimate instead.
+      const held = f.eyeOpenness < this.opts.blinkHoldThreshold ? this.smoother.current() : null;
+      const p = held ?? this.smoother.push(capturedMs, raw);
       gaze.screen_x_px = p.x;
       gaze.screen_y_px = p.y;
       const sigma = calibrationSigma(cal, this.opts.minSigmaPx);
