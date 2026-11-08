@@ -1,0 +1,44 @@
+/* Scoped to recall setup so the lecture, player and shared design stay independent. */
+.bookmark-question-provider.recall-setup {
+  --recall-ink: var(--ui-ink, #1c293c);
+  --recall-border: var(--ui-line-strong, #cbd5e1);
+  display: grid; gap: 0; min-width: 0; margin: 14px 0 4px; padding: 0;
+  border: 1.5px solid var(--recall-border); border-radius: 12px;
+  background: var(--ui-surface, #fff); color: var(--recall-ink);
+  font: 13px/1.55 var(--ui-font, system-ui, sans-serif);
+  overflow-wrap: anywhere;
+}
+.recall-setup *, .recall-setup *::before, .recall-setup *::after { box-sizing: border-box; }
+.recall-setup .recall-setup__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px; }
+.recall-setup .recall-setup__eyebrow { font: 600 10px/1.5 ui-monospace, monospace; letter-spacing: .14em; color: var(--ui-ink-3, #64748b); }
+.recall-setup h3 { margin: 4px 0; font-size: 25px; line-height: 1.15; letter-spacing: -.04em; }
+.recall-setup p { margin: 0; }
+.recall-setup .recall-setup__header p { margin-top: 8px; color: var(--ui-ink-2, #475569); }
+.recall-setup .recall-setup__badge { flex: none; padding: 4px 8px; border-radius: 20px; background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.recall-setup .recall-setup__badge[data-ready='true'] { background: #dcfce7; color: #166534; }
+.recall-setup .recall-setup__section { display: grid; gap: 12px; min-width: 0; padding: 18px 20px; border-top: 1px solid var(--ui-line, #e2e8f0); }
+.recall-setup .recall-setup__label { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-bottom: 6px; }
+.recall-setup .recall-setup__label b { font: 600 10px ui-monospace, monospace; color: var(--ui-ink-3, #64748b); }
+.recall-setup label { display: grid; gap: 7px; min-width: 0; font-weight: 600; }
+.bookmark-question-provider.recall-setup select { width: 100%; min-width: 0; max-width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--recall-border); border-radius: 7px; background: #fff; color: var(--recall-ink); font: inherit; text-overflow: ellipsis; }
+.recall-setup .recall-setup__account { display: grid; gap: 14px; min-width: 0; }
+.recall-setup .recall-setup__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.recall-setup button { min-height: 36px; padding: 7px 11px; border: 1px solid var(--recall-border); border-radius: 7px; background: var(--ui-surface, white); font: inherit; font-weight: 600; color: var(--recall-ink); cursor: pointer; }
+.recall-setup button:hover:not(:disabled) { background: var(--ui-surface-2, #f1f5f9); }
+.recall-setup button.recall-setup__primary { background: var(--b-blue, #2552d4); color: var(--b-ink, #fff); border-color: var(--b-ink, #2552d4); padding-inline: 16px; }
+.recall-setup button.recall-setup__primary:hover:not(:disabled) { background: var(--b-blue-hover, #1d4ed8); }
+.recall-setup :is(button, select, input):disabled { opacity: .55; cursor: not-allowed; }
+.recall-setup :is(button, select, input, a):focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.recall-setup .recall-setup__hint { font-size: 12px; color: var(--ui-ink-2, #475569); }
+.recall-setup a { color: var(--ui-accent-ink, #1d4ed8); text-underline-offset: 3px; }
+.recall-setup .recall-setup__notice { display: grid; gap: 9px; padding: 12px; border: 1px solid #f0cf87; border-radius: 8px; background: #fffbeb; color: #713f12; font-size: 12px; }
+.recall-setup label.recall-setup__consent { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--ui-line, #e2e8f0); border-radius: 8px; background: var(--ui-surface-2, #f8fafc); font-weight: 400; cursor: pointer; }
+.recall-setup .recall-setup__consent[data-checked='true'] { border-color: #16a34a; background: #f0fdf4; }
+.recall-setup .recall-setup__consent input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: #15803d; }
+.recall-setup .recall-setup__footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--ui-line, #e2e8f0); font-size: 11px; color: var(--ui-ink-3, #64748b); }
+.recall-setup .recall-setup__footer button, .recall-setup button.recall-setup__text-button { min-height: 30px; padding: 2px 0; border: 0; background: transparent; text-decoration: underline; text-underline-offset: 3px; font-size: 12px; }
+.recall-setup > .recall-setup__notice { margin: 0 20px 16px; }
+@media (max-width: 420px) {
+  .recall-setup .recall-setup__header { flex-wrap: wrap; }
+  .recall-setup .recall-setup__header, .recall-setup .recall-setup__section { padding: 16px; }
+}

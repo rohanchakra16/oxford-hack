@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import html
 import json
 import os
 import secrets
@@ -56,7 +57,13 @@ def json_http(method: str, url: str, headers: dict[str, str], body: bytes | None
 
 
 def validate_id_token(token: str, audience: str, nonce: str | None) -> dict[str, Any]:
-    import jwt
+    try:
+        import jwt
+    except ImportError as error:
+        raise QuestionGenerationError(
+            "not_configured",
+            "ChatGPT identity verification is unavailable. Install the backend dependencies and restart.",
+        ) from error
 
     try:
         discovery = json_http("GET", f"{AUTH}/.well-known/openid-configuration", {}, None)
@@ -106,6 +113,7 @@ class ChatGPTConnection:
         self._pending: dict[str, Any] | None = None
         self._server: HTTPServer | None = None
         self._error: str | None = None
+        self._last_connected_account_id: str | None = None
         self._registrations: dict[str, dict[str, str]] = {}
         self._host_id = f"urn:uuid:{uuid4()}"
         if self.path.exists():
@@ -132,6 +140,7 @@ class ChatGPTConnection:
             return {
                 "pending": pending,
                 "error": self._error,
+                "lastConnectedAccountId": self._last_connected_account_id,
                 "accounts": [
                     {
                         "id": key,
@@ -143,7 +152,14 @@ class ChatGPTConnection:
                 ],
             }
 
-    def begin(self, account_id: str | None = None) -> str:
+    def cancel(self) -> None:
+        """Invalidate an abandoned attempt without disconnecting an active account."""
+        with self._lock:
+            self._pending = None
+            self._server = None  # the listener closes its socket on its next timeout
+            self._error = None
+
+    def begin(self, account_id: str | None = None, *, request_plan_usage: bool = False) -> str:
         with self._lock:
             if self._pending is not None and self.clock() < self._pending["expires"]:
                 raise QuestionGenerationError("provider_error", "A ChatGPT sign-in is already in progress.")
@@ -175,11 +191,22 @@ class ChatGPTConnection:
                     except QuestionGenerationError as error:
                         message, status = error.message, 400
                     self.send_response(status)
-                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
                     self.send_header("Cache-Control", "no-store")
                     self.send_header("Referrer-Policy", "no-referrer")
                     self.end_headers()
-                    self.wfile.write(message.encode())
+                    title = "You're connected" if status == 200 else "Connection needs attention"
+                    page = f"""<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{title} · ReMind</title><style>
+body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#eef3ff;
+font:16px/1.6 system-ui,sans-serif;color:#1c293c}}main{{max-width:440px;margin:24px;
+padding:36px;background:white;border:2px solid #1c293c;border-radius:16px;
+box-shadow:6px 6px 0 #1c293c}}small{{font-weight:700;letter-spacing:.14em}}
+h1{{font-size:30px;line-height:1.2}}p{{color:#475569}}</style>
+<main><small>REMIND / CHATGPT</small><h1>{title}</h1><p>{html.escape(message)}</p>
+<p>Return to your lecture tab to continue.</p></main></html>"""
+                    self.wfile.write(page.encode())
 
             server = HTTPServer(("127.0.0.1", 0), Callback)
             server.timeout = 1
@@ -217,6 +244,9 @@ class ChatGPTConnection:
                 params["agent_name_hint"] = "ReMind lecture review"
             else:
                 params["login_hint"] = registration.get("email", "")
+            if request_plan_usage:
+                # Only the explicit "Enable plan usage" action requests consent again.
+                params["prompt"] = "consent"
 
             def listen() -> None:
                 try:
@@ -292,6 +322,7 @@ class ChatGPTConnection:
                 }
                 self._install_tokens(key, tokens)
                 self._save_registration()
+                self._last_connected_account_id = key
             except QuestionGenerationError as error:
                 self._error = error.message
                 raise
