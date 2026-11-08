@@ -17,12 +17,22 @@ import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
 import { useExperiment } from '../experiment/useExperiment';
+import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
+
+/** Product moments carry an optional end instead of wire evidence; give the excerpt builder a range. */
+function questionRange(bookmark: ReviewBookmark): BookmarkRange {
+  return {
+    ...bookmark,
+    evidenceMedia: bookmark.endMediaS !== undefined ? { startMediaS: bookmark.suggestedMediaS, endMediaS: bookmark.endMediaS } : null,
+  };
+}
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
 const NOOP_SUBSCRIBE = () => () => {};
 const NO_SENTENCES: readonly Sentence[] = [];
+const NO_BOOKMARKS: readonly BookmarkRange[] = []; // recall questions are requested per passage, never in bulk
 
 const sensorLabels = { eeg: 'EEG headset', gaze: 'Webcam gaze' } as const;
 
@@ -63,6 +73,9 @@ function BookmarkCard({
   onDismiss,
   onEarlier,
   onRate,
+  questionsAvailable,
+  question,
+  onRequestQuestion,
 }: {
   bookmark: ReviewBookmark;
   sentences: readonly Sentence[];
@@ -72,6 +85,9 @@ function BookmarkCard({
   onDismiss: (bookmark: ReviewBookmark) => void;
   onEarlier: (bookmark: ReviewBookmark) => void;
   onRate: (bookmark: ReviewBookmark, useful: boolean) => void;
+  questionsAvailable: boolean;
+  question: QuestionEntry | undefined;
+  onRequestQuestion: (bookmark: ReviewBookmark) => void;
 }) {
   const passage = passageFor(sentences, bookmark.suggestedMediaS, earlierCount);
   const [rated, setRated] = useState<'useful' | 'not_useful' | null>(null);
@@ -129,6 +145,19 @@ function BookmarkCard({
                 </>
               )}
             </div>
+          </div>
+        )}
+        {!dismissed && questionsAvailable && (
+          <div className="bookmark-recall">
+            {!question && (
+              <>
+                <button className="button button--quiet button--small" type="button" onClick={() => onRequestQuestion(bookmark)} data-testid="bookmark-question-request">
+                  Test your recall
+                </button>
+                <p className="bookmark-card__note"><small>Uses your selected AI provider and the lecture context you approved below.</small></p>
+              </>
+            )}
+            <BookmarkQuestion entry={question} onRetry={() => onRequestQuestion(bookmark)} />
           </div>
         )}
       </div>
@@ -223,6 +252,12 @@ export default function App() {
   const focus = useFocusReview(player, lecture, duration, client);
   const ended = useSyncExternalStore(player?.subscribe ?? NOOP_SUBSCRIBE, () => player?.getState().ended ?? false);
 
+  const questions = useBookmarkQuestions({
+    bookmarks: NO_BOOKMARKS,
+    sentences,
+    videoId: lecture?.videoId ?? null,
+    enabled: client.kind === 'live', // per-passage consent: nothing is sent until "Test your recall" is pressed
+  });
   const activeBookmarks = useMemo(
     () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (experiment.enabled ? bookmark.source === 'manual' : (client.kind === 'live' || !focus.enabled || bookmark.source === 'manual'))), ...(experiment.enabled
       ? timeline.markers.filter((marker) => marker.kind === 'review').map((marker) => ({ bookmarkId: `focus:${marker.id}`,
@@ -465,6 +500,7 @@ export default function App() {
               <p className="review-intro">
                 Moments are suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.
               </p>
+              {client.kind === 'live' && <QuestionProviderControls {...questions.controls} />}
               {(ended || focus.snapshot?.ended) && <p role="status">Lecture complete. Choose a saved flag to revisit a moment.</p>}
               {!experiment.enabled && snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
                 <div className="manual-only-note" role="status">
@@ -484,6 +520,9 @@ export default function App() {
                       onDismiss={dismiss}
                       onEarlier={moveEarlier}
                       onRate={rate}
+                      questionsAvailable={questions.ready}
+                      question={questions.get(bookmark.bookmarkId)}
+                      onRequestQuestion={(b) => questions.request(questionRange(b))}
                     />
                   ))}
                 </div>

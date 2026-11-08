@@ -8,6 +8,7 @@ dependencies = [
   "uvicorn>=0.30",
   "websockets>=13",
   "pydantic>=2.11",
+  "PyJWT[crypto]>=2.10,<3",
 ]
 
 [project.scripts]
