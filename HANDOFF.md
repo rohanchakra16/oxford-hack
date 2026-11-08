@@ -66,6 +66,30 @@ Still open (explicit):
 - **question_request** (Seikaro's new P3 task) needs a contract change from me with a schemaVersion bump; payload pending.
 - Bookmarks do not survive a backend restart (decision for lead/Betty).
 
+## 4c. Main app status after the integration-readiness round (2026-11-08)
+
+Merged: #49 (schema 0.2.0), #50 (replay fix), #53 (CI main-page browser tests), #54, #56 (gaze 0.2.0 + real-adapter compat test), #57 (visual refinement; screenshots in `docs/design/{before,after}`).
+
+**Demo (verified in CI with scripted EEG, synthetic webcam):** `npm run dev -- --rehearsal`, open the printed URL (Vite, default http://127.0.0.1:5173). Mode: test EEG + real webcam; the page shows the "Test EEG + real webcam" banner. Physical-live mode never falls back to mock data.
+
+| Feature | In main app? | Synthetic/replay verification | Actual webcam | Physical EEG | Remaining gap / owner |
+|---|---|---|---|---|---|
+| Local video + transcript + sentence replay | yes | CI e2e | n/a | n/a | none |
+| EEG-only reminder + bookmark | yes | CI main-eeg e2e, rehearsal e2e | n/a | NOT verified | real headset + Annie's score contract (Annie) |
+| Gaze to backend, calibration | yes | CI live-product e2e (fake camera) | NOT verified | n/a | lead/ShinJu to run with a real camera |
+| Combined EEG+gaze bookmark | yes | CI main-product / live-product | NOT verified | NOT verified | combined semantics sign-off (Annie/Seikaro/ShinJu) |
+| Replay / dismiss / feedback | yes | CI e2e | n/a | n/a | none |
+| Unavailable/stale/interrupted/disconnected | yes | infra e2e robustness | n/a | NOT verified | none known |
+| Calibration persistence (save/reset, versioned localStorage) | NO | none | none | n/a | authorised; awaiting Seikaro on gaze-runtime/GazeCalibration/focus files |
+| Attention graph (#55) | NO (components pending) | none | none | none | Aryan supplies; mount point is the player `overlay` slot + sidebar; live mode must show markers and "Live score unavailable", never a fabricated curve |
+| Live attention score | NO | none | none | none | Annie's score contract (scale/direction, threshold + comparison, evidence timestamps/cadence, quality/warmup states, smoothing already applied, versions/provenance) is UNCONFIRMED |
+
+Score dependencies: smoothing (EMA 5 s), threshold (30), recovery (45/4 s), 8 s dwell and 30 s cooldown live in `inference/live_attention.py`; 0.6/0.4 combined weighting in `inference/live_combined.py`. Do not apply these to a new score scale without agreeing the contract (risk of double smoothing).
+
+g.Pype: see `docs/GPYPE.md`; recommendation unchanged (keep the current source, add alongside via the shared `EegSource` interface); exact Unicorn BCI Core variant, library version and laptop still unconfirmed.
+
+Known: Qt GUI teardown crash in CI is gated on JUnit; bookmarks do not survive a backend restart; Impeccable not installed (published rules applied by hand).
+
 ## 5. Known issues and decisions awaiting the team
 
 - Contracts are PROPOSED. `schemaVersion` must match exactly, and any change bumps it.
