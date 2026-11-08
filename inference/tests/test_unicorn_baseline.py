@@ -108,12 +108,19 @@ def test_disconnected_headset_is_retried_without_restarting_app():
     attempts = []
 
     def disconnected_device():
-        attempts.append(1)
-        if len(attempts) >= 2:
-            retried.set()
         raise RuntimeError("controlled missing headset")
 
-    sink = ThreadSafeEegSink()
+    class RetrySink(ThreadSafeEegSink):
+        def publish_status(self, status):
+            super().publish_status(status)
+            if status.state == "unavailable":
+                attempts.append(status.stream_id)
+                if len(attempts) >= 2:
+                    retried.set()
+
+    # This must also work in the minimal platform environment without optional
+    # EEG dependencies: missing dependencies use the same unavailable/retry path.
+    sink = RetrySink()
     source = UnicornSource()
     source.device_factory = disconnected_device
     source.reconnect_delay_s = 0.01
@@ -124,5 +131,6 @@ def test_disconnected_headset_is_retried_without_restarting_app():
         source.stop()
     messages = sink.drain()
     assert len(attempts) >= 2
+    assert len(set(attempts)) == len(attempts)
     assert any(isinstance(m, EegStatus) and m.state == "unavailable" for m in messages)
     assert not any(isinstance(m, EegFeatureWindow) for m in messages)
