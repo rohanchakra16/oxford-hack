@@ -16,6 +16,8 @@ export function explainCameraFailure(error: unknown): { kind: CameraFailure; mes
   if (/NotAllowed|PermissionDenied|PERMISSION_DENIED|denied|blocked|dismissed/i.test(text)) return { kind: 'permission', message: 'Camera access was blocked. Allow the camera for this site in your browser’s address bar, then calibrate again.' };
   if (/NotFound|DevicesNotFound|no camera|not found|device not found/i.test(text)) return { kind: 'missing', message: 'No camera was found. Connect one, then calibrate again.' };
   if (/NotReadable|TrackStart|CAMERA_IN_USE|in use|busy/i.test(text)) return { kind: 'busy', message: 'The camera is in use by another app. Close it, then calibrate again.' };
+  // Our own saved-setup check explains itself; it is not a camera failure and must not be reworded as one.
+  if (/saved calibration|saved camera|did not match your saved/i.test(text)) return { kind: 'unknown', message: `${(typeof e === 'string' ? e : e?.message)?.trim()} Press “Calibrate gaze” to set it up again.` };
   const detail = (typeof e === 'string' ? e : e?.message)?.trim();
   return { kind: 'unknown', message: `Camera setup failed${detail ? `: ${detail}` : ''}. The cause could not be identified. Check that the camera is connected, allowed for this site and not used by another app, then try again.` };
 }
@@ -106,6 +108,7 @@ export function GazeCalibration({ player, buffer, onStarted, client, participant
       }
     } catch (error) {
       if (!controller.signal.aborted) {
+        console.warn('[gaze] setup failed', reuse ? '(saved setup check)' : '(calibration)', error);
         buffer.clear(); engine.current?.stop(); engine.current = null;
         invalidate();
         const f = explainCameraFailure(error);
