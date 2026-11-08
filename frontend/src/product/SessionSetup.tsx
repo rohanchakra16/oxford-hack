@@ -6,8 +6,10 @@ import { PersonalCalibration, type usePersonalAttention } from '../focus/usePers
 import type { useFocusReview } from '../focus/useFocusReview';
 import { CheckIcon, CloseIcon } from '../ui/icons';
 import './sessionSetup.css';
+import { ExperimentControls } from '../experiment/ExperimentControls';
+import type { useExperiment } from '../experiment/useExperiment';
 
-export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, attention, devices }: {
+export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, attention, devices, experiment }: {
   open: boolean;
   onClose(): void;
   snapshot: ReviewClientSnapshot;
@@ -16,6 +18,7 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
   focus: ReturnType<typeof useFocusReview>;
   attention: ReturnType<typeof usePersonalAttention>;
   devices: ReactNode;
+  experiment: ReturnType<typeof useExperiment>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [calibratingCamera, setCalibratingCamera] = useState(false);
@@ -56,8 +59,11 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
         </section>
         <section className="session-setup__card" aria-labelledby="calibration-title">
           <h2 id="calibration-title">Calibration</h2>
-          {snapshot.kind === 'live' && <PersonalCalibration attention={attention} enabled={Boolean(snapshot.session)} />}
-          <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} onCalibrationBusyChange={setCalibratingCamera} /></div>
+          {!experiment.enabled && <>
+            {snapshot.kind === 'live' && <PersonalCalibration attention={attention} enabled={Boolean(snapshot.session)} />}
+            <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} onCalibrationBusyChange={setCalibratingCamera} /></div>
+          </>}
+          <ExperimentControls experiment={experiment} />
         </section>
       </div>
       <footer className="session-setup__footer">
