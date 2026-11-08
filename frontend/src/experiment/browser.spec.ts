@@ -21,9 +21,9 @@ test('CSV experiment stays in calibration, follows playback and stops cleanly', 
   await controls.locator('summary').click();
   await page.getByLabel('Enable experimental mode').check();
   await expect(page.getByRole('button', { name: 'Calibrate attention', exact: true })).not.toBeVisible();
-  await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'scores.csv', mimeType: 'text/csv', buffer: Buffer.from('time_s,attention_score\n' + Array.from({ length: 30 }, (_, i) => `${i},20`).join('\n')) });
+  await page.getByLabel('Import EEG CSV').setInputFiles({ name: 'scores.csv', mimeType: 'text/csv', buffer: Buffer.from('time_s,attention_score\n' + Array.from({ length: 30 }, (_, i) => `${i},10`).join('\n')) });
   await expect(controls.getByText(/scores.csv · 30.0 seconds/)).toBeVisible();
-  await expect(controls.getByText(/EEG: 20 · Combined test score/)).toBeVisible();
+  await expect(controls.getByText(/EEG: 10 · Combined test score/)).toBeVisible();
   await expect(page.getByRole('img', { name: /Simulated gaze/ })).toBeVisible();
   await controls.scrollIntoViewIfNeeded();
   await page.screenshot({ path: '../test-results/experiment/calibration-desktop.png' });
@@ -38,7 +38,7 @@ test('CSV experiment stays in calibration, follows playback and stops cleanly', 
   await page.getByRole('button', { name: 'Session setup', exact: true }).click();
   await expect(controls.getByText('EEG CSV finished. Rewind the lecture to replay it.')).toBeVisible();
   await video.evaluate((v: HTMLVideoElement) => { v.currentTime = 0; });
-  await expect(controls.getByText(/EEG: 20 · Combined test score/)).toBeVisible();
+  await expect(controls.getByText(/EEG: 10 · Combined test score/)).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await controls.scrollIntoViewIfNeeded();
   expect(await setup.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);

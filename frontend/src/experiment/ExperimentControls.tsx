@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { useExperiment } from './useExperiment';
+import { EXPERIMENT_LOW_THRESHOLD } from './runtime';
 import './experiment.css';
 
 export function ExperimentControls({ experiment }: { experiment: ReturnType<typeof useExperiment> }) {
@@ -33,7 +34,7 @@ export function ExperimentControls({ experiment }: { experiment: ReturnType<type
         <p role="status">EEG: {reading.eeg === null ? 'unavailable' : reading.eeg.toFixed(0)} · Combined test score: {reading.combined === null ? 'unavailable' : `${reading.combined.toFixed(0)} / 100`} · Mock gaze: {reading.gaze.away ? 'looking away' : 'on video'}.</p>
         {reading.ended && <p>EEG CSV finished. Rewind the lecture to replay it.</p>}
       </>}
-      <p>Test combination: 80% EEG score + 20% mock gaze. Eight seconds at or below 40 adds a simulated review dot, with a 30-second cooldown. Closing setup keeps the experiment running; switch this mode off to return to live signals.</p>
+      <p>Test combination: 80% EEG score + 20% mock gaze. Eight seconds at or below {EXPERIMENT_LOW_THRESHOLD} adds a simulated review dot, with a 30-second cooldown. Closing setup keeps the experiment running; switch this mode off to return to live signals.</p>
     </>}
   </details>;
 }
