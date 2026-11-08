@@ -140,6 +140,10 @@ def serve(args: argparse.Namespace) -> int:
         return 2
 
     app = create_app(config, hub_factory)
+    _repo_root_on_path()
+    from inference.question_generation import register_question_routes  # type: ignore[import-not-found,unused-ignore]  # P4 recall questions
+
+    register_question_routes(app, launch_token=config.launch_token, allowed_origins=config.allowed_origins)
     frontend = args.frontend_url or origins[0]
     print("\n  oxford-hack backend (local only)")
     print(f"  listening on  http://{args.host}:{args.port}")

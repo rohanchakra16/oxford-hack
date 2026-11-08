@@ -16,12 +16,22 @@ import { FlagIcon } from './icons';
 import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
+import { BookmarkQuestion, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
+
+/** Product moments carry an optional end instead of wire evidence; give the excerpt builder a range. */
+function questionRange(bookmark: ReviewBookmark): BookmarkRange {
+  return {
+    ...bookmark,
+    evidenceMedia: bookmark.endMediaS !== undefined ? { startMediaS: bookmark.suggestedMediaS, endMediaS: bookmark.endMediaS } : null,
+  };
+}
 import './product.css'; // last: must load after the player, transcript and focus styles it refines
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
 const NOOP_SUBSCRIBE = () => () => {};
 const NO_SENTENCES: readonly Sentence[] = [];
+const NO_BOOKMARKS: readonly BookmarkRange[] = []; // recall questions are requested per passage, never in bulk
 
 const sensorLabels = { eeg: 'EEG headset', gaze: 'Webcam gaze' } as const;
 
@@ -62,6 +72,9 @@ function BookmarkCard({
   onDismiss,
   onEarlier,
   onRate,
+  questionsAvailable,
+  question,
+  onRequestQuestion,
 }: {
   bookmark: ReviewBookmark;
   sentences: readonly Sentence[];
@@ -71,6 +84,9 @@ function BookmarkCard({
   onDismiss: (bookmark: ReviewBookmark) => void;
   onEarlier: (bookmark: ReviewBookmark) => void;
   onRate: (bookmark: ReviewBookmark, useful: boolean) => void;
+  questionsAvailable: boolean;
+  question: QuestionEntry | undefined;
+  onRequestQuestion: (bookmark: ReviewBookmark) => void;
 }) {
   const passage = passageFor(sentences, bookmark.suggestedMediaS, earlierCount);
   const [rated, setRated] = useState<'useful' | 'not_useful' | null>(null);
@@ -128,6 +144,19 @@ function BookmarkCard({
                 </>
               )}
             </div>
+          </div>
+        )}
+        {!dismissed && questionsAvailable && (
+          <div className="bookmark-recall">
+            {!question && (
+              <>
+                <button className="button button--quiet button--small" type="button" onClick={() => onRequestQuestion(bookmark)} data-testid="bookmark-question-request">
+                  Test your recall
+                </button>
+                <p className="bookmark-card__note"><small>Sends only this passage's transcript text to OpenRouter (an external AI service) to write one question.</small></p>
+              </>
+            )}
+            <BookmarkQuestion entry={question} onRetry={() => onRequestQuestion(bookmark)} />
           </div>
         )}
       </div>
@@ -220,6 +249,12 @@ export default function App() {
   const focus = useFocusReview(player, lecture, duration, client);
   const ended = useSyncExternalStore(player?.subscribe ?? NOOP_SUBSCRIBE, () => player?.getState().ended ?? false);
 
+  const questions = useBookmarkQuestions({
+    bookmarks: NO_BOOKMARKS,
+    sentences,
+    videoId: lecture?.videoId ?? null,
+    enabled: client.kind === 'live', // per-passage consent: nothing is sent until "Test your recall" is pressed
+  });
   const activeBookmarks = useMemo(
     () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (client.kind === 'live' || !focus.enabled || bookmark.source === 'manual')), ...focus.moments]
       .sort((a, b) => a.suggestedMediaS - b.suggestedMediaS),
@@ -473,6 +508,9 @@ export default function App() {
                       onDismiss={dismiss}
                       onEarlier={moveEarlier}
                       onRate={rate}
+                      questionsAvailable={client.kind === 'live'}
+                      question={questions.get(bookmark.bookmarkId)}
+                      onRequestQuestion={(b) => questions.request(questionRange(b))}
                     />
                   ))}
                 </div>
