@@ -9,10 +9,11 @@ import {
 } from '../integration';
 import { LecturePlayer, formatMediaTime as formatTime, type LoadedLecture, type PlayerHandle } from '../player';
 import { TranscriptPanel, sentenceIndexAt, replayStartFor, type Sentence, type Transcript } from '../transcript';
-import './product.css';
+import { FlagIcon } from './icons';
 import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { FocusSetup } from '../focus/FocusSetup';
+import './product.css'; // last: must load after the player, transcript and focus styles it refines
 
 type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoId' | 'suggestedMediaS'> & { endMediaS?: number };
 
@@ -69,22 +70,18 @@ function BookmarkCard({
   onRate: (bookmark: ReviewBookmark, useful: boolean) => void;
 }) {
   const passage = passageFor(sentences, bookmark.suggestedMediaS, earlierCount);
+  const [rated, setRated] = useState<'useful' | 'not_useful' | null>(null);
 
   return (
     <article className={`bookmark-card${dismissed ? ' bookmark-card--dismissed' : ''}`}>
-      <div className="bookmark-card__marker" aria-hidden="true">
-        <span />
-      </div>
       <div className="bookmark-card__content">
         <div className="bookmark-card__heading">
-          <div>
-            <p className="eyebrow">{sourceLabel(bookmark.source)}</p>
-            <h3>{passage?.text ?? 'Review this moment'}</h3>
-          </div>
           <time className="time-chip" dateTime={`PT${bookmark.suggestedMediaS}S`}>
             {formatTime(bookmark.suggestedMediaS)}
           </time>
+          <span className="bookmark-card__source">{sourceLabel(bookmark.source)}</span>
         </div>
+        <h3>{passage?.text ?? 'Review this moment'}</h3>
         <p className="bookmark-card__note">
           Suggested replay · {passage ? formatTime(passage.startS) : formatTime(bookmark.suggestedMediaS)}
           {earlierCount > 0 && <span> · moved earlier {earlierCount} {earlierCount === 1 ? 'passage' : 'passages'}</span>}
@@ -114,25 +111,19 @@ function BookmarkCard({
             >
               Dismiss
             </button>
-            <div className="feedback-actions" aria-label="Was this suggestion helpful?">
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Mark suggestion useful"
-                title="Useful"
-                onClick={() => onRate(bookmark, true)}
-              >
-                <span aria-hidden="true">+</span>
-              </button>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Mark suggestion not useful"
-                title="Not useful"
-                onClick={() => onRate(bookmark, false)}
-              >
-                <span aria-hidden="true">−</span>
-              </button>
+            <div className="feedback-actions" role="group" aria-label="Was this suggestion helpful?">
+              {rated ? (
+                <span className="feedback-thanks" role="status">Thanks, noted.</span>
+              ) : (
+                <>
+                  <button className="button button--quiet button--small" type="button" aria-label="Mark suggestion useful" onClick={() => { setRated('useful'); onRate(bookmark, true); }}>
+                    Helpful
+                  </button>
+                  <button className="button button--quiet button--small" type="button" aria-label="Mark suggestion not useful" onClick={() => { setRated('not_useful'); onRate(bookmark, false); }}>
+                    Not helpful
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -145,18 +136,12 @@ function DeviceStatus({ clientKind, sensors }: { clientKind: string; sensors: Re
   return (
     <section className="device-panel" aria-labelledby="device-title">
       <div className="section-heading section-heading--compact">
-        <div>
-          <p className="eyebrow">Session setup</p>
-          <h2 id="device-title">Your devices</h2>
-        </div>
+        <h2 id="device-title">Your devices</h2>
         <span className={`mode-badge${clientKind === 'synthetic' ? ' mode-badge--simulated' : ''}`}>
           <span className="status-dot" />
           {clientKind === 'synthetic' ? 'Simulated' : 'Live'}
         </span>
       </div>
-      <p className="device-panel__intro">
-        Device availability is reported by the session. Signal status is separate from review suggestions.
-      </p>
       <div className="device-list">
         {(['eeg', 'gaze'] as const).map((name) => {
           const sensor = sensors?.[name];
@@ -164,9 +149,6 @@ function DeviceStatus({ clientKind, sensors }: { clientKind: string; sensors: Re
           const tone = state === 'ok' ? 'good' : state === 'lost' || state === 'unavailable' ? 'muted' : 'waiting';
           return (
             <div className="device-row" key={name}>
-              <span className={`device-icon device-icon--${name}`} aria-hidden="true">
-                {name === 'eeg' ? '∿' : '◉'}
-              </span>
               <span className="device-row__name">{sensorLabels[name]}</span>
               <span className={`device-state device-state--${tone}`}>
                 <span className="status-dot" />
@@ -311,21 +293,16 @@ export default function App() {
       <main className="workspace">
         <section className="welcome-row">
           <div>
-            <p className="eyebrow">A calmer way to catch up</p>
-            <h1>Find your way back<br className="desktop-break" /> to the lecture.</h1>
+            <h1>Find your way back to the lecture.</h1>
             <p className="welcome-copy">
-              Watch at your pace. Mark a moment, then replay the passage when you&apos;re ready.
+              Watch at your pace. Mark a moment, then replay the passage when you&apos;re ready. Your video stays in this browser.
             </p>
-          </div>
-          <div className="privacy-note">
-            <span aria-hidden="true">✳</span>
-            <p><strong>Your lecture stays yours.</strong><br />Video is processed locally in your browser.</p>
           </div>
         </section>
 
         {snapshot.kind === 'synthetic' && (
           <div className="mode-banner" role="status">
-            <span className="mode-banner__icon" aria-hidden="true">✦</span>
+            <span className="mode-banner__icon" aria-hidden="true" />
             <div>
               <strong>Simulation mode</strong>
               <span>Example suggestions and device states are simulated. They are not real attention measurements.</span>
@@ -335,7 +312,7 @@ export default function App() {
 
         {snapshot.kind === 'live' && snapshot.session?.config.eegDevice?.model?.startsWith('Scripted test EEG') && (
           <div className="mode-banner" role="status" data-testid="test-eeg-banner">
-            <span className="mode-banner__icon" aria-hidden="true">✦</span>
+            <span className="mode-banner__icon" aria-hidden="true" />
             <div>
               <strong>Test EEG + real webcam</strong>
               <span>
@@ -378,13 +355,12 @@ export default function App() {
               <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange} />
               {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="focus-bookmark-flags">
                 {activeBookmarks.map((bookmark) => <button className="button button--quiet button--small" key={bookmark.bookmarkId} onClick={() => replay(bookmark)} aria-label={`Replay bookmark at ${formatTime(bookmark.suggestedMediaS)}`}>
-                  <span aria-hidden="true">⚑ </span>{formatTime(bookmark.suggestedMediaS)}
+                  <FlagIcon />{formatTime(bookmark.suggestedMediaS)}
                 </button>)}
               </nav>}
               <div className="player-card__footer">
                 <div className="lecture-file">
-                  <span className="file-icon" aria-hidden="true">▶</span>
-                  <div>
+                                    <div>
                     <strong title={lecture?.fileName}>{lecture?.fileName ?? 'No lecture open'}</strong>
                     <span>{duration ? `${formatTime(duration)} lecture` : 'Local video, never uploaded'}</span>
                   </div>
@@ -398,7 +374,7 @@ export default function App() {
                     onClick={() => client.markBookmark(currentTime)}
                     aria-label={`Mark this moment at ${formatTime(currentTime)}`}
                   >
-                    <span aria-hidden="true">◆</span> Mark moment
+                    <FlagIcon /> Mark moment
                   </button>
                 </div>
               </div>
@@ -406,10 +382,7 @@ export default function App() {
 
             <section className="transcript-card" aria-labelledby="transcript-title">
               <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Follow along</p>
-                  <h2 id="transcript-title">Transcript</h2>
-                </div>
+                <h2 id="transcript-title">Transcript</h2>
               </div>
               {/* key: a new lecture starts without the previous lecture's transcript */}
               <TranscriptPanel key={lecture?.videoId ?? 'none'} player={player} onTranscriptChange={setTranscript} />
@@ -417,23 +390,6 @@ export default function App() {
           </div>
 
           <aside className="side-column" aria-label="Session and review">
-            <FocusSetup player={player} lecture={lecture} focus={focus} />
-            {focus.notice && !ended && !focus.snapshot?.ended && <section className="focus-tools" role="status" aria-label="Focus heads-up">
-              <strong>Heads-up: review moment saved</strong>
-              <p>You may want to revisit {formatTime(focus.notice.mediaRange.startMediaS)} when you’re ready.</p>
-              <button onClick={() => { const bookmark = focus.moments.find((b) => b.suggestedMediaS === focus.notice!.mediaRange.startMediaS); if (bookmark) replay(bookmark); }}>Replay saved moment</button>
-              <button onClick={focus.closeNotice}>Close heads-up</button>
-            </section>}
-            <DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />
-
-            {snapshot.session?.config.detector?.detectorId.startsWith('experimental-live-eeg') && (
-              <p className="live-eeg-note" role="status">
-                Experimental EEG reminders · focus on the lecture for the first 8 seconds of usable EEG to set your baseline.
-                Reminders follow 8 seconds of sustained low estimates after smoothing.
-                {snapshot.sensors?.automaticSuggestions ? ' EEG changes are not validated attention measurements.' : ' Waiting for usable EEG from your headset.'}
-              </p>
-            )}
-
             {reminders.length > 0 && <section className="reminder-stack" aria-label="Review reminders" data-testid="reminder-stack">
               <h2>Heads-up <span className="count-badge">{reminders.length}</span></h2>
               <div className="reminder-stack__items">
@@ -448,13 +404,10 @@ export default function App() {
 
             <section className="review-panel" aria-labelledby="review-title">
               <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Your checkpoints</p>
-                  <h2 id="review-title">{ended || focus.snapshot?.ended ? 'End-of-lecture bookmarks' : 'Review moments'} <span className="count-badge">{activeBookmarks.length}</span></h2>
-                </div>
+                <h2 id="review-title">{ended || focus.snapshot?.ended ? 'End-of-lecture bookmarks' : 'Review moments'} <span className="count-badge" data-testid="bookmark-count-badge">{activeBookmarks.length}</span></h2>
               </div>
               <p className="review-intro">
-                Moments are suggestions to review, not judgments about your attention.
+                Moments are suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.
               </p>
               {(ended || focus.snapshot?.ended) && <p role="status">Lecture complete. Choose a saved flag to revisit a moment.</p>}
               {snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
@@ -480,7 +433,6 @@ export default function App() {
                 </div>
               ) : (
                 <div className="review-empty">
-                  <span className="review-empty__icon" aria-hidden="true">✳</span>
                   <strong>No review moments yet</strong>
                   <p>Start the lecture to receive suggestions, or add a marker at any moment.</p>
                   {!lecture && <span className="review-empty__hint">Your moments will appear here.</span>}
@@ -488,17 +440,30 @@ export default function App() {
               )}
             </section>
 
-            <div className="session-note">
-              <span aria-hidden="true">⌁</span>
-              <p><strong>Made for your own pace</strong><br />Nothing pauses or rewinds automatically. You choose what to revisit.</p>
-            </div>
+            <FocusSetup player={player} lecture={lecture} focus={focus} />
+            {focus.notice && !ended && !focus.snapshot?.ended && <section className="focus-tools" role="status" aria-label="Focus heads-up">
+              <strong>Heads-up: review moment saved</strong>
+              <p>You may want to revisit {formatTime(focus.notice.mediaRange.startMediaS)} when you’re ready.</p>
+              <button onClick={() => { const bookmark = focus.moments.find((b) => b.suggestedMediaS === focus.notice!.mediaRange.startMediaS); if (bookmark) replay(bookmark); }}>Replay saved moment</button>
+              <button onClick={focus.closeNotice}>Close heads-up</button>
+            </section>}
+            <DeviceStatus clientKind={snapshot.kind} sensors={snapshot.sensors} />
+
+            {snapshot.session?.config.detector?.detectorId.startsWith('experimental-live-eeg') && (
+              <p className="live-eeg-note" role="status">
+                Experimental EEG reminders · focus on the lecture for the first 8 seconds of usable EEG to set your baseline.
+                Reminders follow 8 seconds of sustained low estimates after smoothing.
+                {snapshot.sensors?.automaticSuggestions ? ' EEG changes are not validated attention measurements.' : ' Waiting for usable EEG from your headset.'}
+              </p>
+            )}
+
           </aside>
         </div>
       </main>
 
       <footer className="page-footer">
         <span>recallroom</span>
-        <span>Learning, at your pace.</span>
+        <span>Learning, at your pace. Experimental signals are not validated attention measurements.</span>
       </footer>
     </div>
   );
