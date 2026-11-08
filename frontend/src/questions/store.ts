@@ -8,7 +8,7 @@
  */
 import type { Sentence } from '../transcript';
 import type { TranscriptContext } from '../integration';
-import type { GeneratedQuestion, QuestionOutcome, UnavailableCode } from './client';
+import type { GeneratedQuestion, QuestionOutcome, ProviderErrorCode } from './client';
 import { excerptForBookmark, type BookmarkRange, type ExcerptOptions } from './excerpt';
 
 export type QuestionEntry =
@@ -16,11 +16,12 @@ export type QuestionEntry =
   | { status: 'ready'; excerpt: TranscriptContext; result: GeneratedQuestion }
   | { status: 'insufficient_context'; excerpt: TranscriptContext | null }
   | { status: 'no_transcript' }
-  | { status: 'unavailable'; excerpt: TranscriptContext; code: UnavailableCode; message: string; retryAfterS: number | null };
+  | { status: 'skipped_non_instructional'; excerpt: TranscriptContext; reason: string }
+  | { status: 'unavailable'; excerpt: TranscriptContext; code: ProviderErrorCode; message: string; retryAfterS: number | null };
 
 export type QuestionSnapshot = ReadonlyMap<string, QuestionEntry>;
 
-export type RequestFn = (bookmark: BookmarkRange, excerpt: TranscriptContext, signal: AbortSignal) => Promise<QuestionOutcome>;
+export type RequestFn = (bookmark: BookmarkRange, excerpt: TranscriptContext, signal: AbortSignal, sentences: readonly Sentence[]) => Promise<QuestionOutcome>;
 
 export interface QuestionStore {
   subscribe(listener: () => void): () => void;
@@ -55,11 +56,12 @@ export function createQuestionStore(request: RequestFn, excerptOptions: Partial<
     const mine = generation;
     const abort = new AbortController();
     aborts.add(abort);
-    request(bookmark, excerpt, abort.signal)
+    request(bookmark, excerpt, abort.signal, sentences)
       .then((outcome) => {
         if (mine !== generation) return; // a late answer for the previous lecture
         if (outcome.status === 'ready') set(bookmark.bookmarkId, { status: 'ready', excerpt, result: outcome.result });
         else if (outcome.status === 'insufficient_context') set(bookmark.bookmarkId, { status: 'insufficient_context', excerpt });
+        else if (outcome.status === 'skipped_non_instructional') set(bookmark.bookmarkId, { status: 'skipped_non_instructional', excerpt, reason: outcome.reason });
         else set(bookmark.bookmarkId, { status: 'unavailable', excerpt, code: outcome.code, message: outcome.message, retryAfterS: outcome.retryAfterS });
       })
       .catch(() => {

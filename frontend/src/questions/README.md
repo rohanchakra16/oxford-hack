@@ -1,21 +1,20 @@
 # Questions (browser side)
 
-Owner: @aryanmorarji (Person 4). Issue: #72. Full design, setup, privacy notes and handoffs:
-[`inference/QUESTION_GENERATION.md`](../../../inference/QUESTION_GENERATION.md).
+Issue #72. The selected provider is OpenRouter/free models or a supported ChatGPT Plus/Pro connection.
+Full setup and protocol: [QUESTION_GENERATION.md](../../../inference/QUESTION_GENERATION.md).
 
-Status: integrated as an explicit per-passage request in saved moments on this branch.
-Product composition and styling remain @rohanchakra16's responsibility.
+- `QuestionProviderControls.tsx` / `useQuestionProvider.ts`: explicit provider, account and model choice,
+  ChatGPT browser sign-in, connection/usage controls, and transcript-processing consent.
+- `useBookmarkQuestions.ts`: consent is tied to provider/model and transcript revision. Changing them
+  clears results and aborts old requests. No automatic generation by default.
+- `client.ts`: authenticated local-backend calls; one shared original-transcript context preparation
+  per lecture/provider; relevant context ID and original target times in each question request.
+- `excerpt.ts`: whole sentences, 3000 soft / 3500 hard input budget, boundary-sentence completion,
+  no slicing of overlong sentences.
+- `store.ts`: per-bookmark pending, ready, insufficient, unavailable, no-transcript and intentional
+  nonteaching-skip states. No bookmark deletion or playback control.
+- `BookmarkQuestion.tsx`: answer hidden until requested, explicit skip reason and retryable failures.
 
-| File | Purpose |
-|---|---|
-| `excerpt.ts` | Whole sentences around the evidence interval plus 20 s lead. Soft target 3000 characters, hard limit 3500; prioritises the interval end and drops earlier whole sentences when needed. A sentence crossing the evidence end is completed. A single oversized target sentence is refused rather than truncated. |
-| `client.ts` | `requestQuestion(bookmark, excerpt, { backendUrl, launchToken })` → `ready` / `insufficient_context` / `unavailable` (never throws except on abort). |
-| `store.ts` | Per-bookmark entries: `generating` → `ready` / `insufficient_context` / `unavailable` / `no_transcript`. One request per bookmark, explicit retry, lecture change clears and discards late replies. |
-| `useBookmarkQuestions.ts` | React hook wiring the above to the bookmark list and transcript. |
-| `BookmarkQuestion.tsx` | Minimal unstyled view; suggested answer hidden until asked. |
-
-The browser never talks to OpenRouter and never holds the key; it calls the local backend's
-`POST /api/v0/questions` with the launch token, like the attention endpoints.
-
-Keep `enabled: false` for the synthetic adapter and until the viewer agrees that transcript
-excerpts are sent to OpenRouter.
+The frontend holds only the local backend launch token and nonsecret provider/account/model choices.
+OpenRouter keys and ChatGPT OAuth tokens remain in the backend. Synthetic mode does not offer questions.
+Bookmark summaries remain deferred.

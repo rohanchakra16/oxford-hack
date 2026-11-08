@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Sentence } from '../transcript';
-import { requestQuestion, type QuestionOutcome } from './client';
+import { createContextQuestionRequester, requestQuestion, type QuestionOutcome } from './client';
 import { excerptForBookmark, type BookmarkRange } from './excerpt';
 import { createQuestionStore } from './store';
 
@@ -89,6 +89,14 @@ const ready: QuestionOutcome = { status: 'ready', result: { question: 'Q?', sugg
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 describe('createQuestionStore', () => {
+  it('retains a nonteaching outcome on the original bookmark without generating a fake answer', async () => {
+    const store = createQuestionStore(async () => ({ status: 'skipped_non_instructional', reason: 'A lecture break.' }));
+    store.reset('v1');
+    store.ensure(bookmark(), SENTENCES);
+    await flush();
+    expect(store.getSnapshot().get('b1')).toMatchObject({ status: 'skipped_non_instructional', reason: 'A lecture break.' });
+    expect(store.getSnapshot().size).toBe(1);
+  });
   it('is generating immediately, ready later, and requests once per bookmark', async () => {
     const request = vi.fn(async () => ready);
     const store = createQuestionStore(request);
@@ -137,5 +145,55 @@ describe('createQuestionStore', () => {
     store.retry(bookmark(), SENTENCES);
     await flush();
     expect(store.getSnapshot().get('b1')?.status).toBe('ready');
+  });
+});
+
+describe('cached lecture context requests', () => {
+  it('shares one original-transcript preparation across bookmarks and supplies explicit provider selection', async () => {
+    const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const fetchImpl = vi.fn(async (url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string) as Record<string, unknown>;
+      requests.push({ url, body });
+      return new Response(JSON.stringify(url.endsWith('/context') ? { contextId: 'context-1' } : { status: 'ready', question: 'Q?', suggestedAnswer: 'A.' }));
+    }) as unknown as typeof fetch;
+    const selection = { provider: 'chatgpt' as const, accountId: 'account-1', model: 'chosen-model' };
+    const requester = createContextQuestionRequester({ backendUrl: 'http://b', launchToken: 't', selection, fetchImpl });
+    const signal = new AbortController().signal;
+    await Promise.all([requester.request(bookmark(), EX, signal, SENTENCES), requester.request(bookmark({ bookmarkId: 'b2' }), EX, signal, SENTENCES)]);
+    expect(requests.filter((request) => request.url.endsWith('/context'))).toHaveLength(1);
+    expect(requests[0]!.body.sentences).toEqual(SENTENCES.map((sentence) => ({ startMediaS: sentence.startS, endMediaS: sentence.endS, text: sentence.text })));
+    for (const request of requests) expect(request.body.selection).toEqual(selection);
+    expect(requests[1]!.body.contextId).toBe('context-1');
+    expect(requests[1]!.body.targetStartMediaS).toBe(45);
+    expect(requests[1]!.body.targetEndMediaS).toBe(52);
+    requester.dispose();
+  });
+
+  it('rebuilds expired context once and returns a skip state', async () => {
+    let contexts = 0;
+    let questions = 0;
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.endsWith('/context')) return new Response(JSON.stringify({ contextId: `context-${++contexts}` }));
+      questions += 1;
+      return questions === 1
+        ? new Response(JSON.stringify({ error: 'context_expired' }), { status: 409 })
+        : new Response(JSON.stringify({ status: 'skipped_non_instructional', skipReason: 'A break.' }));
+    }) as unknown as typeof fetch;
+    const requester = createContextQuestionRequester({ backendUrl: 'http://b', launchToken: 't', fetchImpl });
+    expect(await requester.request(bookmark(), EX, new AbortController().signal, SENTENCES)).toEqual({ status: 'skipped_non_instructional', reason: 'A break.' });
+    expect([contexts, questions]).toEqual([2, 2]);
+    requester.dispose();
+  });
+
+  it('does not upload context without backend pairing or after cancellation', async () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    const requester = createContextQuestionRequester({ backendUrl: 'http://b', launchToken: null, fetchImpl });
+    expect(await requester.request(bookmark(), EX, new AbortController().signal, SENTENCES)).toMatchObject({ status: 'unavailable', code: 'not_paired' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    const abort = new AbortController();
+    abort.abort();
+    await expect(requester.request(bookmark(), EX, abort.signal, SENTENCES)).rejects.toBeDefined();
+    expect(fetchImpl).not.toHaveBeenCalled();
+    requester.dispose();
   });
 });

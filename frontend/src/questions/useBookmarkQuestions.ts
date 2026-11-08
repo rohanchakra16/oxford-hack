@@ -14,9 +14,10 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { DEFAULT_BACKEND_URL } from '../integration';
 import { getLaunchToken } from '../integration/live/pairing';
 import type { Sentence } from '../transcript';
-import { requestQuestion } from './client';
+import { createContextQuestionRequester } from './client';
 import type { BookmarkRange } from './excerpt';
-import { createQuestionStore, type QuestionStore } from './store';
+import { createQuestionStore } from './store';
+import { useQuestionProvider } from './useQuestionProvider';
 
 export interface UseBookmarkQuestionsArgs {
   bookmarks: readonly BookmarkRange[];
@@ -30,16 +31,23 @@ export interface UseBookmarkQuestionsArgs {
 
 export function useBookmarkQuestions({ bookmarks, sentences, videoId, enabled, auto = false, backendUrl }: UseBookmarkQuestionsArgs) {
   const backend = backendUrl ?? (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? DEFAULT_BACKEND_URL;
-  const [store] = useState<QuestionStore>(() =>
-    createQuestionStore((bookmark, excerpt, signal) =>
-      requestQuestion(bookmark, excerpt, { backendUrl: backend, launchToken: getLaunchToken(), signal })));
+  const provider = useQuestionProvider(backend, enabled);
+  const launchToken = getLaunchToken();
+  const revision = useMemo(() => JSON.stringify(sentences), [sentences]);
+  const approvalKey = JSON.stringify([provider.selection, videoId, revision]);
+  const [approvedFor, setApprovedFor] = useState<string | null>(null);
+  const consented = approvedFor === approvalKey;
+  const ready = enabled && consented && provider.ready;
+  const onConsent = useCallback((approved: boolean) => setApprovedFor(approved ? approvalKey : null), [approvalKey]);
+  const requester = useMemo(() => createContextQuestionRequester({ backendUrl: backend, launchToken, selection: provider.selection }), [backend, launchToken, provider.selection]);
+  const store = useMemo(() => createQuestionStore(requester.request), [requester]);
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
-  useEffect(() => { store.reset(videoId); }, [store, videoId]);
-  useEffect(() => () => store.dispose(), [store]);
+  useEffect(() => { store.reset(videoId); }, [store, videoId, sentences, consented]);
+  useEffect(() => () => { store.dispose(); requester.dispose(); }, [store, requester]);
 
   useEffect(() => {
-    if (!enabled || !auto) return;
+    if (!ready || !auto) return;
     for (const bookmark of bookmarks) {
       // A transcript opened after the bookmark arrived: try again now that there is text.
       if (sentences?.length && store.getSnapshot().get(bookmark.bookmarkId)?.status === 'no_transcript') {
@@ -48,14 +56,16 @@ export function useBookmarkQuestions({ bookmarks, sentences, videoId, enabled, a
         store.ensure(bookmark, sentences);
       }
     }
-  }, [store, bookmarks, sentences, enabled, auto]);
+  }, [store, bookmarks, sentences, ready, auto]);
 
   // Explicit, per-passage request (the student pressed "Test your recall"). No-op when disabled.
   const request = useCallback((bookmark: BookmarkRange) => {
-    if (!enabled) return;
+    if (!ready) return;
     if (store.getSnapshot().has(bookmark.bookmarkId)) store.retry(bookmark, sentences);
     else store.ensure(bookmark, sentences);
-  }, [store, sentences, enabled]);
-  const retry = useCallback((bookmark: BookmarkRange) => { if (enabled) store.retry(bookmark, sentences); }, [store, sentences, enabled]);
-  return useMemo(() => ({ get: (id: string) => snapshot.get(id), entries: snapshot, request, retry }), [snapshot, request, retry]);
+  }, [store, sentences, ready]);
+  const retry = useCallback((bookmark: BookmarkRange) => { if (ready) store.retry(bookmark, sentences); }, [store, sentences, ready]);
+  return useMemo(() => ({ get: (id: string) => snapshot.get(id), entries: snapshot, request, retry, ready,
+    controls: { provider, consented, onConsent, hasTranscript: !!sentences?.length } }),
+  [snapshot, request, retry, ready, provider, consented, onConsent, sentences]);
 }

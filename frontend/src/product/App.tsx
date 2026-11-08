@@ -17,7 +17,7 @@ import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
 import { useExperiment } from '../experiment/useExperiment';
-import { BookmarkQuestion, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
+import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
 
 /** Product moments carry an optional end instead of wire evidence; give the excerpt builder a range. */
 function questionRange(bookmark: ReviewBookmark): BookmarkRange {
@@ -154,7 +154,7 @@ function BookmarkCard({
                 <button className="button button--quiet button--small" type="button" onClick={() => onRequestQuestion(bookmark)} data-testid="bookmark-question-request">
                   Test your recall
                 </button>
-                <p className="bookmark-card__note"><small>Sends only this passage's transcript text to OpenRouter (an external AI service) to write one question.</small></p>
+                <p className="bookmark-card__note"><small>Uses your selected AI provider and the lecture context you approved below.</small></p>
               </>
             )}
             <BookmarkQuestion entry={question} onRetry={() => onRequestQuestion(bookmark)} />
@@ -500,6 +500,7 @@ export default function App() {
               <p className="review-intro">
                 Moments are suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.
               </p>
+              {client.kind === 'live' && <QuestionProviderControls {...questions.controls} />}
               {(ended || focus.snapshot?.ended) && <p role="status">Lecture complete. Choose a saved flag to revisit a moment.</p>}
               {!experiment.enabled && snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
                 <div className="manual-only-note" role="status">
@@ -519,7 +520,7 @@ export default function App() {
                       onDismiss={dismiss}
                       onEarlier={moveEarlier}
                       onRate={rate}
-                      questionsAvailable={client.kind === 'live'}
+                      questionsAvailable={questions.ready}
                       question={questions.get(bookmark.bookmarkId)}
                       onRequestQuestion={(b) => questions.request(questionRange(b))}
                     />
