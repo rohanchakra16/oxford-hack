@@ -4,6 +4,7 @@ import type { ReviewClientSnapshot } from '../integration';
 import { FocusSetup } from '../focus/FocusSetup';
 import { PersonalCalibration, type usePersonalAttention } from '../focus/usePersonalAttention';
 import type { useFocusReview } from '../focus/useFocusReview';
+import { CheckIcon, CloseIcon } from '../ui/icons';
 import './sessionSetup.css';
 
 export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, attention, devices }: {
@@ -34,33 +35,28 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
     onCancel={(event) => { event.preventDefault(); close(); }}>
     <div className="session-setup__shell">
       <header className="session-setup__header">
-        <span className="session-setup__eyebrow">SESSION SETUP</span>
-        <button className="button button--outline button--small" disabled={calibratingCamera} onClick={close}>Back to lecture <span aria-hidden="true">↗</span></button>
+        <h1 id="session-setup-title">Session setup</h1>
+        <button className="btn btn--icon" disabled={calibratingCamera} onClick={close} aria-label="Back to lecture" title="Back to lecture"><CloseIcon /></button>
       </header>
-      <div className="session-setup__intro">
-        <h1 id="session-setup-title">A little setup. A clearer lecture.</h1>
-        <p>Connect your devices and calibrate here. Your saved personal baseline is checked automatically for each new lecture.</p>
-      </div>
+      <p className="session-setup__sub">Connect your devices and calibrate here. Your saved personal baseline is checked automatically for each new lecture.</p>
       <div className="session-setup__grid">
         <section className="session-setup__card" aria-labelledby="prerequisites-title">
-          <span className="session-setup__step">01 / CONNECTION</span>
-          <h2 id="prerequisites-title">Before you begin</h2>
+          <h2 id="prerequisites-title">Connection</h2>
           <ol className="setup-checklist">
-            <li><span className={`setup-check ${connected ? 'setup-check--ready' : ''}`} aria-hidden="true">{connected ? '✓' : '1'}</span><div><strong>Local connection</strong><p>{connected ? 'Connected automatically. Keep the launcher running.' : snapshot.connection.detail}</p></div></li>
-            <li><span className={`setup-check ${lecture ? 'setup-check--ready' : ''}`} aria-hidden="true">{lecture ? '✓' : '2'}</span><div><strong>Your lecture</strong><p>{lecture ? lecture.fileName : 'Open a local video in the lecture player to begin calibration.'}</p>{!lecture && <button className="button button--quiet button--small" onClick={close}>Choose a lecture</button>}</div></li>
-            <li><span className={`setup-check ${profile ? 'setup-check--ready' : ''}`} aria-hidden="true">{profile ? '✓' : '3'}</span><div><strong>Personal baseline</strong><p>{profile ? 'A compatible saved baseline is loaded. No repeat EEG calibration needed.' : 'Calibrate once with usable EEG. We remember your baseline for future lectures.'}</p></div></li>
+            <li><span className={`setup-check ${connected ? 'setup-check--ready' : ''}`} aria-hidden="true">{connected ? <CheckIcon /> : '1'}</span><div><strong>Local connection</strong><p>{connected ? 'Connected automatically. Keep the launcher running.' : snapshot.connection.detail}</p></div></li>
+            <li><span className={`setup-check ${lecture ? 'setup-check--ready' : ''}`} aria-hidden="true">{lecture ? <CheckIcon /> : '2'}</span><div><strong>Your lecture</strong><p>{lecture ? lecture.fileName : 'Open a local video in the lecture player to begin calibration.'}</p>{!lecture && <button className="button button--quiet button--small" onClick={close}>Choose a lecture</button>}</div></li>
+            <li><span className={`setup-check ${profile ? 'setup-check--ready' : ''}`} aria-hidden="true">{profile ? <CheckIcon /> : '3'}</span><div><strong>Personal baseline</strong><p>{profile ? 'A compatible saved baseline is loaded. No repeat EEG calibration needed.' : 'Calibrate once with usable EEG. We remember your baseline for future lectures.'}</p></div></li>
           </ol>
           {devices}
           <details className="setup-help">
             <summary>Device or model unavailable?</summary>
             <p>Turn on and connect your Unicorn headset, check electrode contact, and keep the local launcher running. The Unicorn SDK and your team’s EEG model must be installed once on this computer.</p>
             <p>If the model has not been supplied, attention stays unavailable. You can still watch and save review markers.</p>
-            <a href="/diagnostics" target="_blank" rel="noreferrer">Open system diagnostics ↗</a>
+            <a href="/diagnostics" target="_blank" rel="noreferrer">Open system diagnostics</a>
           </details>
         </section>
         <section className="session-setup__card" aria-labelledby="calibration-title">
-          <span className="session-setup__step">02 / CALIBRATION</span>
-          <h2 id="calibration-title">Make it yours</h2>
+          <h2 id="calibration-title">Calibration</h2>
           <p className="session-setup__description">Use the same local profile each time. Camera checks stay here; EEG calibration can continue while you watch.</p>
           {snapshot.kind === 'live' && <PersonalCalibration attention={attention} enabled={Boolean(snapshot.session)} />}
           <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} onCalibrationBusyChange={setCalibratingCamera} /></div>

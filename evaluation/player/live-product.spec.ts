@@ -39,7 +39,7 @@ test('main live website sends calibrated gaze to backend and saves a real-transp
   await expect(page.getByText('Session connected')).toBeVisible();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
   await page.getByRole('button', { name: 'Session setup', exact: true }).click();
-  await page.getByRole('button', { name: 'Calibrate EEG + gaze' }).click();
+  await page.getByRole('button', { name: 'Calibrate gaze' }).click();
   await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
   await expect.poll(() => page.locator('video').evaluate((v: HTMLVideoElement) => v.currentTime), { timeout: 15000 }).toBeGreaterThan(10);
