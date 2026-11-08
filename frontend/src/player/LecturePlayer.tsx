@@ -3,7 +3,7 @@
  * and expose a PlayerHandle (state, seek, replayRange) to the rest of the app.
  * Owner: Person 4 (@aryanmorarji). See src/player/README.md.
  */
-import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { attachMediaElement, type ReviewClient, type StartSessionOptions } from '../integration';
 import { PlayerController, type ObservedEvent, type PlaybackStatus } from './controller';
 import { checkVideoFile, describeMediaError, formatMediaTime, localVideoId } from './localMedia';
@@ -76,6 +76,25 @@ const DEFAULT_SESSION: Pick<StartSessionOptions, 'runKind' | 'sensors'> = {
 const RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
 const NOOP_SUBSCRIBE = () => () => {};
 
+type PlayerIconName = 'play' | 'pause' | 'volume' | 'muted' | 'minimise' | 'maximise' | 'restore' | 'fullscreen' | 'exit-fullscreen';
+
+function PlayerIcon({ name }: { name: PlayerIconName }) {
+  const paths: Record<PlayerIconName, ReactNode> = {
+    play: <path d="m9 5 11 7-11 7Z" fill="currentColor" stroke="none" />,
+    pause: <path d="M8 5v14M16 5v14" strokeWidth="3.5" />,
+    volume: <><path d="M11 5 6 9H3v6h3l5 4Z" /><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" /></>,
+    muted: <><path d="M11 5 6 9H3v6h3l5 4Z" /><path d="m16 9 6 6m0-6-6 6" /></>,
+    minimise: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M12 12h6v4h-6Z" fill="currentColor" stroke="none" /></>,
+    maximise: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18" /></>,
+    restore: <><path d="M8 4h12v12M4 8h12v12H4Z" /></>,
+    fullscreen: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
+    'exit-fullscreen': <path d="M3 8h5V3m8 0v5h5M8 21v-5H3m18 0h-5v5" />,
+  };
+  return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{paths[name]}</svg>;
+}
+
+const rangeFill = (value: number): CSSProperties => ({ '--lp-fill': `${Math.max(0, Math.min(100, value))}%` }) as CSSProperties;
+
 export function LecturePlayer({
   client,
   session = DEFAULT_SESSION,
@@ -92,6 +111,9 @@ export function LecturePlayer({
   const [ownMode, setOwnMode] = useState<PlayerViewMode>(defaultViewMode);
   const mode = viewMode ?? ownMode;
   const [fullscreen, setFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
   const onViewModeChangeRef = useRef(onViewModeChange);
   onViewModeChangeRef.current = onViewModeChange;
   const onFullscreenChangeRef = useRef(onFullscreenChange);
@@ -224,13 +246,45 @@ export function LecturePlayer({
   const ready = load.kind === 'ready' && status !== null;
   const playing = ready && !status.paused && !status.ended;
 
+  // Only hide fullscreen chrome during playback. Focus, hovering controls and touch keep it usable.
+  const immersivePlayingRef = useRef(false);
+  immersivePlayingRef.current = fullscreen && playing;
+  const controlsHoveredRef = useRef(false);
+  function revealControls() {
+    setControlsVisible(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    if (immersivePlayingRef.current) {
+      controlsTimerRef.current = setTimeout(() => {
+        if (!controlsHoveredRef.current && !controlsRef.current?.contains(document.activeElement)) {
+          setControlsVisible(false);
+        }
+      }, 2500);
+    }
+  }
+  useEffect(() => {
+    if (!fullscreen || !playing) return;
+    const timer = setTimeout(() => {
+      if (!controlsHoveredRef.current && !controlsRef.current?.contains(document.activeElement)) setControlsVisible(false);
+    }, 2500);
+    return () => {
+      clearTimeout(timer);
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    };
+  }, [fullscreen, playing]);
+
+  const chromeVisible = !fullscreen || !playing || controlsVisible;
+
   return (
     <section
       ref={rootRef}
-      className={`lp lp--${mode}${fullscreen ? ' lp--fullscreen' : ''}`}
+      className={`lp lp--${mode} lp--modern${fullscreen ? ' lp--fullscreen' : ''}${chromeVisible ? '' : ' lp--controls-hidden'}`}
       aria-label="Lecture player"
       data-view-mode={mode}
       data-fullscreen={fullscreen || undefined}
+      onPointerMove={revealControls}
+      onPointerDown={revealControls}
+      onFocusCapture={revealControls}
+      onKeyDownCapture={revealControls}
     >
       <div className="lp-toolbar">
         <label className="lp-open">
@@ -292,10 +346,11 @@ export function LecturePlayer({
         )}
       </div>
 
-      <div className="lp-controls" aria-disabled={!ready}>
-        <button type="button" disabled={!ready} onClick={() => void controller?.togglePlay()}>
-          {playing ? 'Pause' : 'Play'}
-        </button>
+      <div className="lp-controls" aria-disabled={!ready} ref={controlsRef}
+        onPointerEnter={() => { controlsHoveredRef.current = true; revealControls(); }}
+        onPointerLeave={() => { controlsHoveredRef.current = false; revealControls(); }}
+        onBlur={revealControls}
+      >
         <input
           className="lp-seek"
           type="range"
@@ -304,65 +359,78 @@ export function LecturePlayer({
           max={status?.durationS ?? 0}
           step={0.1}
           value={ready ? status.mediaTimeS : 0}
+          style={rangeFill(ready && status.durationS ? status.mediaTimeS / status.durationS * 100 : 0)}
           disabled={!ready || status.durationS === null}
           onChange={(e) => controller?.seek(Number(e.currentTarget.value))}
         />
-        <span className="lp-time" aria-live="off">
-          {formatMediaTime(ready ? status.mediaTimeS : null)} / {formatMediaTime(ready ? status.durationS : null)}
-        </span>
-        <button type="button" disabled={!ready} onClick={() => controller?.setMuted(!status?.muted)}>
-          {status?.muted ? 'Unmute' : 'Mute'}
-        </button>
-        <input
-          type="range"
-          aria-label="Volume"
-          min={0}
-          max={1}
-          step={0.05}
-          value={status ? (status.muted ? 0 : status.volume) : 1}
-          disabled={!ready}
-          onChange={(e) => controller?.setVolume(Number(e.currentTarget.value))}
-        />
-        <label>
-          <span className="lp-visually-hidden">Playback speed</span>
-          <select
-            value={status?.playbackRate ?? 1}
-            disabled={!ready}
-            onChange={(e) => controller?.setPlaybackRate(Number(e.currentTarget.value))}
-          >
-            {RATES.map((r) => (
-              <option key={r} value={r}>
-                {r}×
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="lp-view-buttons" role="group" aria-label="Player size">
-          {mode !== 'minimised' && !fullscreen && (
-            <button type="button" onClick={() => setMode('minimised')} aria-label="Minimise player" title="Minimise">
-              Minimise
-            </button>
-          )}
-          {mode !== 'normal' && !fullscreen && (
-            <button type="button" onClick={() => setMode('normal')} aria-label="Restore player size" title="Restore">
-              Restore
-            </button>
-          )}
-          {mode !== 'maximised' && !fullscreen && (
-            <button type="button" onClick={() => setMode('maximised')} aria-label="Maximise player" title="Maximise">
-              Maximise
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void toggleFullscreen()}
-            aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            aria-pressed={fullscreen}
-            title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            {fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        <div className="lp-control-row">
+          <button className="lp-icon-button lp-play" type="button" disabled={!ready} onClick={() => void controller?.togglePlay()}
+            aria-label={playing ? 'Pause' : 'Play'} title={playing ? 'Pause' : 'Play'}>
+            <PlayerIcon name={playing ? 'pause' : 'play'} />
           </button>
-        </span>
+          <div className="lp-volume-group">
+            <button className="lp-icon-button" type="button" disabled={!ready} onClick={() => controller?.setMuted(!status?.muted)}
+              aria-label={status?.muted ? 'Unmute' : 'Mute'} title={status?.muted ? 'Unmute' : 'Mute'}>
+              <PlayerIcon name={status?.muted || status?.volume === 0 ? 'muted' : 'volume'} />
+            </button>
+            <input
+              className="lp-volume"
+              type="range"
+              aria-label="Volume"
+              min={0}
+              max={1}
+              step={0.05}
+              value={status ? (status.muted ? 0 : status.volume) : 1}
+              style={rangeFill((status ? (status.muted ? 0 : status.volume) : 1) * 100)}
+              disabled={!ready}
+              onChange={(e) => controller?.setVolume(Number(e.currentTarget.value))}
+            />
+          </div>
+          <span className="lp-time" aria-live="off">
+            {formatMediaTime(ready ? status.mediaTimeS : null)}<span className="lp-duration"> / {formatMediaTime(ready ? status.durationS : null)}</span>
+          </span>
+          <label className="lp-speed">
+            <span className="lp-visually-hidden">Playback speed</span>
+            <select
+              value={status?.playbackRate ?? 1}
+              disabled={!ready}
+              onChange={(e) => controller?.setPlaybackRate(Number(e.currentTarget.value))}
+            >
+              {RATES.map((r) => (
+                <option key={r} value={r}>
+                  {r}×
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="lp-view-buttons" role="group" aria-label="Player size">
+            {mode !== 'minimised' && !fullscreen && (
+              <button className="lp-icon-button" type="button" onClick={() => setMode('minimised')} aria-label="Minimise player" title="Minimise">
+                <PlayerIcon name="minimise" />
+              </button>
+            )}
+            {mode !== 'normal' && !fullscreen && (
+              <button className="lp-icon-button" type="button" onClick={() => setMode('normal')} aria-label="Restore player size" title="Restore">
+                <PlayerIcon name="restore" />
+              </button>
+            )}
+            {mode !== 'maximised' && !fullscreen && (
+              <button className="lp-icon-button" type="button" onClick={() => setMode('maximised')} aria-label="Maximise player" title="Maximise">
+                <PlayerIcon name="maximise" />
+              </button>
+            )}
+            <button
+              className="lp-icon-button"
+              type="button"
+              onClick={() => void toggleFullscreen()}
+              aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              aria-pressed={fullscreen}
+              title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              <PlayerIcon name={fullscreen ? 'exit-fullscreen' : 'fullscreen'} />
+            </button>
+          </span>
+        </div>
         {status?.replay && (
           <span className="lp-replay" role="status">
             Replaying {formatMediaTime(status.replay.startS)}–{formatMediaTime(status.replay.endS)}{' '}

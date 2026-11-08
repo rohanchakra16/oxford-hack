@@ -164,3 +164,271 @@
     animation: none;
   }
 }
+
+/* Self-contained control chrome. These selectors also supersede the product's legacy pills. */
+.lp.lp--modern {
+  container: lecture-player / inline-size;
+  min-width: 0;
+  width: 100%;
+  gap: 10px;
+  font-family: var(--ui-font, system-ui, sans-serif);
+  box-sizing: border-box;
+}
+.lp.lp--modern.lp--minimised { max-width: 380px; }
+.lp--modern .lp-controls {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 3px;
+  min-width: 0;
+  padding: 6px 12px 8px;
+  border: 1px solid var(--ui-line, #e4e4e7);
+  border-radius: 14px;
+  background: var(--ui-surface, #fafafa);
+  color: var(--ui-ink, #202126);
+  box-shadow: none;
+  backdrop-filter: none;
+  box-sizing: border-box;
+}
+.lp--modern .lp-control-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.lp--modern .lp-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+}
+.lp.lp--modern .lp-controls .lp-icon-button {
+  width: 34px;
+  padding: 0;
+}
+.lp.lp--modern .lp-controls button:hover:not(:disabled) {
+  background: rgb(128 128 128 / 14%);
+  box-shadow: none;
+}
+.lp.lp--modern .lp-controls button:active:not(:disabled) {
+  background: rgb(128 128 128 / 24%);
+  box-shadow: none;
+  transform: none;
+}
+.lp--modern .lp-controls :is(button, select, input):focus-visible {
+  outline: 2px solid var(--ui-accent, #3857c4);
+  outline-offset: 3px;
+}
+.lp--modern .lp-controls button:disabled,
+.lp--modern .lp-controls input:disabled,
+.lp--modern .lp-controls select:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.lp--modern .lp-controls input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 18px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  --lp-track: rgb(128 128 128 / 24%);
+  --lp-accent: var(--ui-accent, #3857c4);
+}
+.lp--modern .lp-controls input[type='range']::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--lp-accent) var(--lp-fill), var(--lp-track) var(--lp-fill));
+}
+.lp--modern .lp-controls input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -3.5px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--lp-accent);
+}
+.lp--modern .lp-controls input[type='range']::-moz-range-track {
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--lp-accent) var(--lp-fill), var(--lp-track) var(--lp-fill));
+}
+.lp--modern .lp-controls input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--lp-accent);
+}
+.lp.lp--modern .lp-seek {
+  flex: none;
+  order: 0;
+  width: 100%;
+}
+.lp--modern .lp-volume-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.lp.lp--modern .lp-controls .lp-volume {
+  display: block;
+  width: 64px;
+}
+.lp--modern .lp-time {
+  min-width: 0;
+  flex: none;
+  color: inherit;
+  opacity: 0.78;
+  font-size: 12px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.lp.lp--modern .lp-controls .lp-speed {
+  display: block;
+  margin-left: auto;
+  flex: none;
+}
+.lp--modern .lp-controls select {
+  height: 30px;
+  max-width: 62px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lp--modern .lp-controls select option {
+  background: var(--ui-surface, #fafafa);
+  color: var(--ui-ink, #202126);
+}
+.lp--modern .lp-view-buttons {
+  display: flex;
+  gap: 2px;
+  margin-left: 0;
+  flex: none;
+}
+.lp--modern .lp-replay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.lp--modern .lp-replay button {
+  height: 28px;
+  min-height: 28px;
+  text-decoration: underline;
+}
+@container lecture-player (max-width: 560px) {
+  /* Reveal volume above the bar instead of spending scarce horizontal space. */
+  .lp.lp--modern .lp-controls .lp-volume {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    z-index: 5;
+    width: 84px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: var(--ui-surface, #fafafa);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 18%);
+    visibility: hidden;
+    opacity: 0;
+  }
+  .lp.lp--modern .lp-volume-group:is(:hover, :focus-within) .lp-volume {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+@container lecture-player (max-width: 420px) {
+  .lp--modern .lp-controls { padding: 4px 6px 6px; }
+  .lp--modern .lp-control-row { gap: 2px; }
+  .lp.lp--modern .lp-controls .lp-icon-button { width: 30px; height: 32px; min-height: 32px; }
+  .lp--modern .lp-view-buttons { gap: 0; }
+  .lp--modern .lp-time { font-size: 11px; }
+  .lp--modern .lp-controls select { max-width: 52px; font-size: 11px; }
+}
+@container lecture-player (max-width: 340px) {
+  .lp--modern .lp-duration { display: none; }
+}
+/* The stage uses every available pixel; controls overlay it instead of reducing video height. */
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  gap: 0;
+  background: #000;
+  color: #fff;
+  border-radius: 0;
+}
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) .lp-toolbar { display: none; }
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) .lp-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) .lp-controls {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  padding: 36px max(20px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(transparent, rgb(0 0 0 / 80%));
+  color: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+  transition: opacity 180ms ease;
+}
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) .lp-controls input[type='range'] {
+  --lp-accent: #fff;
+  --lp-track: rgb(255 255 255 / 30%);
+}
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) .lp-replay { color: #fff; }
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) .lp-controls :focus-visible { outline-color: #fff; }
+.lp.lp--modern:is(.lp--maximised, .lp--fullscreen, :fullscreen) .lp-volume-group .lp-volume {
+  background-color: #252525;
+}
+.lp.lp--modern.lp--controls-hidden { cursor: none; }
+.lp.lp--modern.lp--controls-hidden .lp-controls:not(:focus-within) {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp.lp--modern .lp-controls,
+  .lp--modern .lp-controls button { transition: none; }
+}
