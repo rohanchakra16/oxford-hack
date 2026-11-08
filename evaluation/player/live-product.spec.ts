@@ -32,13 +32,15 @@ test('main live website sends calibrated gaze to backend and saves a real-transp
           tBrowserFrameMs:t,tBrowserProcessedMs:t,measurementKind:'screen_gaze',calibrationId:'live-camera-test',
           valid:true,invalidReasons:[],insideVideo:o.getVideoElement().currentTime<14,
           videoPoint:{x:0.5,y:0.5},modelConfidence:0.9};o.onObservation(f);o.onObservationBatch?.([f]);},100);
-      },stop:()=>clearInterval(timer)
+      },getCalibration:()=>null,stop:()=>clearInterval(timer)
     }}
   ` }));
   await page.goto(`${MAIN_URL}/#pair=${token}`);
   await expect(page.getByText('Session connected')).toBeVisible();
   await page.locator('input[type="file"][accept*="video"]').setInputFiles(lecture);
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
   await page.getByRole('button', { name: 'Calibrate EEG + gaze' }).click();
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
   await page.locator('video').evaluate((v: HTMLVideoElement) => v.play());
   await expect.poll(() => page.locator('video').evaluate((v: HTMLVideoElement) => v.currentTime), { timeout: 15000 }).toBeGreaterThan(10);
   await expect(page.locator('article.bookmark-card')).toHaveCount(0);
@@ -47,8 +49,10 @@ test('main live website sends calibrated gaze to backend and saves a real-transp
   expect(received).toEqual(['experimental_combined']);
   expect(sent).toContain('gaze_calibration'); expect(sent).toContain('gaze_observations');
   expect(evaluationCalls).toBe(0);
+  await page.getByRole('button', { name: 'Session setup', exact: true }).click();
   await page.getByRole('button', { name: 'Stop camera', exact: true }).click();
   await expect(page.getByText('Camera stopped.', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to lecture', exact: true }).click();
   await expect(page.locator('article.bookmark-card')).toHaveCount(1);
   await page.getByRole('navigation', { name: 'Saved bookmark flags' }).getByRole('button').click();
   await expect.poll(() => page.locator('video').evaluate((v: HTMLVideoElement) => v.currentTime)).toBeLessThan(20);

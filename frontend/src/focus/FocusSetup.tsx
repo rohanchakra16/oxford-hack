@@ -3,13 +3,15 @@ import { GazeCalibration } from '../../../evaluation/player/GazeCalibration';
 import type { useFocusReview } from './useFocusReview';
 import './focus.css';
 
-export function FocusSetup({ player, lecture, focus }: {
+export function FocusSetup({ player, lecture, focus, participant, onCalibrationBusyChange }: {
   player: PlayerHandle | null;
   lecture: LoadedLecture | null;
   focus: ReturnType<typeof useFocusReview>;
+  participant?: string;
+  onCalibrationBusyChange?: (busy: boolean) => void;
 }) {
   return <div className="focus-tools">
-    <GazeCalibration key={lecture?.videoId ?? 'none'} player={player} buffer={focus.gaze} onStarted={focus.start} client={focus.live ? focus.client : undefined} />
+    <GazeCalibration key={`${lecture?.videoId ?? 'none'}:${participant ?? 'local'}`} player={player} buffer={focus.gaze} onStarted={focus.start} client={focus.live ? focus.client : undefined} participant={participant} onBusyChange={onCalibrationBusyChange} />
     <p>{focus.live ? 'Live EEG + webcam gaze · experimental. A connected headset and calibrated camera are required; missing signals stay unavailable.' : 'Experimental EEG + gaze · EEG uses scripted or offline scores; webcam gaze stays local.'}</p>
     {focus.enabled && <>
       <p role="status">{focus.live ? 'Gaze is sent to your live session. Complete personal attention calibration with Annie’s model; calibrated gaze corroborates review suggestions.' : focus.error || focus.snapshot?.fusion?.reason || 'Connecting EEG + gaze…'}</p>
