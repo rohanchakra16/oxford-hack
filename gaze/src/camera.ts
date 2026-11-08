@@ -6,6 +6,23 @@ export type CameraState =
   | { status: "live"; label: string; width: number; height: number }
   | { status: "error"; reason: GazeReasonCode; message: string };
 
+/** Maps a getUserMedia failure to a reason code and a message that says what to do. */
+export function cameraError(name: string | undefined, raw: string): { reason: GazeReasonCode; message: string } {
+  if (name === "NotAllowedError" || name === "SecurityError")
+    return {
+      reason: "CAMERA_PERMISSION_DENIED",
+      message: "Camera permission was denied. Allow camera access for this site (camera icon in the address bar, or the system privacy settings), then try again.",
+    };
+  if (name === "NotReadableError" || name === "AbortError")
+    return {
+      reason: "CAMERA_IN_USE",
+      message: "The camera is busy or could not be started. Close other apps or tabs using it, then try again.",
+    };
+  if (name === "NotFoundError" || name === "OverconstrainedError")
+    return { reason: "CAMERA_NOT_FOUND", message: "No camera was found. Connect a camera, then try again." };
+  return { reason: "CAMERA_NOT_FOUND", message: `The camera could not be started (${raw}).` };
+}
+
 /** Wraps getUserMedia with explicit failure states and reconnection on device changes. */
 export class Camera {
   readonly video: HTMLVideoElement;
@@ -41,7 +58,7 @@ export class Camera {
   async start(): Promise<void> {
     this.wantRunning = true;
     if (!navigator.mediaDevices?.getUserMedia) {
-      this.set({ status: "error", reason: "CAMERA_NOT_FOUND", message: "Camera API unavailable (needs https or localhost)." });
+      this.set({ status: "error", reason: "CAMERA_NOT_FOUND", message: "The camera API is unavailable. Open the app over https or on localhost / 127.0.0.1." });
       return;
     }
     this.set({ status: "starting" });
@@ -60,14 +77,8 @@ export class Camera {
       if (!this.video.videoWidth) await new Promise((r) => this.video.addEventListener("loadedmetadata", r, { once: true }));
       this.set({ status: "live", label: track.label, width: this.video.videoWidth, height: this.video.videoHeight });
     } catch (err) {
-      const name = (err as DOMException)?.name;
-      const reason: GazeReasonCode =
-        name === "NotAllowedError" || name === "SecurityError"
-          ? "CAMERA_PERMISSION_DENIED"
-          : name === "NotReadableError" || name === "AbortError"
-            ? "CAMERA_IN_USE"
-            : "CAMERA_NOT_FOUND";
-      this.set({ status: "error", reason, message: (err as Error)?.message ?? String(err) });
+      const { reason, message } = cameraError((err as DOMException)?.name, (err as Error)?.message ?? String(err));
+      this.set({ status: "error", reason, message });
     }
   }
 

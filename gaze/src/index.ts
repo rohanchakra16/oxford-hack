@@ -1,6 +1,10 @@
 export * from "./types";
 export { GazeEngine, MODEL_NAME, MODULE_VERSION } from "./engine";
-export type { GazeEngineOptions, CalibrationUI, FrameDebug } from "./engine";
+export type { GazeEngineOptions, CalibrationUI, FrameDebug, ModelState } from "./engine";
+export { GazeStartupError, checkGazeAssets, SETUP_HINT } from "./assets";
+export type { GazeStartupErrorKind, AssetProblem } from "./assets";
+export { cameraError } from "./camera";
+export type { CameraState } from "./camera";
 export {
   fitCalibration,
   calibrationSigma,
