@@ -4,6 +4,7 @@
  * Owner: Person 4 (@aryanmorarji). See src/player/README.md.
  */
 import { useEffect, useImperativeHandle, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { createPortal } from 'react-dom';
 import { attachMediaElement, type ReviewClient, type StartSessionOptions } from '../integration';
 import { PlayerController, type ObservedEvent, type PlaybackStatus } from './controller';
 import { checkVideoFile, describeMediaError, formatMediaTime, localVideoId } from './localMedia';
@@ -55,6 +56,8 @@ export interface LecturePlayerProps {
   ref?: Ref<PlayerHandle | null>;
   /** Called when a lecture is loaded or cleared. */
   onLectureChange?: (lecture: LoadedLecture | null) => void;
+  /** Optional shared file toolbar. Loading and session state stay owned by this player. */
+  filePickerTarget?: HTMLElement | null;
   /** Controlled view mode. Omit to let the player manage it (starts at `defaultViewMode`). */
   viewMode?: PlayerViewMode;
   defaultViewMode?: PlayerViewMode;
@@ -100,6 +103,7 @@ export function LecturePlayer({
   session = DEFAULT_SESSION,
   ref,
   onLectureChange,
+  filePickerTarget,
   viewMode,
   defaultViewMode = 'normal',
   onViewModeChange,
@@ -274,6 +278,26 @@ export function LecturePlayer({
 
   const chromeVisible = !fullscreen || !playing || controlsVisible;
 
+  const filePicker = (
+    <label className="lp-open media-file-action">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+        <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+        <path d="m10 11 5 3-5 3Z" />
+      </svg>
+      <span>Open lecture</span>
+      <input
+        type="file"
+        accept="video/*,.mp4,.m4v,.webm,.mov,.ogv,.mkv"
+        aria-label="Open lecture"
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          e.currentTarget.value = ''; // allow re-selecting the same file
+          if (file) void openFile(file);
+        }}
+      />
+    </label>
+  );
+
   return (
     <section
       ref={rootRef}
@@ -286,25 +310,14 @@ export function LecturePlayer({
       onFocusCapture={revealControls}
       onKeyDownCapture={revealControls}
     >
-      <div className="lp-toolbar">
-        <label className="lp-open">
-          <span>Open lecture</span>
-          <input
-            type="file"
-            accept="video/*,.mp4,.m4v,.webm,.mov,.ogv,.mkv"
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0];
-              e.currentTarget.value = ''; // allow re-selecting the same file
-              if (file) void openFile(file);
-            }}
-          />
-        </label>
+      {filePickerTarget ? createPortal(filePicker, filePickerTarget) : <div className="lp-toolbar">
+        {filePicker}
         {lecture && (
           <span className="lp-filename" title={lecture.fileName}>
             {lecture.fileName}
           </span>
         )}
-      </div>
+      </div>}
 
       <div className="lp-stage">
         <video
