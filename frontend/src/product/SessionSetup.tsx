@@ -63,7 +63,8 @@ export function SessionSetup({ open, onClose, snapshot, lecture, player, focus, 
             {snapshot.kind === 'live' && <PersonalCalibration attention={attention} enabled={Boolean(snapshot.session)} />}
             <div className="session-setup__camera"><FocusSetup player={player} lecture={lecture} focus={focus} participant={attention.participant} onCalibrationBusyChange={setCalibratingCamera} /></div>
           </>}
-          <ExperimentControls experiment={experiment} />
+          <ExperimentControls experiment={experiment} player={player} participant={attention.participant}
+            onCalibrationBusyChange={setCalibratingCamera} />
         </section>
       </div>
       <footer className="session-setup__footer">

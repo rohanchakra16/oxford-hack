@@ -292,6 +292,7 @@ export default function App() {
   );
   const sentences = transcript?.sentences ?? NO_SENTENCES;
   const focus = useFocusReview(player, lecture, duration, client);
+  const displayedGaze = experiment.enabled ? experiment.gazeLive : focus.gazeLive;
   const ended = useSyncExternalStore(player?.subscribe ?? NOOP_SUBSCRIBE, () => player?.getState().ended ?? false);
 
   const questions = useBookmarkQuestions({
@@ -459,7 +460,7 @@ export default function App() {
           {experiment.enabled && (
             <div className="notice notice--info" role="status" data-testid="experiment-banner">
               <AlertIcon />
-              <p><strong>Experimental mode.</strong> {experiment.source ? `EEG CSV: ${experiment.source.name} · randomized gaze every 10 seconds.` : 'Import an EEG CSV in Session setup → Calibration → Experimental mode.'} Test scores and review dots are simulated.</p>
+              <p><strong>Experimental mode.</strong> {experiment.source ? `EEG CSV: ${experiment.source.name} · ${experiment.gazeMode === 'webcam' ? 'calibrated webcam gaze' : 'randomized gaze every 10 seconds'}.` : 'Import an EEG CSV in Session setup → Calibration → Experimental mode.'} Test scores and review dots are simulated.</p>
             </div>
           )}
           {!experiment.enabled && snapshot.kind === 'synthetic' && (
@@ -548,7 +549,7 @@ export default function App() {
               </div>
             )}
             overlay={<>
-              <GazeOverlay store={focus.gazeLive} crosshair={gazeCrosshair} border={gazeBorder} />
+              <GazeOverlay store={displayedGaze} crosshair={gazeCrosshair} border={gazeBorder} />
               <AttentionInfoIndicator store={attentionStore} onSeek={seekAttention} />
               {headsUp}
             </>} />
@@ -640,7 +641,7 @@ export default function App() {
               </button>
               {showSummary && <AttentionSummary store={attentionStore} playback={player} onSeek={seekGraph} onClose={() => setShowSummary(false)} />}
               {!experiment.enabled && client.kind === 'synthetic' && <AttentionDemoPanel store={attentionStore} playback={player} />}
-              <GazeSection store={focus.gazeLive} player={player} durationS={duration} crosshair={gazeCrosshair} border={gazeBorder}
+              <GazeSection store={displayedGaze} player={player} durationS={duration} crosshair={gazeCrosshair} border={gazeBorder}
                 onCrosshair={setGazeCrosshair} onBorder={setGazeBorder} />
             </div>
           </aside>

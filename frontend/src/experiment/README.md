@@ -22,6 +22,24 @@ flat and discontinuous windows stay unavailable. CSV end does not loop; seeking
 the video back replays the corresponding samples. Time zero aligns with lecture
 zero; no wall-clock timestamp is treated as a lecture position.
 
+Choose **Experiment gaze source → Calibrated webcam gaze** to test the CSV and
+your eyes together. Open a lecture first, press **Calibrate gaze**, allow camera
+access and follow the moving dot. Closing setup keeps the calibrated camera and
+CSV replay running. The Attention tab shows measured webcam gaze, its timeline,
+and the usual optional crosshair / looking-away border while this source is selected.
+The camera is stopped when you disable the experiment, change gaze source or lecture,
+or press **Stop camera**. Switching gaze sources clears the experimental score graph.
+
+Webcam mode uses the same calibration engine as normal playback, with no backend
+client attached. Its samples stay local and its saved settings use a separate
+`experiment:<profile>` namespace. Original live camera profiles are untouched.
+Only fresh, confidently on-video or away samples contribute the 20% gaze term.
+Uncertain, missing, stopped or >1.5-second-old camera samples make combined scoring
+unavailable and interrupt low-score dwell; randomized gaze is never substituted.
+All combined scores and markers remain explicitly experimental / simulated because
+the EEG source is a CSV and the combination is a test rule, not a validated model.
+
+The default **Randomized gaze · no camera** needs no camera access.
 Mock normalized gaze coordinates are regenerated every ten wall-clock seconds
 while the mode has a CSV and lecture, including while video is paused. The center
 70% rectangle is the mock video area. No webcam is started. Test fusion is
