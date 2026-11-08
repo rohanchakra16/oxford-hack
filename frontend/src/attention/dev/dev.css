@@ -1,0 +1,23 @@
+/* Dev page layout only (not product styles). */
+body { margin: 0; background: #f7f8f5; font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; color: #242a29; }
+.dev-shell { padding: 20px; display: grid; gap: 16px; max-width: 1400px; margin: 0 auto; }
+.dev-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.dev-head h1 { margin: 0; font-size: 20px; }
+.dev-head p { margin: 4px 0 0; color: #78817e; font-size: 13px; }
+.dev-head__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dev-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  grid-template-areas: 'player side' 'main side';
+  align-items: start;
+}
+.dev-grid--minimised { grid-template-areas: 'main player' 'main side'; }
+.dev-player { grid-area: player; min-width: 0; }
+.dev-main { grid-area: main; min-width: 0; }
+.dev-side { grid-area: side; display: grid; gap: 12px; min-width: 0; position: sticky; top: 16px; }
+.dev-grid--minimised .dev-side { position: static; }
+@media (max-width: 860px) {
+  .dev-grid, .dev-grid--minimised { grid-template-columns: 1fr; grid-template-areas: 'player' 'side' 'main'; }
+}
+.dev-placeholder { margin: 0; padding: 48px 24px; border: 1px dashed var(--ui-border, #c9ccd1); border-radius: 12px; color: var(--ui-muted, #5f6670); text-align: center; }

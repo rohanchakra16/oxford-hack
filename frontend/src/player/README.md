@@ -55,6 +55,24 @@ const [player, setPlayer] = useState<PlayerHandle | null>(null);
 Props: `client` (required, one per page), `session` (`runKind`, `sensors`; composition decides),
 `ref`, `onLectureChange(lecture | null)`.
 
+View modes and overlay (added for #55, all optional; omitting them keeps the old behaviour):
+
+| Prop | Meaning |
+|---|---|
+| `viewMode?: PlayerViewMode` | Controlled layout mode: `'normal' \| 'minimised' \| 'maximised'`. Omit to let the player manage it. True fullscreen is separate (Fullscreen button, any mode). |
+| `defaultViewMode?` | Starting mode when uncontrolled (default `'normal'`). |
+| `onViewModeChange?(mode)` | Fired when the user clicks Minimise / Maximise / Restore or presses Esc in maximised. |
+| `onFullscreenChange?(fullscreen)` | Real Fullscreen API state of the player section (not just the requested mode). |
+| `overlay?: ReactNode` | Rendered in `.lp-overlay-slot`, absolutely positioned over the video stage. Stays visible in fullscreen because it is inside the fullscreen element. Used for `AttentionInfoIndicator`. |
+
+- The player only styles itself for each mode (`data-view-mode` on `.lp`). Where a minimised player
+  goes (for example, the sidebar) is the composition's layout decision. Keep the `<LecturePlayer>` mounted
+  in one place in the React tree and move it with CSS (grid areas). Remounting it ends the session.
+- Fullscreen uses `requestFullscreen` on the player `<section>`. If the browser refuses (e.g. iframe policy),
+  nothing changes and Maximise still works. Gaze note: browser chrome changes in fullscreen. A calibration made in windowed mode may
+  be offset there (see `frontend/src/attention/README.md`).
+- Maximised is a fixed full-viewport layer (`z-index` 1000); Esc returns to normal.
+
 The handle is `null` until the `<video>` has mounted. With React 19, pass a state setter as `ref`
 (as above) to receive it.
 
