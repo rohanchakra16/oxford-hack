@@ -255,6 +255,7 @@ export default function App() {
   const [earlierCounts, setEarlierCounts] = useState<Record<string, number>>({});
   const [reminders, setReminders] = useState<WireReviewBookmark[]>([]);
   const [replayError, setReplayError] = useState<string | null>(null);
+  const [bookmarkNotice, setBookmarkNotice] = useState<string | null>(null);
   const [liveAttentionStore] = useState(() => new AttentionTimelineStore());
   const experiment = useExperiment(player, lecture?.videoId);
   const attentionStore = experiment.enabled ? experiment.store : liveAttentionStore;
@@ -262,6 +263,7 @@ export default function App() {
   const [showSummary, setShowSummary] = useState(false);
   const [setupOpen, setSetupOpen] = useState(() => new URLSearchParams(window.location.search).get('setup') === '1');
   const timeline = useTimeline(attentionStore);
+  const savedTimeline = useTimeline(liveAttentionStore);
   useAttentionLecture(liveAttentionStore, player);
   const personalAttention = usePersonalAttention(client, experiment.enabled ? undefined : snapshot.session?.sessionId, lecture?.videoId, liveAttentionStore);
 
@@ -302,17 +304,23 @@ export default function App() {
     enabled: client.kind === 'live', // per-passage consent: nothing is sent until "Test your recall" is pressed
   });
   const activeBookmarks = useMemo(
-    () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (experiment.enabled ? bookmark.source === 'manual' : (client.kind === 'live' || !focus.enabled || bookmark.source === 'manual'))), ...(experiment.enabled
+    () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (experiment.enabled ? bookmark.source === 'manual' : (client.kind === 'live' || !focus.enabled || bookmark.source === 'manual'))),
+      ...(savedTimeline.videoId === lecture?.videoId ? savedTimeline.markers.filter((marker) => marker.id.startsWith('self:')).map((marker) => ({
+        bookmarkId: marker.id, videoId: savedTimeline.videoId!, suggestedMediaS: marker.startS, source: 'manual' as const,
+      })) : []), ...(experiment.enabled
       ? timeline.markers.filter((marker) => marker.kind === 'review').map((marker) => ({ bookmarkId: `focus:${marker.id}`,
         videoId: lecture?.videoId ?? '', suggestedMediaS: marker.startS, endMediaS: marker.endS ?? undefined, source: 'experimental_combined' as const }))
       : focus.moments)]
       .sort((a, b) => a.suggestedMediaS - b.suggestedMediaS),
-    [snapshot.bookmarks, lecture, focus.enabled, focus.moments, client, experiment.enabled, timeline.markers],
+    [snapshot.bookmarks, lecture, focus.enabled, focus.moments, client, experiment.enabled, timeline.markers, savedTimeline.videoId, savedTimeline.markers],
   );
 
   useEffect(() => {
-    if (!lecture || experiment.enabled) return;
-    for (const bookmark of activeBookmarks) attentionStore.addMarker(markerFromBookmark({ ...bookmark, runKind: client.kind === 'synthetic' ? 'simulated' : 'live' }));
+    if (!lecture) return;
+    for (const bookmark of activeBookmarks) {
+      if (experiment.enabled && bookmark.source !== 'manual') continue;
+      attentionStore.addMarker(markerFromBookmark({ ...bookmark, runKind: bookmark.source === 'manual' ? 'live' : client.kind === 'synthetic' ? 'simulated' : 'live' }));
+    }
   }, [activeBookmarks, lecture, attentionStore, client, experiment.enabled]);
   useEffect(() => {
     if (experiment.enabled || client.kind !== 'synthetic' || !focus.snapshot || !player) return;
@@ -330,7 +338,21 @@ export default function App() {
     setEarlierCounts({});
     setReminders([]);
     setReplayError(null);
+    setBookmarkNotice(null);
     setTranscript(null);
+  };
+
+  const markMoment = () => {
+    if (!lecture || !player) return;
+    const time = player.getState().mediaTimeS;
+    if (!Number.isFinite(time) || time < 0) return;
+    // Viewer bookmarks belong to the lecture on this device, independently of sensors or a session.
+    liveAttentionStore.open(lecture.videoId, duration);
+    liveAttentionStore.addMarker(markerFromBookmark({
+      bookmarkId: `self:${crypto.randomUUID()}`, source: 'manual', suggestedMediaS: time,
+    }));
+    liveAttentionStore.flush();
+    setBookmarkNotice(`Bookmark saved at ${formatTime(time)}. Find it in Moments.`);
   };
 
   const replay = (bookmark: ReviewBookmark) => {
@@ -349,12 +371,12 @@ export default function App() {
     started.catch((error: unknown) => {
       setReplayError(`Replay could not start: ${error instanceof Error ? error.message : 'the browser blocked playback'}. Press play on the video, then try again.`);
     });
-    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'replay', plan.startS);
+    if (!bookmark.bookmarkId.startsWith('focus:') && !bookmark.bookmarkId.startsWith('self:')) client.sendFeedback(bookmark.bookmarkId, 'replay', plan.startS);
     focus.closeNotice();
   };
 
   const dismiss = (bookmark: ReviewBookmark) => {
-    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'dismiss', currentTime);
+    if (!bookmark.bookmarkId.startsWith('focus:') && !bookmark.bookmarkId.startsWith('self:')) client.sendFeedback(bookmark.bookmarkId, 'dismiss', currentTime);
     setDismissed((previous) => new Set(previous).add(bookmark.bookmarkId));
   };
 
@@ -371,11 +393,11 @@ export default function App() {
     const count = (earlierCounts[bookmark.bookmarkId] ?? 0) + 1;
     setEarlierCounts((previous) => ({ ...previous, [bookmark.bookmarkId]: count }));
     const target = passageFor(sentences, bookmark.suggestedMediaS, count)?.startS ?? bookmark.suggestedMediaS;
-    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, 'move_earlier', target);
+    if (!bookmark.bookmarkId.startsWith('focus:') && !bookmark.bookmarkId.startsWith('self:')) client.sendFeedback(bookmark.bookmarkId, 'move_earlier', target);
   };
 
   const rate = (bookmark: ReviewBookmark, useful: boolean) => {
-    if (!bookmark.bookmarkId.startsWith('focus:')) client.sendFeedback(bookmark.bookmarkId, useful ? 'rated_useful' : 'rated_not_useful', currentTime);
+    if (!bookmark.bookmarkId.startsWith('focus:') && !bookmark.bookmarkId.startsWith('self:')) client.sendFeedback(bookmark.bookmarkId, useful ? 'rated_useful' : 'rated_not_useful', currentTime);
   };
 
   const connection = snapshot.connection;
@@ -457,6 +479,7 @@ export default function App() {
 
       <main className="workspace" data-view={viewMode} data-state={lecture ? 'loaded' : 'empty'}>
         <div className="notices">
+          {bookmarkNotice && <div className="notice notice--info" role="status" data-testid="bookmark-saved"><FlagIcon /><p>{bookmarkNotice}</p></div>}
           {experiment.enabled && (
             <div className="notice notice--info" role="status" data-testid="experiment-banner">
               <AlertIcon />
@@ -516,9 +539,9 @@ export default function App() {
               <button
                 className="btn btn--soft"
                 type="button"
-                disabled={!snapshot.session || !lecture}
-                title={snapshot.session ? 'Add a review marker at the current time' : 'Waiting for an active session'}
-                onClick={() => client.markBookmark(currentTime)}
+                disabled={!lecture || !player}
+                title="Bookmark the current video time on this device"
+                onClick={markMoment}
                 aria-label={`Mark this moment at ${formatTime(currentTime)}`}
               >
                 <FlagIcon /> Mark moment
@@ -586,6 +609,9 @@ export default function App() {
             </div>
 
             <div className="tabpanel" role="tabpanel" id="panel-moments" aria-labelledby="tab-moments" hidden={panelTab !== 'moments'}>
+              <button className="btn btn--primary btn--block" type="button" disabled={!lecture || !player} onClick={markMoment}>
+                <FlagIcon /> Bookmark this moment
+              </button>
               <p className="panel-lede">
                 {complete ? 'Lecture complete. Choose a moment to revisit it.' : 'Suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.'}
               </p>
