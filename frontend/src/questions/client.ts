@@ -26,6 +26,9 @@ export interface GeneratedQuestion {
   promptVersion: string;
   /** Served from the backend cache rather than a new model request. */
   cached: boolean;
+  /** Older excerpt-only responses can lack choices; those cannot be scored as MC. */
+  choices?: string[];
+  correctChoiceIndex?: number;
 }
 
 export type UnavailableCode =
@@ -134,6 +137,8 @@ export async function requestQuestion(
       model: typeof body.model === 'string' ? body.model : 'unknown',
       promptVersion: typeof body.promptVersion === 'string' ? body.promptVersion : 'unknown',
       cached: body.cached === true,
+      choices: Array.isArray(body.choices) && body.choices.every((value) => typeof value === 'string') ? body.choices : undefined,
+      correctChoiceIndex: typeof body.correctChoiceIndex === 'number' ? body.correctChoiceIndex : undefined,
     },
   };
 }

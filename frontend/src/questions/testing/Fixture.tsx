@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange } from '../index';
+import { BookmarkQuestion, QuestionProviderControls, RecallQuizControls, useBookmarkQuestions, type BookmarkRange } from '../index';
 import type { Sentence } from '../../transcript';
 
 const sentences: Sentence[] = [
@@ -18,10 +18,12 @@ function Fixture() {
   return <main>
     <h1>Saved lecture moments</h1>
     <QuestionProviderControls {...questions.controls} />
+    <RecallQuizControls quiz={questions.quiz} ready={questions.ready} />
     {bookmarks.map((bookmark) => <article key={bookmark.bookmarkId} data-testid={`saved-${bookmark.bookmarkId}`}>
       <h2>Saved bookmark {bookmark.bookmarkId}</h2>
       <button disabled={!questions.ready} onClick={() => questions.request(bookmark)}>Test recall {bookmark.bookmarkId}</button>
-      <BookmarkQuestion entry={questions.get(bookmark.bookmarkId)} onRetry={() => questions.retry(bookmark)} />
+      <BookmarkQuestion entry={questions.get(bookmark.bookmarkId)} onRetry={() => questions.retry(bookmark)}
+        quiz={questions.interactionFor(bookmark.bookmarkId)} />
     </article>)}
   </main>;
 }

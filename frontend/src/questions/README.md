@@ -18,3 +18,9 @@ Full setup and protocol: [QUESTION_GENERATION.md](../../../inference/QUESTION_GE
 The frontend holds only the local backend launch token and nonsecret provider/account/model choices.
 OpenRouter keys and ChatGPT OAuth tokens remain in the backend. Synthetic mode does not offer questions.
 Bookmark summaries remain deferred.
+
+Issue #83 adds local answers and fixed quiz batches. `QuestionAnswer.tsx` supplies typed self-check
+or shuffled four-choice answers; `useRecallQuiz.ts` snapshots moments, locks submissions and resets
+on scope changes; `quiz.ts` computes the final score only after all answerable questions are
+complete. `RecallQuizControls.tsx` labels self-assessed scores separately and explains excluded
+questions. Student responses never enter API payloads or context summaries. Reloading clears them.

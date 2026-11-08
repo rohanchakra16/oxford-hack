@@ -5,3 +5,5 @@ export { DEFAULT_EXCERPT_OPTIONS, bookmarkInterval, excerptForBookmark, type Boo
 export { createQuestionStore, type QuestionEntry, type QuestionSnapshot, type QuestionStore } from './store';
 export { useBookmarkQuestions, type UseBookmarkQuestionsArgs } from './useBookmarkQuestions';
 export { QuestionProviderControls } from './QuestionProviderControls';
+export { RecallQuizControls } from './RecallQuizControls';
+export type { QuestionInteraction } from './quiz';

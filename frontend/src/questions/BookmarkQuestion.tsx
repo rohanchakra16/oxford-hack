@@ -6,13 +6,16 @@
 import { useState } from 'react';
 import type { QuestionEntry } from './store';
 import type { GeneratedQuestion } from './client';
+import { questionFingerprint, type QuestionInteraction } from './quiz';
+import { QuestionAnswer } from './QuestionAnswer';
 
 export interface BookmarkQuestionProps {
   entry: QuestionEntry | undefined;
   onRetry?: () => void;
+  quiz?: QuestionInteraction;
 }
 
-export function BookmarkQuestion({ entry, onRetry }: BookmarkQuestionProps) {
+export function BookmarkQuestion({ entry, onRetry, quiz }: BookmarkQuestionProps) {
   const [revealed, setRevealed] = useState<GeneratedQuestion | null>(null);
   if (!entry) return null;
   const status = entry.status;
@@ -32,19 +35,23 @@ export function BookmarkQuestion({ entry, onRetry }: BookmarkQuestionProps) {
       {status === 'ready' && (
         <>
           <p className="bookmark-question-text" data-testid="bookmark-question-text">{entry.result.question}</p>
-          <button type="button" aria-expanded={showAnswer} onClick={() => setRevealed(showAnswer ? null : entry.result)}>
-            {showAnswer ? 'Hide suggested answer' : 'Show suggested answer'}
-          </button>
-          {showAnswer && (
-            <div data-testid="bookmark-question-answer">
-              <p>{entry.result.suggestedAnswer}</p>
-              {entry.result.supportingQuote && (
-                <blockquote>
-                  “{entry.result.supportingQuote}”{' '}
-                  <small>{entry.result.quoteVerified ? 'From the transcript' : 'Not found word-for-word in the transcript'}</small>
-                </blockquote>
+          {quiz ? <QuestionAnswer key={`${quiz.sessionId}:${questionFingerprint(entry.result)}`} question={entry.result} quiz={quiz} /> : (
+            <>
+              <button type="button" aria-expanded={showAnswer} onClick={() => setRevealed(showAnswer ? null : entry.result)}>
+                {showAnswer ? 'Hide suggested answer' : 'Show suggested answer'}
+              </button>
+              {showAnswer && (
+                <div data-testid="bookmark-question-answer">
+                  <p>{entry.result.suggestedAnswer}</p>
+                  {entry.result.supportingQuote && (
+                    <blockquote>
+                      “{entry.result.supportingQuote}”{' '}
+                      <small>{entry.result.quoteVerified ? 'From the transcript' : 'Not found word-for-word in the transcript'}</small>
+                    </blockquote>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
           <p><small>AI-generated from the transcript ({entry.result.model}{entry.result.cached ? ', cached' : ''}). Check it against the lecture.</small></p>
         </>

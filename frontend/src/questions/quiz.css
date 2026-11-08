@@ -1,0 +1,15 @@
+.recall-quiz { margin: 1rem 0; padding: .8rem; border: 1px solid currentColor; border-radius: .5rem; }
+.recall-quiz > button { margin: .4rem .25rem .2rem 0; }
+.recall-quiz__score { font-size: 1.15em; }
+.recall-answer textarea { display: block; width: 100%; box-sizing: border-box; margin: .5rem 0; padding: .6rem; font: inherit; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: .4rem; }
+.recall-answer fieldset { border: 0; padding: 0; margin: .75rem 0; }
+.recall-answer__choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.recall-answer__choice { display: flex; gap: .5rem; align-items: flex-start; padding: .8rem; border: 1px solid currentColor; border-radius: .4rem; cursor: pointer; overflow-wrap: anywhere; }
+.recall-answer__choice--0 { background: #c92d3b22; }
+.recall-answer__choice--1 { background: #286ed822; }
+.recall-answer__choice--2 { background: #cc9b1122; }
+.recall-answer__choice--3 { background: #23834b22; }
+.recall-answer__choice:has(input:checked) { outline: 2px solid currentColor; }
+.recall-answer__choice:focus-within { outline: 2px solid currentColor; outline-offset: 2px; }
+.recall-answer__choice > strong { margin-left: auto; }
+@media (max-width: 480px) { .recall-answer__choices { grid-template-columns: 1fr; } }

@@ -17,7 +17,7 @@ import { planReplay } from './replayPlan';
 import { useFocusReview } from '../focus/useFocusReview';
 import { SessionSetup } from './SessionSetup';
 import { useExperiment } from '../experiment/useExperiment';
-import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange, type QuestionEntry } from '../questions';
+import { BookmarkQuestion, QuestionProviderControls, RecallQuizControls, useBookmarkQuestions, type BookmarkRange, type QuestionEntry, type QuestionInteraction } from '../questions';
 
 /** Product moments carry an optional end instead of wire evidence; give the excerpt builder a range. */
 function questionRange(bookmark: ReviewBookmark): BookmarkRange {
@@ -32,7 +32,6 @@ type ReviewBookmark = Pick<WireReviewBookmark, 'bookmarkId' | 'source' | 'videoI
 
 const NOOP_SUBSCRIBE = () => () => {};
 const NO_SENTENCES: readonly Sentence[] = [];
-const NO_BOOKMARKS: readonly BookmarkRange[] = []; // recall questions are requested per passage, never in bulk
 
 const sensorLabels = { eeg: 'EEG headset', gaze: 'Webcam gaze' } as const;
 
@@ -76,6 +75,7 @@ function BookmarkCard({
   questionsAvailable,
   question,
   onRequestQuestion,
+  quiz,
 }: {
   bookmark: ReviewBookmark;
   sentences: readonly Sentence[];
@@ -88,6 +88,7 @@ function BookmarkCard({
   questionsAvailable: boolean;
   question: QuestionEntry | undefined;
   onRequestQuestion: (bookmark: ReviewBookmark) => void;
+  quiz: QuestionInteraction | undefined;
 }) {
   const passage = passageFor(sentences, bookmark.suggestedMediaS, earlierCount);
   const [rated, setRated] = useState<'useful' | 'not_useful' | null>(null);
@@ -147,7 +148,7 @@ function BookmarkCard({
             </div>
           </div>
         )}
-        {!dismissed && questionsAvailable && (
+        {(!dismissed || quiz) && questionsAvailable && (
           <div className="bookmark-recall">
             {!question && (
               <>
@@ -157,7 +158,7 @@ function BookmarkCard({
                 <p className="bookmark-card__note"><small>Uses your selected AI provider and the lecture context you approved below.</small></p>
               </>
             )}
-            <BookmarkQuestion entry={question} onRetry={() => onRequestQuestion(bookmark)} />
+            <BookmarkQuestion entry={question} onRetry={() => onRequestQuestion(bookmark)} quiz={quiz} />
           </div>
         )}
       </div>
@@ -252,12 +253,6 @@ export default function App() {
   const focus = useFocusReview(player, lecture, duration, client);
   const ended = useSyncExternalStore(player?.subscribe ?? NOOP_SUBSCRIBE, () => player?.getState().ended ?? false);
 
-  const questions = useBookmarkQuestions({
-    bookmarks: NO_BOOKMARKS,
-    sentences,
-    videoId: lecture?.videoId ?? null,
-    enabled: client.kind === 'live', // per-passage consent: nothing is sent until "Test your recall" is pressed
-  });
   const activeBookmarks = useMemo(
     () => [...snapshot.bookmarks.filter((bookmark) => (!lecture || bookmark.videoId === lecture.videoId) && (experiment.enabled ? bookmark.source === 'manual' : (client.kind === 'live' || !focus.enabled || bookmark.source === 'manual'))), ...(experiment.enabled
       ? timeline.markers.filter((marker) => marker.kind === 'review').map((marker) => ({ bookmarkId: `focus:${marker.id}`,
@@ -266,6 +261,13 @@ export default function App() {
       .sort((a, b) => a.suggestedMediaS - b.suggestedMediaS),
     [snapshot.bookmarks, lecture, focus.enabled, focus.moments, client, experiment.enabled, timeline.markers],
   );
+  const quizBookmarks = useMemo(() => activeBookmarks.filter((bookmark) => !dismissed.has(bookmark.bookmarkId)).map(questionRange), [activeBookmarks, dismissed]);
+  const questions = useBookmarkQuestions({
+    bookmarks: quizBookmarks,
+    sentences,
+    videoId: lecture?.videoId ?? null,
+    enabled: client.kind === 'live',
+  });
 
   useEffect(() => {
     if (!lecture || experiment.enabled) return;
@@ -501,6 +503,7 @@ export default function App() {
                 Moments are suggestions to review, not judgments about your attention. Nothing pauses or rewinds on its own.
               </p>
               {client.kind === 'live' && <QuestionProviderControls {...questions.controls} />}
+              {client.kind === 'live' && <RecallQuizControls quiz={questions.quiz} ready={questions.ready} />}
               {(ended || focus.snapshot?.ended) && <p role="status">Lecture complete. Choose a saved flag to revisit a moment.</p>}
               {!experiment.enabled && snapshot.sensors && !snapshot.sensors.automaticSuggestions && (
                 <div className="manual-only-note" role="status">
@@ -520,8 +523,9 @@ export default function App() {
                       onDismiss={dismiss}
                       onEarlier={moveEarlier}
                       onRate={rate}
-                      questionsAvailable={questions.ready}
+                      questionsAvailable={questions.ready && questions.quiz.canRequest(bookmark.bookmarkId)}
                       question={questions.get(bookmark.bookmarkId)}
+                      quiz={questions.interactionFor(bookmark.bookmarkId)}
                       onRequestQuestion={(b) => questions.request(questionRange(b))}
                     />
                   ))}

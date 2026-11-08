@@ -18,6 +18,7 @@ import { createContextQuestionRequester } from './client';
 import type { BookmarkRange } from './excerpt';
 import { createQuestionStore } from './store';
 import { useQuestionProvider } from './useQuestionProvider';
+import { useRecallQuiz } from './useRecallQuiz';
 
 export interface UseBookmarkQuestionsArgs {
   bookmarks: readonly BookmarkRange[];
@@ -59,13 +60,17 @@ export function useBookmarkQuestions({ bookmarks, sentences, videoId, enabled, a
   }, [store, bookmarks, sentences, ready, auto]);
 
   // Explicit, per-passage request (the student pressed "Test your recall"). No-op when disabled.
-  const request = useCallback((bookmark: BookmarkRange) => {
+  const generate = useCallback((bookmark: BookmarkRange) => {
     if (!ready) return;
     if (store.getSnapshot().has(bookmark.bookmarkId)) store.retry(bookmark, sentences);
     else store.ensure(bookmark, sentences);
   }, [store, sentences, ready]);
+  const quizScope = useMemo(() => ({ store, videoId, sentences, consented }), [store, videoId, sentences, consented]);
+  const quiz = useRecallQuiz(quizScope, snapshot, bookmarks, ready, generate);
+  const request = quiz.requestOne;
   const retry = useCallback((bookmark: BookmarkRange) => { if (ready) store.retry(bookmark, sentences); }, [store, sentences, ready]);
-  return useMemo(() => ({ get: (id: string) => snapshot.get(id), entries: snapshot, request, retry, ready,
+  return useMemo(() => ({ get: (id: string) => snapshot.get(id), entries: snapshot, request, retry, ready, quiz,
+    interactionFor: (id: string) => { const entry = snapshot.get(id); return entry?.status === 'ready' ? quiz.interaction(id, entry.result) : undefined; },
     controls: { provider, consented, onConsent, hasTranscript: !!sentences?.length } }),
-  [snapshot, request, retry, ready, provider, consented, onConsent, sentences]);
+  [snapshot, request, retry, ready, quiz, provider, consented, onConsent, sentences]);
 }
