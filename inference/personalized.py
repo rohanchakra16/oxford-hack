@@ -2,11 +2,19 @@
 
 from dataclasses import replace
 
+from oxford_hack.contracts.payloads import DetectorInfo
+
 from .calibration import CalibrationMemory, calibration_statistics
 from .live_combined import CombinedLiveAttention
 
 
 class PersonalizedAttention(CombinedLiveAttention):
+    detector = DetectorInfo(
+        detector_id="experimental-live-eeg-personal-reminders",
+        detector_version="0.1.0",
+        config_version="personal-model-v1",
+    )
+
     def __init__(self, context, memory=None):
         super().__init__(context)
         self.config = replace(self.config, smoothing_ms=2500)
@@ -80,13 +88,7 @@ class PersonalizedAttention(CombinedLiveAttention):
             if (f.name, f.unit, f.channel)
             == (self.config.feature_name, self.config.feature_unit, None)
         ]
-        confidence = [f.value for f in window.features if f.name == "model_confidence"]
-        if (
-            len(raw) != 1
-            or raw[0] is None
-            or not 0 <= raw[0] <= 100
-            or (confidence and (confidence[0] is None or confidence[0] < 0.6))
-        ):
+        if len(raw) != 1 or raw[0] is None or not 0 <= raw[0] <= 100:
             self._reset()
             self.calibration_message = "Model output or confidence unavailable"
             return []
