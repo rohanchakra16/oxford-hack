@@ -263,11 +263,55 @@ button:disabled {
 .workspace {
   width: min(1320px, 100%);
   margin: 0 auto;
-  padding: 28px max(4vw, 20px) 56px;
+  padding: 16px max(4vw, 20px) 40px;
 }
 
 .welcome-row {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+/* A single file-action row leaves the video and attention graph on the same baseline. */
+.media-file-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.media-file-toolbar > div { min-width: 0; }
+
+.media-file-toolbar .media-file-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: 7px;
+  background: var(--ui-surface);
+  color: var(--ui-ink-2);
+  font-size: 13px;
+  font-weight: 550;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.media-file-toolbar .media-file-action:hover {
+  background: var(--ui-accent-wash);
+  border-color: var(--ui-accent);
+  color: var(--ui-accent-ink);
+  box-shadow: none;
+}
+
+.media-file-toolbar .media-file-action:active { transform: none; }
+.media-file-toolbar .media-file-action svg { flex: none; }
+
+@media (max-width: 380px) {
+  .media-file-toolbar { gap: 6px; }
+  .media-file-toolbar .media-file-action { padding: 0 9px; gap: 6px; font-size: 12px; }
 }
 
 .welcome-row h1 {
@@ -278,7 +322,7 @@ button:disabled {
 }
 
 .welcome-copy {
-  max-width: 62ch;
+  max-width: none;
   margin-top: 4px;
   color: var(--ui-ink-2);
 }
@@ -302,6 +346,7 @@ button:disabled {
   .content-grid {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 24px;
   }
 
@@ -419,6 +464,11 @@ button:disabled {
   background: #0e0f11;
   box-shadow: var(--ui-shadow-2);
   max-height: 72vh;
+}
+
+.player-card .lp--normal .lp-stage {
+  /* Reserve the header, file row and playback controls on laptop-height windows. */
+  max-height: min(62svh, max(160px, calc(100svh - 400px)));
 }
 
 .lp-video {

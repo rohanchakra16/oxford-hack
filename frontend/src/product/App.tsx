@@ -171,6 +171,8 @@ function DeviceStatus({ clientKind, sensors }: { clientKind: string; sensors: Re
 }
 
 export default function App() {
+  const [lectureFileTarget, setLectureFileTarget] = useState<HTMLDivElement | null>(null);
+  const [transcriptFileTarget, setTranscriptFileTarget] = useState<HTMLDivElement | null>(null);
   const [client] = useState(() => createReviewClient());
   useReviewConnection(client);
   const snapshot = useReviewSnapshot(client);
@@ -378,10 +380,16 @@ export default function App() {
           </div>
         )}
 
+        <div className="media-file-toolbar" role="group" aria-label="Lecture files">
+          <div ref={setLectureFileTarget} />
+          <div ref={setTranscriptFileTarget} />
+        </div>
+
         <div className="content-grid">
           <div className="main-column">
             <section className="player-card" aria-label="Lecture video">
               <LecturePlayer client={client} session={sessionSettings} ref={setPlayer} onLectureChange={onLectureChange}
+                filePickerTarget={lectureFileTarget}
                 viewMode={viewMode} onViewModeChange={setViewMode}
                 overlay={<AttentionInfoIndicator store={attentionStore} onSeek={seekAttention} />} />
               {activeBookmarks.length > 0 && <nav aria-label="Saved bookmark flags" className="focus-bookmark-flags">
@@ -418,7 +426,7 @@ export default function App() {
                 <h2 id="transcript-title">Transcript</h2>
               </div>
               {/* key: a new lecture starts without the previous lecture's transcript */}
-              <TranscriptPanel key={lecture?.videoId ?? 'none'} player={player} onTranscriptChange={setTranscript} />
+              <TranscriptPanel key={lecture?.videoId ?? 'none'} player={player} onTranscriptChange={setTranscript} filePickerTarget={transcriptFileTarget} />
             </section>
           </div>
 

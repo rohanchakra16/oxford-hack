@@ -4,6 +4,7 @@
  * Owner: Person 4 (@aryanmorarji). See src/transcript/README.md.
  */
 import { memo, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { formatMediaTime, type PlayerHandle } from '../player';
 import { durationMismatch, loadTranscriptFile, type Transcript } from './load';
 import { sentenceIndexAt, type Sentence } from './sentences';
@@ -14,13 +15,15 @@ export interface TranscriptPanelProps {
   player: PlayerHandle | null;
   /** Called when a transcript is loaded or cleared (e.g. so the review UI can pick sentence starts). */
   onTranscriptChange?: (transcript: Transcript | null) => void;
+  /** Optional shared file toolbar; transcript parsing and follow state remain here. */
+  filePickerTarget?: HTMLElement | null;
 }
 
 type PanelState = { kind: 'empty' } | { kind: 'loading'; fileName: string } | { kind: 'error'; message: string };
 
 const NOOP_SUBSCRIBE = () => () => {};
 
-export function TranscriptPanel({ player, onTranscriptChange }: TranscriptPanelProps) {
+export function TranscriptPanel({ player, onTranscriptChange, filePickerTarget }: TranscriptPanelProps) {
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [state, setState] = useState<PanelState>({ kind: 'empty' });
   const [follow, setFollow] = useState(true);
@@ -69,21 +72,30 @@ export function TranscriptPanel({ player, onTranscriptChange }: TranscriptPanelP
   const mismatch = transcript ? durationMismatch(transcript, durationS) : null;
   const canSeek = player !== null && durationS !== null;
 
+  const filePicker = (
+    <label className="tp-open media-file-action">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Zm0 0v6h6M8 13h8m-8 4h5" />
+      </svg>
+      <span>Open transcript</span>
+      <input
+        type="file"
+        accept=".vtt,.srt,text/vtt"
+        aria-label="Open transcript"
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          if (file) void open(file);
+        }}
+      />
+    </label>
+  );
+
   return (
     <section className="tp" aria-label="Transcript">
-      <div className="tp-toolbar">
-        <label className="tp-open">
-          <span>Open transcript</span>
-          <input
-            type="file"
-            accept=".vtt,.srt,text/vtt"
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0];
-              e.currentTarget.value = '';
-              if (file) void open(file);
-            }}
-          />
-        </label>
+      {filePickerTarget && createPortal(filePicker, filePickerTarget)}
+      {(!filePickerTarget || transcript) && <div className="tp-toolbar">
+        {!filePickerTarget && filePicker}
         {transcript && (
           <>
             <label className="tp-follow">
@@ -95,7 +107,7 @@ export function TranscriptPanel({ player, onTranscriptChange }: TranscriptPanelP
             </button>
           </>
         )}
-      </div>
+      </div>}
 
       {state.kind === 'loading' && <p role="status">Reading {state.fileName}…</p>}
       {state.kind === 'error' && (
