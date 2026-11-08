@@ -4,6 +4,7 @@
  * const questions = useBookmarkQuestions({ bookmarks: activeBookmarks, sentences: transcript?.sentences ?? null,
  *   videoId: lecture?.videoId ?? null, enabled: client.kind === 'live' });
  * questions.get(bookmark.bookmarkId)  // QuestionEntry | undefined
+ * questions.request(bookmark)  // explicit per-passage request (default; set auto: true to generate eagerly)
  * questions.retry(bookmark)
  *
  * `enabled` must be false for the synthetic adapter and whenever the viewer has not agreed to
@@ -22,10 +23,12 @@ export interface UseBookmarkQuestionsArgs {
   sentences: readonly Sentence[] | null;
   videoId: string | null;
   enabled: boolean;
+  /** Generate for every bookmark as it appears. Default false: only `request(bookmark)` sends text. */
+  auto?: boolean;
   backendUrl?: string;
 }
 
-export function useBookmarkQuestions({ bookmarks, sentences, videoId, enabled, backendUrl }: UseBookmarkQuestionsArgs) {
+export function useBookmarkQuestions({ bookmarks, sentences, videoId, enabled, auto = false, backendUrl }: UseBookmarkQuestionsArgs) {
   const backend = backendUrl ?? (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? DEFAULT_BACKEND_URL;
   const [store] = useState<QuestionStore>(() =>
     createQuestionStore((bookmark, excerpt, signal) =>
@@ -36,7 +39,7 @@ export function useBookmarkQuestions({ bookmarks, sentences, videoId, enabled, b
   useEffect(() => () => store.dispose(), [store]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !auto) return;
     for (const bookmark of bookmarks) {
       // A transcript opened after the bookmark arrived: try again now that there is text.
       if (sentences?.length && store.getSnapshot().get(bookmark.bookmarkId)?.status === 'no_transcript') {
@@ -45,8 +48,14 @@ export function useBookmarkQuestions({ bookmarks, sentences, videoId, enabled, b
         store.ensure(bookmark, sentences);
       }
     }
-  }, [store, bookmarks, sentences, enabled]);
+  }, [store, bookmarks, sentences, enabled, auto]);
 
-  const retry = useCallback((bookmark: BookmarkRange) => store.retry(bookmark, sentences), [store, sentences]);
-  return useMemo(() => ({ get: (id: string) => snapshot.get(id), entries: snapshot, retry }), [snapshot, retry]);
+  // Explicit, per-passage request (the student pressed "Test your recall"). No-op when disabled.
+  const request = useCallback((bookmark: BookmarkRange) => {
+    if (!enabled) return;
+    if (store.getSnapshot().has(bookmark.bookmarkId)) store.retry(bookmark, sentences);
+    else store.ensure(bookmark, sentences);
+  }, [store, sentences, enabled]);
+  const retry = useCallback((bookmark: BookmarkRange) => { if (enabled) store.retry(bookmark, sentences); }, [store, sentences, enabled]);
+  return useMemo(() => ({ get: (id: string) => snapshot.get(id), entries: snapshot, request, retry }), [snapshot, request, retry]);
 }
