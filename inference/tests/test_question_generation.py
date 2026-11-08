@@ -70,9 +70,11 @@ def test_cache_avoids_second_request():
     assert again.cached and len(t.calls) == 1
 
 
-def test_paraphrased_quote_is_flagged_not_rejected():
+def test_unmatched_quote_is_rejected():
     t = FakeTransport(reply(good_content(quote="Current falls when resistance goes up")))
-    assert gen(t).generate(EXCERPT).quote_verified is False
+    with pytest.raises(QuestionGenerationError) as error:
+        gen(t).generate(EXCERPT)
+    assert error.value.code == "invalid_output"
 
 
 def test_fenced_json_is_accepted():
@@ -186,4 +188,5 @@ def test_route_success_and_errors():
     r = c.post("/api/v0/questions", json={**BODY, "text": EXCERPT + " Next point."}, headers=h)
     assert r.status_code == 429 and r.headers["retry-after"] == "12" and r.json()["error"] == "rate_limited"
     status = c.get("/api/v0/questions/status", headers=h).json()
-    assert status == {"configured": True, "model": "openrouter/free", "promptVersion": "recall-q-v1"}
+    assert status["configured"] and status["model"] == "openrouter/free"
+    assert status["promptVersion"] == "recall-q-v2-context"

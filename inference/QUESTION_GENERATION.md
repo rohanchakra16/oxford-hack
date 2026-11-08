@@ -1,199 +1,150 @@
-# Bookmark-linked recall questions (OpenRouter, demo)
+# Recall questions and lecture context (#72)
 
-Owner: @aryanmorarji (Person 4). Issue: #72. Branch: `72-bookmark-questions`.
+The local demo offers two explicit providers in **Review moments → Recall questions**:
 
-Status: **implemented and unit-tested on this branch; not yet mounted in the live backend or shown
-in the product UI.** Both need short handoffs (below). Not a validated learning tool: questions are
-AI-generated study prompts. Nothing is graded.
+- **OpenRouter / free models** uses the existing backend `OPENROUTER_API_KEY` and optional
+  `OPENROUTER_MODEL` (default `openrouter/free`). Free models are not necessarily open-source.
+- **My ChatGPT Plus / Pro connection** uses supported Sign in with ChatGPT and account-specific
+  models. It consumes the connected account's Work/Codex plan allowance. It does not use a
+  ChatGPT password, borrow Codex's credentials, or require an OpenAI API key.
 
-## What it does
+Questions remain optional, requested from saved moments, and do not control playback.
+Bookmark summaries are deferred. This feature does not collect, grade or score student answers.
 
-When a review bookmark appears, the app writes one short recall question about the lecture content
-that bookmark covers, with a suggested answer and a supporting quote from the transcript. The
-student can open it later from the bookmark (timeline/moments placement is a later UI decision).
+## Demo setup
 
-```text
-Bookmark arrives in the browser (ReviewClient snapshot)
-  -> browser picks the transcript excerpt for the bookmark's evidence interval    frontend/src/questions/excerpt.ts
-  -> entry = "generating"; POST /api/v0/questions to the local backend           frontend/src/questions/client.ts
-       -> backend checks Origin + launch token, cache, rate-limit block           inference/question_generation.py
-       -> OpenRouter chat completions (only the excerpt text is sent)
-       -> validate JSON, check the quote is in the excerpt, cache
-  -> entry = "ready" | "insufficient_context" | "unavailable" (retryable)        frontend/src/questions/store.ts
-```
+1. Run the normal repository setup (`npm run setup`) so the platform environment includes
+   `PyJWT[crypto]` for signed identity-token validation. Start the normal backend/frontend and
+   pair the browser with the backend's launch-token link.
+2. Load a lecture and transcript. In Recall questions, choose a provider.
+3. For OpenRouter, configure its key in the backend environment (never the frontend). A missing
+   key disables this option and leaves ChatGPT selectable.
+4. For ChatGPT, press **Continue with ChatGPT**, sign in on OpenAI's page, and approve plan usage.
+   Back in ReMind, choose the connected account and an available model. Multiple registrations
+   can be kept separate; reconnecting uses that registration's issued client ID and stable host ID.
+5. Approve the transcript-processing checkbox. This permits the selected external provider to
+   analyse the complete transcript once, then receive the fixed overview and relevant passages
+   when a question is requested. No transcript is uploaded merely by loading it or connecting.
+6. Add a saved moment and press **Test your recall**. Reveal the suggested answer when ready.
 
-Why this split:
+Provider, model or transcript changes require fresh transcript consent and clear question results.
+There is no automatic fallback to another provider or billing path. Use **Manage ChatGPT usage**
+to review plan limits. Disconnect stops local use and attempts remote session revocation; if
+revocation cannot be confirmed, the UI directs the user to disconnect ReMind in ChatGPT settings.
 
-- `payloads.py` already says `TranscriptContext` is **filled by the browser (P4)**; the backend has no
-  transcript. So the browser chooses the excerpt and the backend only holds the key.
-- The key must never reach the browser, so the model call is on the backend.
-- Generation is background work. Bookmarks, playback, replay and feedback never wait for it, and a
-  failure only changes the question entry.
+**Token storage for this demo:** access, refresh and ID tokens stay in backend memory, outside
+browser storage and logs. Restarting the backend requires sign-in again. Only the nonsecret host
+ID and verified account/client registration metadata persist in ignored
+`.local/chatgpt/registrations.json`. No secrets are written into the repository.
 
-No new dependencies (stdlib `urllib` in Python; `fetch` in the browser). No wire-schema change:
-`/api/v0/questions` is prototype-local, like the attention endpoints.
+## Original-transcript context, not a rolling conversation
 
-## Set up (demo laptop)
+On the first requested question for a transcript/provider/model:
 
-1. Create an OpenRouter account and a key at https://openrouter.ai/keys.
-2. Put it in the backend's environment only. Never in frontend code, `.env` files committed to Git,
-   screenshots or the board:
+1. The browser posts the original timestamped transcript sentences to the local context route.
+2. The backend splits long transcripts at sentence boundaries into bounded original-source chunks
+   (24,000 characters / 80 sentences per chunk). The model creates contiguous semantic topic blocks
+   with a brief summary and purpose: teaching, break, personal, administrative or uncertain.
+3. Block indexes must cover every original sentence exactly once, in order. Invalid coverage is
+   rejected. Times are taken from the original transcript, including overlapping caption end times.
+4. The ordered chunk summaries produce one brief global overview (up to 1,600 characters).
+5. Overview, blocks and original source sentences are cached. Subsequent questions retrieve blocks
+   by the bookmark's evidence interval, plus neighboring original evidence for context. The question
+   still needs a supporting quote matching the local excerpt; global context cannot substitute for it.
 
-   ```bash
-   export OPENROUTER_API_KEY=...            # required
-   export OPENROUTER_MODEL=openrouter/free  # optional; default openrouter/free
-   ```
+Questions and student answers never become inputs to context preparation. The overview is not
+updated after each question. The initial preparation can require multiple model requests for a long
+lecture; it is not one model request per block or repeated whole-lecture analysis per bookmark.
 
-3. Check it works with one real request (the first milestone):
+Cache keys include transcript text and timestamps, video, model and context/prompt version. Concurrent
+preparations are deduplicated. Context caches hold eight lectures per provider/model in memory;
+restarting the backend clears them. The browser rebuilds an evicted context once when needed.
+The request limits are 500,000 transcript characters and 10,000 sentences. An individual sentence
+above the context chunk limit is rejected, never silently cut.
 
-   ```bash
-   cd platform
-   PYTHONPATH="..:src" uv run python -m inference.question_generation
-   PYTHONPATH="..:src" uv run python -m inference.question_generation --text "your own excerpt"
-   ```
+## Sentence and output limits
 
-   It prints the JSON result and how long it took. Each run uses one request from the free daily
-   allowance.
+The local question excerpt has a **3,000-character soft target / 3,500 hard limit**. It grows backwards
+from the end of the flagged range, with up to 20 seconds of earlier context. Whole sentences only:
+adding one may cross the soft target, but not the hard limit. Earlier whole sentences are omitted
+when necessary. An oversized final target sentence yields insufficient context rather than a sliced
+sentence. A sentence starting in the target may finish beyond it; this is boundary completion,
+not a guarantee of zero text beyond the evidence end. Manual marks look back 20 seconds.
 
-4. Start the backend as usual (after the mount handoff below).
+Generated question, suggested answer and quote have a combined 3,000-character soft target and
+3,500 hard maximum. The old 400/600/600 string slicing is removed. Oversized output or a provider
+truncation signal receives at most one regeneration attempt. Only complete successful output is
+cached; repeated incomplete output becomes unavailable, never a fabricated successful question.
+OpenRouter requests have a larger token budget on retry. ChatGPT plan requests follow their preview
+contract, which does not accept a `max_output_tokens` field, so the retry asks for a shorter response.
 
-### Model choice
+The supporting quote must match the local transcript after case/punctuation normalization. An unmatched
+quote is rejected. A matching quote is evidence of source overlap, not proof of educational correctness.
 
-`openrouter/free` picks an available free model per request and only routes to models that support
-the request's structured-output format. Good for getting started; question style can vary between
-requests. For the demo, test a few `:free` models on your lecture and pin the best with
-`OPENROUTER_MODEL`. The result reports the model that actually answered.
+## Relevance and intentional skips
 
-### Free-tier limits
+Every question prompt receives the fixed global overview, timestamp-matched teaching blocks,
+original local target and neighboring evidence. The model can return `skipped_non_instructional`
+with a reason for breaks, logistics or unrelated personal digressions. The card explains the skip;
+the bookmark and replay remain available. Simple explanations, revision and anecdotes that teach
+relevant concepts remain eligible. Uncertain relevance returns `insufficient_context` instead of
+asserting that the passage is irrelevant. These judgments require real-lecture quality evaluation.
 
-OpenRouter free models are limited per minute and per day, and failed attempts count. This module:
+## Local HTTP routes
 
-- sends one request at a time;
-- caches by model + prompt version + excerpt, so the same excerpt never costs a second request;
-- skips the request entirely for excerpts under 12 words (`insufficient_context`);
-- on HTTP 429, blocks further calls until `Retry-After` (60 s if absent) instead of retrying, and
-  the UI shows "Free question limit reached" with a manual "Try again".
+Every route below requires an allowed browser Origin and the backend `x-launch-token`.
+No OAuth access/refresh/ID tokens are returned to the frontend.
 
-The cache is in memory: restarting the backend clears it (as with bookmarks). For the presentation,
-generate the questions for the demo lecture once beforehand while the backend stays running.
-
-## API
-
-`POST /api/v0/questions` — headers `origin` (allowed list) and `x-launch-token`.
-
-```json
-{ "bookmarkId": "b1", "videoId": "v1", "startMediaS": 30, "endMediaS": 60, "text": "excerpt, max 3500 chars" }
-```
-
-| Status | Body |
+| Route | Purpose |
 |---|---|
-| 200 | `{ status: "ready", question, suggestedAnswer, supportingQuote, quoteVerified, model, promptVersion, cached, generatedAtUnixS, bookmarkId, videoId }` |
-| 200 | `{ status: "insufficient_context", ... }` (empty question fields) |
-| 401 / 403 | `not_authenticated` / `origin_rejected` |
-| 429 | `{ error: "rate_limited", message, retryAfterS }` plus `Retry-After` header |
-| 502 | `provider_error` or `invalid_output` |
-| 503 | `not_configured` (no key, or key rejected) |
-| 504 | `timeout` (25 s) |
+| `GET /api/v0/questions/status` | OpenRouter readiness and safe ChatGPT account/connection metadata |
+| `POST /api/v0/questions/chatgpt/connect` | `{ accountId?: string }` → OpenAI authorization URL |
+| `GET /api/v0/questions/chatgpt/models?accountId=...` | Current account's visible model slugs and labels |
+| `POST /api/v0/questions/chatgpt/disconnect` | Clear account session and attempt remote revocation |
+| `POST /api/v0/questions/context` | Original sentences + video + selected provider/account/model → cached context ID |
+| `POST /api/v0/questions` | Bookmark excerpt + evidence range + context ID + selection → question/skip/outcome |
 
-`GET /api/v0/questions/status` returns `{ configured, model, promptVersion }`.
+Selection is `{ provider: "openrouter" }` or
+`{ provider: "chatgpt", accountId: "...", model: "account-visible-slug" }`.
+Context sentences are `{ startMediaS, endMediaS, text }`. A question request retains the existing
+`bookmarkId`, `videoId`, `startMediaS`, `endMediaS`, `text` fields and adds `selection`, `contextId`,
+`targetStartMediaS`, `targetEndMediaS`. Context IDs are scoped to the selected provider/account/model
+and video. A stale or mismatched context returns 409 `context_expired`.
 
-`quoteVerified` means the quote appears word for word (ignoring case and punctuation) in the excerpt
-sent. It is a grounding hint, not a check that the question or answer is correct. A paraphrased
-quote is kept but labelled "Not found word-for-word in the transcript".
+The legacy excerpt-only request remains supported for offline evaluation. The live browser always
+prepares context after explicit consent. `scheduler_provider()` remains an optional offline adapter;
+do not mount it in live scheduling, where its synchronous generation would block polling and
+could duplicate the user's explicit request.
 
-## Prompt
+## Supported ChatGPT protocol
 
-Version `recall-q-v1` (`SYSTEM_PROMPT` in `question_generation.py`): one short recall question about
-the central teaching point, answerable from the excerpt only; answer supported by the excerpt; quote
-copied exactly; excerpt treated as data, not instructions; no mention of attention/EEG/missing
-content; `insufficient_context` when there is nothing specific to ask. Output is constrained with
-`response_format: json_schema` and `provider.require_parameters: true`; a fenced or wrapped JSON
-reply is also accepted. Change `PROMPT_VERSION` whenever the prompt changes so cached answers from
-the old prompt are not reused.
+- Dynamic registration starts with `dynamic_agent_client`, stable `ext_agent_host_id`, fresh state,
+  nonce and S256 PKCE. The callback supplies an issued client ID for code exchange.
+- Callback is a temporary `127.0.0.1` listener at `/auth/callback`; state, exact redirect URI,
+  token signature, issuer, audience, expiry and nonce are validated. Returning accounts must match.
+- Plan permission is checked from granted scopes. Refresh is serialized per backend process and
+  checks identity and current scopes. Tokens do not enter URLs or frontend storage.
+- Models come from `GET https://api.openai.com/v1/models` using the selected account token.
+- Inference uses the public Responses API with `store:false`, `stream:true`, developer instructions
+  and explicit input. It omits unsupported temperature/output-token fields and requires
+  `response.completed`; failures, interruptions and quota events are not treated as success.
 
-## Excerpt selection (browser)
+Official documentation: [sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in),
+[models/inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference),
+[preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations).
+This integration targets the locally run demo. Paid or remotely hosted deployment needs the
+appropriate Sign in with ChatGPT access approval.
 
-`excerptForBookmark(sentences, bookmark)`:
+## Verification
 
-- interval = `evidenceMedia` (the content the bookmark covers), not the arrival time; manual bookmarks
-  use the 20 s before the mark;
-- whole transcript sentences overlapping `[start − 20 s, end]`;
-- no sentence starting after the interval; one starting inside it may finish beyond the interval;
-- target 3000 characters, allowing a complete sentence up to a hard 3500-character limit;
-- build backwards from the interval end, dropping earlier whole sentences rather than slicing text;
-- a single target sentence exceeding 3500 characters produces no excerpt; the backend also rejects
-  over-limit input rather than silently truncating it;
-- no overlapping speech → `insufficient_context`, no request.
-
-## Privacy
-
-Only the excerpt text, bookmark id and video id reach the local backend, and only the excerpt text is
-sent to OpenRouter (an external service). No EEG, gaze, webcam, attention score or student answer is
-sent. Before this was added the transcript never left the browser; this feature changes that, so:
-
-- `useBookmarkQuestions({ enabled })` must be false unless the viewer has agreed to send excerpts
-  to OpenRouter, and always false for the synthetic adapter;
-- use only lecture material the team is allowed to send to a third party.
-
-## Handoffs needed
-
-### @rohanchakra16 — mount the route (platform CLI, 2 lines)
-
-In `platform/src/oxford_hack/cli.py`, after `app = create_app(config, hub_factory)`:
-
-```python
-from inference.question_generation import register_question_routes  # type: ignore[import-not-found,unused-ignore]
-
-register_question_routes(app, launch_token=config.launch_token, allowed_origins=config.allowed_origins)
-```
-
-Same lazy-import pattern `cli.py` already uses for `inference.adapter`. Checked locally against the real `create_app` (CORS preflight for `x-launch-token` passes, POST
-returns the question). Without `OPENROUTER_API_KEY` the route answers 503 `not_configured` and
-nothing else changes. If you prefer it inside `create_app`, the call is the same.
-
-### @rohanchakra16 / @Betty505 — show it in the redesign
-
-```tsx
-import { BookmarkQuestion, useBookmarkQuestions } from '../questions';
-
-const questions = useBookmarkQuestions({
-  bookmarks: activeBookmarks,
-  sentences: transcript?.sentences ?? null,
-  videoId: lecture?.videoId ?? null,
-  enabled: client.kind === 'live' && questionsConsent,
-});
-
-// inside each bookmark / moment card:
-<BookmarkQuestion entry={questions.get(bookmark.bookmarkId)} onRetry={() => questions.retry(bookmark)} />
-```
-
-`BookmarkQuestion` is deliberately unstyled (class `bookmark-question`, test ids
-`bookmark-question`, `bookmark-question-text`, `bookmark-question-answer`, `bookmark-question-retry`,
-`data-status`). Placement, styling and the consent control are yours.
-
-### @Seikaro — scheduler integration (optional)
-
-`scheduler_provider(generator)` returns a `QuestionProvider` for `LecturePrototype(question_provider=...)`
-and falls back to `placeholder_question` on any failure. Suggested improvements, for you to decide:
-
-1. `QuestionScheduler.poll()` calls the provider synchronously, so a real model blocks `poll` for up
-   to the timeout. Prefetch at `queue()` time (generate in a worker when the segment is queued) and
-   keep `poll()` for presentation pacing only.
-2. `QuestionRequest.placeholder` is `Literal[True]`; real generated text needs `placeholder: false`
-   plus provenance (model, prompt version, quote).
-3. The 8-excerpt cap counts captions, not text; a character cap like the browser's is more predictable.
-
-## Tests
-
-```bash
-cd platform && PYTHONPATH="..:src" uv run pytest -p no:warnings ../inference/tests/test_question_generation.py
-cd frontend && npx vitest run src/questions
-```
-
-Covered: request shape (key only in the header, only the excerpt in the body), cache, short-excerpt
-skip, insufficient context, invalid/fenced output, quote check, missing key, 429 block and recovery,
-scheduler fallback, route auth and error mapping; excerpt interval/lead/cap/no-future rule, client
-error mapping, store de-duplication, retry, late-response discard and lecture filtering.
-
-Not tested: a real OpenRouter call in CI (needs a key and uses quota), question quality on real
-lectures, and the UI in a browser (not mounted yet).
+- Offline Python tests cover signature/nonce/audience validation, PKCE/issued clients, denied scopes,
+  serialized refresh, streaming completion, provider isolation, context cache/coverage/retrieval,
+  skip outcomes, whole-sentence input limits and complete output/regeneration limits.
+- Frontend tests cover selected-provider requests, context sharing/expiration, skipped entries,
+  missing pairing, retry and late-response discard.
+- Chromium tests use synthetic provider responses to exercise real components/hooks in StrictMode:
+  consent, provider/model choice, answer reveal, cache reuse, preserved bookmarks, failures and stale
+  responses. Run `node frontend/node_modules/@playwright/test/cli.js test --config frontend/e2e/questions.config.ts`.
+  These tests also run under the normal infrastructure browser suite.
+- A real user must complete ChatGPT authorization and verify model access on the demo machine.
+  No real account or lecture upload is used by automated tests. Educational quality is not validated.
