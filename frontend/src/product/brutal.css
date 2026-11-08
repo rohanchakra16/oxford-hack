@@ -161,3 +161,8 @@
 .decor svg { position: absolute; width: var(--s, 90px); height: auto; fill: var(--b-green, #00d26a); stroke: #1c293c; stroke-width: 2.5; stroke-linejoin: round; }
 .app-shell[data-design='brutal'] .topbar, .app-shell[data-design='brutal'] .workspace, .app-shell[data-design='brutal'] .page-footer { position: relative; z-index: 1; }
 @media (max-width: 760px) { .decor svg:nth-child(n+4) { display: none; } }
+
+/* Primary actions are blue (specificity raised above the generic tactile-control rule). */
+.app-shell[data-design='brutal'][data-design] :is(.btn.btn--primary, .button.button--primary, .import__action .lp-open):not(:disabled) { background: var(--b-blue); color: var(--b-ink); }
+.app-shell[data-design='brutal'][data-design] :is(.btn.btn--primary, .button.button--primary, .import__action .lp-open):hover:not(:disabled) { background: var(--b-blue-hover); }
+.app-shell[data-design='brutal'][data-design] .moment-rail { width: fit-content; max-width: 100%; }
