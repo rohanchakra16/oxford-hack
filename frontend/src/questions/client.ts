@@ -13,7 +13,7 @@ export interface ProviderSelection { provider: 'openrouter' | 'chatgpt'; account
 export interface QuestionAccount { id: string; label: string; connected: boolean; planEnabled: boolean }
 export interface QuestionProviderStatus {
   configured: boolean; model: string;
-  chatgpt: { pending: boolean; error: string | null; accounts: QuestionAccount[] };
+  chatgpt: { pending: boolean; error: string | null; accounts: QuestionAccount[]; lastConnectedAccountId?: string | null };
 }
 
 export interface GeneratedQuestion {
@@ -79,6 +79,9 @@ export async function questionApi<T>(path: string, options: RequestOptions, body
   } catch (error) {
     if (options.signal?.aborted) throw error;
     throw new QuestionApiError('network', MESSAGES.network);
+  }
+  if (response.status === 404) {
+    throw new QuestionApiError('backend_error', 'This backend is missing recall-question support. Restart the backend from the updated app, then refresh provider status.');
   }
   const data = await response.json() as Record<string, unknown>;
   if (!response.ok) {

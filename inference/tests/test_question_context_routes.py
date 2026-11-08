@@ -108,6 +108,14 @@ BODY = {
 }
 
 
+def test_cancel_sign_in_requires_origin_and_launch_token(tmp_path):
+    client, _ = setup(tmp_path)
+    path = "/api/v0/questions/chatgpt/cancel"
+    assert client.post(path).status_code == 403
+    assert client.post(path, headers={"origin": ORIGIN}).status_code == 401
+    assert client.post(path, headers=HEADERS).json() == {"cancelled": True}
+
+
 def test_context_preparation_is_authenticated_cached_and_original_only(tmp_path):
     client, provider = setup(tmp_path)
     assert client.post("/api/v0/questions/context", json=BODY).status_code == 403

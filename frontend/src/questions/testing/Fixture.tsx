@@ -2,6 +2,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BookmarkQuestion, QuestionProviderControls, useBookmarkQuestions, type BookmarkRange } from '../index';
 import type { Sentence } from '../../transcript';
+import '../../product/product.css';
+import '../../product/brutal.css';
 
 const sentences: Sentence[] = [
   { index: 0, startS: 0, endS: 10, text: 'Voltage drives current through a circuit and resistance limits the flow of charge.', cueIndices: [0] },
@@ -15,7 +17,7 @@ const bookmarks: BookmarkRange[] = [
 
 function Fixture() {
   const questions = useBookmarkQuestions({ bookmarks, sentences, videoId: 'v1', enabled: true, backendUrl: window.location.origin });
-  return <main>
+  return <main className="app-shell" data-design="brutal" style={{ maxWidth: 440, margin: '0 auto', padding: 16 }}>
     <h1>Saved lecture moments</h1>
     <QuestionProviderControls {...questions.controls} />
     {bookmarks.map((bookmark) => <article key={bookmark.bookmarkId} data-testid={`saved-${bookmark.bookmarkId}`}>

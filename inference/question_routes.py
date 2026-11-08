@@ -53,6 +53,7 @@ class ContextQuestionInput(QuestionInput):
 
 class AccountInput(_Camel):
     account_id: str | None = Field(default=None, max_length=64)
+    request_plan_usage: bool = False
 
 
 class ProviderRegistry:
@@ -192,10 +193,19 @@ def register_routes(
         if (error := denied(request)) is not None:
             return error
         try:
-            url = await asyncio.to_thread(chatgpt.begin, body.account_id)
+            url = await asyncio.to_thread(
+                chatgpt.begin, body.account_id, request_plan_usage=body.request_plan_usage
+            )
             return JSONResponse({"authorizationUrl": url})
         except QuestionGenerationError as exception:
             return error_response(exception)
+
+    @app.post("/api/v0/questions/chatgpt/cancel")
+    async def cancel_connect(request: Request) -> JSONResponse:
+        if (error := denied(request)) is not None:
+            return error
+        chatgpt.cancel()
+        return JSONResponse({"cancelled": True})
 
     @app.post("/api/v0/questions/chatgpt/disconnect")
     async def disconnect(request: Request, body: AccountInput) -> JSONResponse:

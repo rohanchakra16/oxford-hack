@@ -130,6 +130,36 @@ def test_plan_permission_is_required_and_models_are_account_specific(tmp_path):
     assert c.models(key) == [{"id": "visible-model", "label": "Visible"}]
 
 
+def test_explicit_plan_enable_requests_consent_for_saved_account(tmp_path):
+    c, service = connection(tmp_path)
+    service.scopes = "openid email"
+    key, _ = sign_in(c)
+    query = parse_qs(urlparse(c.begin(key, request_plan_usage=True)).query)
+    assert query["prompt"] == ["consent"]
+    assert query["client_id"] == ["oaiapp_synthetic"]
+    assert PLAN_SCOPE in query["scope"][0].split()
+    c.cancel()
+    ordinary = parse_qs(urlparse(c.begin(key)).query)
+    assert "prompt" not in ordinary
+    c.cancel()
+
+
+def test_cancel_allows_immediate_retry_and_rejects_old_callback(tmp_path):
+    c, _ = connection(tmp_path)
+    key, _ = sign_in(c)
+    assert c.status()["lastConnectedAccountId"] == key
+    abandoned = parse_qs(urlparse(c.begin()).query)
+    c.cancel()
+    assert c.status()["pending"] is False
+    fresh = parse_qs(urlparse(c.begin()).query)
+    with pytest.raises(QuestionGenerationError):
+        c.complete({"state": abandoned["state"][0], "code": "old", "client_id": "oaiapp_test"})
+    assert c.status()["pending"] is True
+    assert fresh["state"] != abandoned["state"]
+    assert c.access_token(key) == "synthetic-access"
+    c.cancel()
+
+
 def test_concurrent_refresh_is_serialized(tmp_path):
     now = [1000.0]
     c, service = connection(tmp_path, clock=lambda: now[0])
@@ -193,6 +223,23 @@ def test_id_token_signature_audience_and_nonce_are_checked(monkeypatch):
     bad = jwt.encode({**claims, "exp": 1}, private, algorithm="RS256")
     with pytest.raises(QuestionGenerationError):
         validate_id_token(bad, "oaiapp_test", "nonce")
+
+
+def test_missing_identity_dependency_returns_an_actionable_connection_error(monkeypatch):
+    import builtins
+
+    original = builtins.__import__
+
+    def without_jwt(name, *args, **kwargs):
+        if name == "jwt":
+            raise ImportError("missing dependency")
+        return original(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_jwt)
+    with pytest.raises(QuestionGenerationError) as error:
+        validate_id_token("synthetic-token", "oaiapp_test", "nonce")
+    assert error.value.code == "not_configured"
+    assert "Install the backend dependencies" in error.value.message
 
 
 @pytest.mark.parametrize("terminal", ["response.completed", "response.incomplete", None, "response.failed"])

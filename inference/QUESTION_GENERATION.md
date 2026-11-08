@@ -20,12 +20,23 @@ Bookmark summaries are deferred. This feature does not collect, grade or score s
 3. For OpenRouter, configure its key in the backend environment (never the frontend). A missing
    key disables this option and leaves ChatGPT selectable.
 4. For ChatGPT, press **Continue with ChatGPT**, sign in on OpenAI's page, and approve plan usage.
-   Back in ReMind, choose the connected account and an available model. Multiple registrations
+   Back in ReMind, the completed account and its first available model are selected automatically.
+   You can switch accounts or models explicitly. Multiple registrations
    can be kept separate; reconnecting uses that registration's issued client ID and stable host ID.
 5. Approve the transcript-processing checkbox. This permits the selected external provider to
    analyse the complete transcript once, then receive the fixed overview and relevant passages
    when a question is requested. No transcript is uploaded merely by loading it or connecting.
 6. Add a saved moment and press **Test your recall**. Reveal the suggested answer when ready.
+
+The setup card explains any reason transcript consent is unavailable. A failed or empty model
+catalog has a retry action; **Refresh provider status** also reloads the selected account's models.
+Use **Cancel sign-in** to abandon a browser sign-in immediately and start again. If sign-in
+succeeded without plan permission, **Enable ChatGPT plan usage** explicitly repeats OAuth with
+the saved client ID, full scope set and `prompt=consent`; ordinary reconnects do not force consent.
+
+For a physical-EEG launch that selects `inference/.venv`, install `PyJWT[crypto]>=2.10,<3`
+in that interpreter too. It verifies the ChatGPT identity token. A backend started before the
+questions routes were installed must be restarted; a frontend reload alone cannot add those routes.
 
 Provider, model or transcript changes require fresh transcript consent and clear question results.
 There is no automatic fallback to another provider or billing path. Use **Manage ChatGPT usage**
@@ -99,6 +110,7 @@ No OAuth access/refresh/ID tokens are returned to the frontend.
 |---|---|
 | `GET /api/v0/questions/status` | OpenRouter readiness and safe ChatGPT account/connection metadata |
 | `POST /api/v0/questions/chatgpt/connect` | `{ accountId?: string }` → OpenAI authorization URL |
+| `POST /api/v0/questions/chatgpt/cancel` | Invalidate a pending sign-in; existing account sessions remain connected |
 | `GET /api/v0/questions/chatgpt/models?accountId=...` | Current account's visible model slugs and labels |
 | `POST /api/v0/questions/chatgpt/disconnect` | Clear account session and attempt remote revocation |
 | `POST /api/v0/questions/context` | Original sentences + video + selected provider/account/model → cached context ID |
@@ -110,6 +122,10 @@ Context sentences are `{ startMediaS, endMediaS, text }`. A question request ret
 `bookmarkId`, `videoId`, `startMediaS`, `endMediaS`, `text` fields and adds `selection`, `contextId`,
 `targetStartMediaS`, `targetEndMediaS`. Context IDs are scoped to the selected provider/account/model
 and video. A stale or mismatched context returns 409 `context_expired`.
+
+Connect accepts optional `requestPlanUsage: true` only for the user's explicit permission-recovery
+action. Status includes `chatgpt.lastConnectedAccountId` (nonsecret, in-memory) so a completed
+sign-in selects the correct account when more than one registration exists.
 
 The legacy excerpt-only request remains supported for offline evaluation. The live browser always
 prepares context after explicit consent. `scheduler_provider()` remains an optional offline adapter;
