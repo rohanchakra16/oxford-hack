@@ -7,11 +7,12 @@ from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
+
 from oxford_hack.contracts import SCHEMA_VERSION
 from oxford_hack.harness.synthetic import simulation_factory
 from oxford_hack.session.hub import Hub, IdFactory
 from oxford_hack.transport.app import ServerConfig, create_app
-from starlette.websockets import WebSocketDisconnect
 
 TOKEN = "test-launch-token-0123456789"
 ORIGIN = "http://127.0.0.1:5173"
