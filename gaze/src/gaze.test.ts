@@ -422,6 +422,38 @@ describe("PointSmoother", () => {
   it("passes points through when disabled", () => {
     expect(new PointSmoother(0).push(0, { x: 7, y: 8 })).toEqual({ x: 7, y: 8 });
   });
+
+  it("with an EMA, moves part of the way per frame instead of jumping, then settles", () => {
+    const s = new PointSmoother(200, 400, 180);
+    for (let t = 0; t <= 400; t += 66) s.push(t, { x: 100, y: 100 });
+    // The median flips to 400 as soon as new samples fill the 200 ms window; the EMA output moves gradually.
+    const steps: number[] = [];
+    for (let t = 466; t <= 1500; t += 66) steps.push(s.push(t, { x: 400, y: 100 }).x);
+    expect(steps[0]).toBeLessThan(300);
+    for (let i = 1; i < steps.length; i++) expect(steps[i]).toBeGreaterThanOrEqual(steps[i - 1]);
+    expect(steps[steps.length - 1]).toBeGreaterThan(395);
+  });
+
+  it("is frame-rate independent: the same elapsed time gives the same EMA response", () => {
+    const run = (dt: number) => {
+      const s = new PointSmoother(1, 400, 180); // tiny median window isolates the EMA
+      s.push(0, { x: 0, y: 0 });
+      let out = { x: 0, y: 0 };
+      for (let t = dt; t <= 360; t += dt) out = s.push(t, { x: 100, y: 0 });
+      return out.x;
+    };
+    expect(run(30)).toBeCloseTo(run(60), 0);
+  });
+
+  it("current() returns the latest estimate without adding a sample, and resets with the window", () => {
+    const s = new PointSmoother(1000, 400, 180);
+    expect(s.current()).toBeNull();
+    s.push(0, { x: 10, y: 20 });
+    const p = s.push(66, { x: 12, y: 22 });
+    expect(s.current()).toEqual(p);
+    s.reset();
+    expect(s.current()).toBeNull();
+  });
 });
 
 describe("per-axis margins", () => {
